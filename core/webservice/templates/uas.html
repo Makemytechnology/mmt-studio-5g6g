@@ -1,0 +1,350 @@
+<!-- templates/uas.html — UAS / UAV Dashboard (TS 23.256) -->
+
+<style>
+.uas-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.uas-card .t-val { font-size: 1.5rem; font-weight: 700; }
+.uas-card .t-lbl { font-size: 0.78rem; opacity: 0.9; }
+.uc-blue { background: #0d6efd; }
+.uc-green { background: #28a745; }
+.uc-orange { background: #fd7e14; }
+.uc-red { background: #dc3545; }
+.uc-gray { background: #6c757d; }
+.uas-status { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+.st-registered { background: #0d6efd; }
+.st-active { background: #28a745; }
+.st-grounded { background: #dc3545; }
+.st-authorized { background: #28a745; }
+.st-pending { background: #fd7e14; }
+.st-revoked { background: #dc3545; }
+.st-completed { background: #6c757d; }
+.st-terminated { background: #6c757d; }
+.st-failed { background: #dc3545; }
+</style>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3" id="uasSummary">
+  <div class="col"><div class="uas-card uc-blue"><div class="t-val" id="uasTotalUavs">--</div><div class="t-lbl">Total UAVs</div></div></div>
+  <div class="col"><div class="uas-card uc-green"><div class="t-val" id="uasActiveUavs">--</div><div class="t-lbl">Active UAVs</div></div></div>
+  <div class="col"><div class="uas-card uc-orange"><div class="t-val" id="uasActiveFlights">--</div><div class="t-lbl">Active Flights</div></div></div>
+  <div class="col"><div class="uas-card uc-red"><div class="t-val" id="uasC2Sessions">--</div><div class="t-lbl">C2 Sessions</div></div></div>
+  <div class="col"><div class="uas-card uc-gray"><div class="t-val" id="uasNfzCount">--</div><div class="t-lbl">No-Fly Zones</div></div></div>
+</div>
+
+<div class="mb-2">
+  <button class="btn btn-sm btn-outline-secondary" onclick="uasLoad()">Refresh</button>
+</div>
+
+<!-- UAV Registry -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>UAV Registry</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#uasRegForm">+ Register UAV</button>
+  </div>
+  <div class="collapse" id="uasRegForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label form-label-sm">IMSI</label><input class="form-control form-control-sm" id="uasRegImsi" placeholder="IMSI"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">UAV ID</label><input class="form-control form-control-sm" id="uasRegUavId" placeholder="Auto if blank"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Serial #</label><input class="form-control form-control-sm" id="uasRegSerial"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Mfg</label><input class="form-control form-control-sm" id="uasRegMfg"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Model</label><input class="form-control form-control-sm" id="uasRegModel"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Max m/s</label><input type="number" class="form-control form-control-sm" id="uasRegSpeed" value="20"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Max Alt m</label><input type="number" class="form-control form-control-sm" id="uasRegAlt" value="120"></div>
+        <div class="col-md-2"><button class="btn btn-sm btn-success w-100" onclick="uasRegister()">Register</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0" style="font-size:0.82rem;">
+      <thead><tr><th>ID</th><th>UAV ID</th><th>IMSI</th><th>Serial</th><th>Manufacturer</th><th>Model</th><th>Max Spd</th><th>Max Alt</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="uasRegTable"><tr><td colspan="10" class="text-muted">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Flight Authorization -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Flight Authorization</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#uasFlightForm">+ Authorize Flight</button>
+  </div>
+  <div class="collapse" id="uasFlightForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3"><label class="form-label form-label-sm">UAV ID</label><input class="form-control form-control-sm" id="uasFltUavId" placeholder="UAV-XXXXXXXX"></div>
+        <div class="col-md-7">
+          <label class="form-label form-label-sm">Waypoints (JSON array: [{lat,lon,alt_m}, ...])</label>
+          <input class="form-control form-control-sm" id="uasFltWaypoints" placeholder='[{"lat":13.0,"lon":77.5,"alt_m":50}]'>
+        </div>
+        <div class="col-md-2"><button class="btn btn-sm btn-success w-100" onclick="uasAuthorizeFlight()">Authorize</button></div>
+      </div>
+    </div>
+  </div>
+  <div id="uasFlightResult" class="px-3 py-2" style="font-size:0.82rem;"></div>
+</div>
+
+<!-- Position Tracking -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Position Tracking</strong></div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-md-2"><label class="form-label form-label-sm">UAV ID</label><input class="form-control form-control-sm" id="uasPosUavId" placeholder="UAV-XXXXXXXX"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Lat</label><input type="number" step="0.0001" class="form-control form-control-sm" id="uasPosLat" value="13.0"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Lon</label><input type="number" step="0.0001" class="form-control form-control-sm" id="uasPosLon" value="77.5"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Alt m</label><input type="number" class="form-control form-control-sm" id="uasPosAlt" value="50"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Hdg</label><input type="number" class="form-control form-control-sm" id="uasPosHdg" value="0"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Spd m/s</label><input type="number" class="form-control form-control-sm" id="uasPosSpd" value="5"></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-primary w-100" onclick="uasUpdatePosition()">Report</button></div>
+      <div class="col-md-2"><button class="btn btn-sm btn-outline-info w-100" onclick="uasGetPosition()">Get Position</button></div>
+      <div class="col-md-2"><button class="btn btn-sm btn-outline-warning w-100" onclick="uasCheckAnomaly()">Check Anomaly</button></div>
+    </div>
+    <div id="uasPosResult" style="font-size:0.82rem;"></div>
+  </div>
+</div>
+
+<!-- C2 Sessions -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>C2 Sessions (5QI=3 GBR)</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#uasC2Form">+ Establish C2</button>
+  </div>
+  <div class="collapse" id="uasC2Form">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3"><label class="form-label form-label-sm">UAV ID</label><input class="form-control form-control-sm" id="uasC2UavId" placeholder="UAV-XXXXXXXX"></div>
+        <div class="col-md-3"><label class="form-label form-label-sm">Controller ID</label><input class="form-control form-control-sm" id="uasC2CtrlId" placeholder="CTRL-001"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">5QI</label><input type="number" class="form-control form-control-sm" id="uasC2Qos" value="3"></div>
+        <div class="col-md-2"><button class="btn btn-sm btn-success w-100" onclick="uasEstablishC2()">Establish</button></div>
+      </div>
+    </div>
+  </div>
+  <div id="uasC2Result" class="px-3 py-2" style="font-size:0.82rem;"></div>
+</div>
+
+<!-- No-Fly Zones -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>No-Fly Zones</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#uasNfzForm">+ Add Zone</button>
+  </div>
+  <div class="collapse" id="uasNfzForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label form-label-sm">Name</label><input class="form-control form-control-sm" id="uasNfzName" placeholder="Zone name"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Lat Min</label><input type="number" step="0.01" class="form-control form-control-sm" id="uasNfzLatMin"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Lat Max</label><input type="number" step="0.01" class="form-control form-control-sm" id="uasNfzLatMax"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Lon Min</label><input type="number" step="0.01" class="form-control form-control-sm" id="uasNfzLonMin"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Lon Max</label><input type="number" step="0.01" class="form-control form-control-sm" id="uasNfzLonMax"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Alt Max m</label><input type="number" class="form-control form-control-sm" id="uasNfzAltMax" value="0"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Reason</label><input class="form-control form-control-sm" id="uasNfzReason" placeholder="Military, Airport..."></div>
+        <div class="col-md-1"><button class="btn btn-sm btn-success w-100" onclick="uasAddNfz()">Add</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0" style="font-size:0.82rem;">
+      <thead><tr><th>ID</th><th>Name</th><th>Lat</th><th>Lon</th><th>Alt Max</th><th>Reason</th><th>Actions</th></tr></thead>
+      <tbody id="uasNfzTable"><tr><td colspan="7" class="text-muted">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Remote ID & Flight History -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Remote ID / Flight History</strong></div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-md-3"><label class="form-label form-label-sm">UAV ID</label><input class="form-control form-control-sm" id="uasRidUavId" placeholder="UAV-XXXXXXXX"></div>
+      <div class="col-md-2"><button class="btn btn-sm btn-outline-primary" onclick="uasGetRemoteId()">Get Remote ID</button></div>
+      <div class="col-md-2"><button class="btn btn-sm btn-outline-secondary" onclick="uasGetHistory()">Flight History</button></div>
+    </div>
+    <div id="uasRidResult" style="font-size:0.82rem;"></div>
+  </div>
+</div>
+
+<script>
+const UAS = '/api/uas';
+
+function uasLoad() {
+  // Stats
+  fetch(UAS+'/stats').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    document.getElementById('uasTotalUavs').textContent = d.total_uavs;
+    document.getElementById('uasActiveUavs').textContent = d.active_uavs;
+    document.getElementById('uasActiveFlights').textContent = d.active_flights;
+    document.getElementById('uasC2Sessions').textContent = d.active_c2_sessions;
+    document.getElementById('uasNfzCount').textContent = d.no_fly_zones;
+  });
+  // Registry
+  fetch(UAS+'/registry').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const tb = document.getElementById('uasRegTable');
+    if (!d.uavs.length) { tb.innerHTML='<tr><td colspan="10" class="text-muted">No UAVs registered</td></tr>'; return; }
+    tb.innerHTML = d.uavs.map(u => `<tr>
+      <td>${u.id}</td><td>${u.uav_id}</td><td>${u.imsi||'-'}</td><td>${u.serial_number||'-'}</td>
+      <td>${u.manufacturer||'-'}</td><td>${u.model||'-'}</td>
+      <td>${u.max_speed_mps}</td><td>${u.max_altitude_m}</td>
+      <td><span class="uas-status st-${u.status}">${u.status}</span></td>
+      <td>
+        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="uasDeregister(${u.id})">Del</button>
+        <button class="btn btn-outline-warning btn-sm py-0 px-1" onclick="uasGround(${u.id})">Ground</button>
+      </td>
+    </tr>`).join('');
+  });
+  // No-fly zones
+  fetch(UAS+'/no-fly-zones').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const tb = document.getElementById('uasNfzTable');
+    if (!d.zones.length) { tb.innerHTML='<tr><td colspan="7" class="text-muted">No no-fly zones</td></tr>'; return; }
+    tb.innerHTML = d.zones.map(z => `<tr>
+      <td>${z.id}</td><td>${z.name}</td>
+      <td>${z.lat_min} - ${z.lat_max}</td><td>${z.lon_min} - ${z.lon_max}</td>
+      <td>${z.alt_max_m||'unlimited'}</td><td>${z.reason||'-'}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="uasDelNfz(${z.id})">Del</button></td>
+    </tr>`).join('');
+  });
+}
+
+function uasRegister() {
+  fetch(UAS+'/registry', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    imsi: document.getElementById('uasRegImsi').value,
+    uav_id: document.getElementById('uasRegUavId').value,
+    serial_number: document.getElementById('uasRegSerial').value,
+    manufacturer: document.getElementById('uasRegMfg').value,
+    model: document.getElementById('uasRegModel').value,
+    max_speed_mps: parseFloat(document.getElementById('uasRegSpeed').value),
+    max_altitude_m: parseFloat(document.getElementById('uasRegAlt').value),
+  })}).then(r=>r.json()).then(d => { if(d.ok) uasLoad(); else alert(d.error); });
+}
+
+function uasDeregister(id) {
+  if (!confirm('Deregister this UAV?')) return;
+  fetch(UAS+'/registry/'+id, {method:'DELETE'}).then(r=>r.json()).then(()=>uasLoad());
+}
+
+function uasGround(id) {
+  fetch(UAS+'/registry/'+id, {method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({status:'grounded'})}).then(r=>r.json()).then(()=>uasLoad());
+}
+
+function uasAuthorizeFlight() {
+  let wp;
+  try { wp = JSON.parse(document.getElementById('uasFltWaypoints').value); } catch(e) { alert('Invalid waypoints JSON'); return; }
+  fetch(UAS+'/authorize-flight', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    uav_id: document.getElementById('uasFltUavId').value,
+    flight_plan: {waypoints: wp},
+  })}).then(r=>r.json()).then(d => {
+    const el = document.getElementById('uasFlightResult');
+    if (d.authorized) {
+      el.innerHTML = `<span class="text-success">Authorized: ${d.flight_id}</span> Restrictions: ${(d.restrictions||[]).join(', ')||'none'}`;
+    } else {
+      el.innerHTML = `<span class="text-danger">Denied: ${d.error||'unknown'}</span>`;
+    }
+    uasLoad();
+  });
+}
+
+function uasUpdatePosition() {
+  fetch(UAS+'/position', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    uav_id: document.getElementById('uasPosUavId').value,
+    latitude: parseFloat(document.getElementById('uasPosLat').value),
+    longitude: parseFloat(document.getElementById('uasPosLon').value),
+    altitude_m: parseFloat(document.getElementById('uasPosAlt').value),
+    heading_deg: parseFloat(document.getElementById('uasPosHdg').value),
+    speed_mps: parseFloat(document.getElementById('uasPosSpd').value),
+  })}).then(r=>r.json()).then(d => {
+    document.getElementById('uasPosResult').innerHTML = d.ok ? '<span class="text-success">Position reported</span>' : `<span class="text-danger">${d.error}</span>`;
+  });
+}
+
+function uasGetPosition() {
+  const uid = document.getElementById('uasPosUavId').value;
+  fetch(UAS+'/position/'+uid).then(r=>r.json()).then(d => {
+    const el = document.getElementById('uasPosResult');
+    if (d.ok && d.position) {
+      const p = d.position;
+      el.innerHTML = `<strong>${uid}</strong> Lat: ${p.latitude}, Lon: ${p.longitude}, Alt: ${p.altitude_m}m, Hdg: ${p.heading_deg}, Spd: ${p.speed_mps}m/s @ ${p.timestamp}`;
+    } else { el.innerHTML = '<span class="text-muted">No position data</span>'; }
+  });
+}
+
+function uasCheckAnomaly() {
+  const uid = document.getElementById('uasPosUavId').value;
+  fetch(UAS+'/anomaly/'+uid).then(r=>r.json()).then(d => {
+    const el = document.getElementById('uasPosResult');
+    if (d.anomaly) {
+      el.innerHTML = `<span class="text-danger">ANOMALY: ${d.details.join('; ')}</span>`;
+    } else {
+      el.innerHTML = `<span class="text-success">No anomaly. ${(d.details||[]).join('; ')}</span>`;
+    }
+  });
+}
+
+function uasEstablishC2() {
+  fetch(UAS+'/c2/establish', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    uav_id: document.getElementById('uasC2UavId').value,
+    controller_id: document.getElementById('uasC2CtrlId').value,
+    qos_5qi: parseInt(document.getElementById('uasC2Qos').value),
+  })}).then(r=>r.json()).then(d => {
+    const el = document.getElementById('uasC2Result');
+    if (d.ok) {
+      el.innerHTML = `<span class="text-success">C2 Session ${d.c2_session_id} established (5QI=${d.qos_5qi})</span>
+        <button class="btn btn-outline-danger btn-sm ms-2 py-0" onclick="uasTermC2(${d.c2_session_id})">Terminate</button>`;
+    } else { el.innerHTML = `<span class="text-danger">${d.error}</span>`; }
+    uasLoad();
+  });
+}
+
+function uasTermC2(sid) {
+  fetch(UAS+'/c2/'+sid, {method:'DELETE'}).then(r=>r.json()).then(d => {
+    document.getElementById('uasC2Result').innerHTML = d.ok ? '<span class="text-success">Terminated</span>' : `<span class="text-danger">${d.error}</span>`;
+    uasLoad();
+  });
+}
+
+function uasAddNfz() {
+  fetch(UAS+'/no-fly-zones', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    name: document.getElementById('uasNfzName').value,
+    lat_min: parseFloat(document.getElementById('uasNfzLatMin').value),
+    lat_max: parseFloat(document.getElementById('uasNfzLatMax').value),
+    lon_min: parseFloat(document.getElementById('uasNfzLonMin').value),
+    lon_max: parseFloat(document.getElementById('uasNfzLonMax').value),
+    alt_max_m: parseFloat(document.getElementById('uasNfzAltMax').value),
+    reason: document.getElementById('uasNfzReason').value,
+  })}).then(r=>r.json()).then(()=>uasLoad());
+}
+
+function uasDelNfz(id) {
+  if (!confirm('Delete this no-fly zone?')) return;
+  fetch(UAS+'/no-fly-zones/'+id, {method:'DELETE'}).then(r=>r.json()).then(()=>uasLoad());
+}
+
+function uasGetRemoteId() {
+  const uid = document.getElementById('uasRidUavId').value;
+  fetch(UAS+'/remote-id/'+uid).then(r=>r.json()).then(d => {
+    const el = document.getElementById('uasRidResult');
+    if (d.ok) {
+      el.innerHTML = '<pre style="font-size:0.78rem; max-height:200px; overflow:auto;">' + JSON.stringify(d.remote_id, null, 2) + '</pre>';
+    } else { el.innerHTML = `<span class="text-danger">${d.error}</span>`; }
+  });
+}
+
+function uasGetHistory() {
+  const uid = document.getElementById('uasRidUavId').value;
+  fetch(UAS+'/flight-history/'+uid).then(r=>r.json()).then(d => {
+    const el = document.getElementById('uasRidResult');
+    if (!d.ok || !d.history.length) { el.innerHTML = '<span class="text-muted">No history</span>'; return; }
+    let html = '<table class="table table-sm" style="font-size:0.78rem;"><thead><tr><th>Time</th><th>Lat</th><th>Lon</th><th>Alt</th><th>Hdg</th><th>Spd</th></tr></thead><tbody>';
+    d.history.forEach(p => { html += `<tr><td>${p.timestamp}</td><td>${p.latitude}</td><td>${p.longitude}</td><td>${p.altitude_m}</td><td>${p.heading_deg}</td><td>${p.speed_mps}</td></tr>`; });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  });
+}
+
+// Auto-load on tab activation
+document.addEventListener('DOMContentLoaded', () => {
+  const tab = document.querySelector('a[href="#uas-tab"]');
+  if (tab) tab.addEventListener('click', () => setTimeout(uasLoad, 100));
+});
+uasLoad();
+</script>

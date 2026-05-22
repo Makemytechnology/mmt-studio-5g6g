@@ -1,0 +1,129 @@
+<!-- upf_config.html — UPF configuration tab inside Network Config.
+     Form-input IDs (icUpfMode, icUpfPfcpPort, icUpfMaxSess, …, upfAdd*)
+     are global, so the existing icSave / icLoad / upfLoadInstances JS
+     in infrastructure.html still drives them. The Infrastructure tab's
+     "Save Configuration" button persists changes made here. -->
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="fw-bold mb-3">UPF</h5>
+
+    <!-- ── UPF Data Plane (entry point for the UPF-related stack below) ── -->
+    <div class="inf-section">
+      <h6 class="fw-bold">UPF Data Plane</h6>
+      <div class="inf-row">
+        <div style="flex:1"><label>I/O Mode</label>
+          <select class="form-select form-select-sm" id="icUpfMode">
+            <option value="socket">Socket/TUN</option><option value="pmd">DPDK PMD</option>
+          </select></div>
+        <div style="width:110px"><label>PFCP Port</label><input type="number" class="form-control form-control-sm" id="icUpfPfcpPort" value="8805"></div>
+      </div>
+      <small class="text-muted">
+        SMF↔UPF always speaks PFCP/N4 (TS 29.244) over the loopback socket.
+        <strong>PFCP Port</strong> overrides the §6.1 default <code>8805</code> when the port is in use
+        (integrated deployments only). Changes take effect on next restart.
+      </small>
+    </div>
+
+    <!-- ── UPF / DPDK — Common (both modes) ── -->
+    <div class="inf-section">
+      <h6 class="fw-bold">UPF / DPDK Tuning — Common
+        <small class="text-muted fw-normal">applies to both Socket/TUN and PMD modes · changes take effect on next <code>./run.sh</code></small>
+      </h6>
+      <div class="inf-row">
+        <div style="width:140px"><label>Max sessions</label>
+          <input type="number" class="form-control form-control-sm" id="icUpfMaxSess" value="4096" min="256" max="1048576" step="1024">
+        </div>
+        <div style="width:130px"><label>DPDK memory (MB)</label>
+          <input type="number" class="form-control form-control-sm" id="icDpdkMemMb" value="64" min="32" max="16384"></div>
+        <div style="width:150px"><label>Hugepage size</label>
+          <select class="form-select form-select-sm" id="icHpSize">
+            <option value="2M">2 MB</option>
+            <option value="1G">1 GB (boot-reserved)</option>
+          </select></div>
+        <div style="width:130px"><label>Hugepage count</label>
+          <input type="number" class="form-control form-control-sm" id="icHpCount" value="256" min="1" max="65536"></div>
+        <div style="width:130px"><label>DPDK log level</label>
+          <select class="form-select form-select-sm" id="icDpdkLogLvl">
+            <option value="ERROR">ERROR</option>
+            <option value="WARNING">WARNING</option>
+            <option value="INFO" selected>INFO</option>
+            <option value="DEBUG">DEBUG</option>
+          </select></div>
+        <div style="flex:1; align-self:flex-end">
+          <small class="text-muted" id="icHpTotal">Total reserved: 512 MB</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Socket/TUN-mode tuning ── -->
+    <div class="inf-section" id="icSocketTuneSection">
+      <h6 class="fw-bold">Socket/TUN Mode Tuning
+        <small class="text-muted fw-normal">runtime-applied (sysctl + ip link); no rebuild</small>
+      </h6>
+      <div class="inf-row">
+        <div style="width:160px"><label>TUN txqueuelen</label>
+          <input type="number" class="form-control form-control-sm" id="icTunQlen" value="1000" min="100" max="1000000"></div>
+        <div style="width:160px"><label>GTP-U rcvbuf (MB)</label>
+          <input type="number" class="form-control form-control-sm" id="icRcvbufMb" value="4" min="1" max="256"></div>
+        <div style="width:160px"><label>GTP-U sndbuf (MB)</label>
+          <input type="number" class="form-control form-control-sm" id="icSndbufMb" value="4" min="1" max="256"></div>
+        <div style="width:200px"><label>netdev_max_backlog</label>
+          <input type="number" class="form-control form-control-sm" id="icNetdevBacklog" value="1000" min="1000" max="1000000"></div>
+      </div>
+      <small class="text-muted">
+        rcvbuf/sndbuf set both <code>net.core.*_default</code> and <code>*_max</code>.
+        Increase these if you see 16+ UEs capping at aggregate throughput below link speed.
+      </small>
+    </div>
+
+    <!-- ── PMD-mode tuning ── -->
+    <div class="inf-section" id="icPmdTuneSection">
+      <h6 class="fw-bold">DPDK PMD Mode Tuning
+        <small class="text-muted fw-normal">only active when UPF I/O Mode = DPDK PMD</small>
+      </h6>
+      <div class="inf-row">
+        <div style="width:130px"><label>mbuf pool size</label>
+          <input type="number" class="form-control form-control-sm" id="icMbufPool" value="8192" min="1024" max="1048576"></div>
+        <div style="width:130px"><label>RX ring size</label>
+          <input type="number" class="form-control form-control-sm" id="icRxRing" value="1024" min="128" max="8192" step="128"></div>
+        <div style="width:130px"><label>TX ring size</label>
+          <input type="number" class="form-control form-control-sm" id="icTxRing" value="1024" min="128" max="8192" step="128"></div>
+        <div style="width:160px"><label>N3 device (vdev / PCI)</label>
+          <input type="text" class="form-control form-control-sm" id="icPmdN3" value="net_tap0"></div>
+        <div style="width:160px"><label>N6 device (vdev / PCI)</label>
+          <input type="text" class="form-control form-control-sm" id="icPmdN6" value="net_tap1"></div>
+      </div>
+    </div>
+
+    <!-- ── UPF Instances ── -->
+    <!-- Add OR update a UPF instance. Re-using an existing upf_id upserts
+         (TS 29.244 §6.3.3 nf-instance is keyed by id). Use Edit on the
+         row below to pre-fill this form. N4 IP is the PFCP control
+         endpoint (loopback for integrated; remote IP for distributed
+         CUPS). N3 IP is the GTP-U endpoint advertised to the gNB (must
+         be reachable from gNB's view); N6 IP is the data-network side. -->
+    <div class="inf-section">
+      <h6 class="fw-bold">UPF Instances</h6>
+      <div class="inf-row">
+        <div style="flex:1"><label>ID</label><input type="text" class="form-control form-control-sm" id="upfAddId" placeholder="upf-local"></div>
+        <div style="flex:1"><label>N4 IP <small class="text-muted">(PFCP)</small></label><input type="text" class="form-control form-control-sm" id="upfAddIp" placeholder="127.0.0.1"></div>
+        <div style="flex:1"><label>N3 IP <small class="text-muted">(GTP-U)</small></label><input type="text" class="form-control form-control-sm" id="upfAddN3" placeholder="172.30.0.10"></div>
+        <div style="flex:1"><label>N6 IP <small class="text-muted">(DN)</small></label><input type="text" class="form-control form-control-sm" id="upfAddN6" placeholder="172.30.0.10"></div>
+        <div style="flex:1"><label>DNNs</label><input type="text" class="form-control form-control-sm" id="upfAddDnns" value="internet"></div>
+        <!-- Slice catalog FK multi-select. The SSTs CSV column on
+             upf_instances is kept for back-compat (back-fill at boot
+             populates upf_supported_nssai), but the GUI now writes
+             directly to the join table via /api/admin/upf-instance/
+             {id}/nssai after the upsert, mirroring TS 23.501 §6.3.3. -->
+        <div style="flex:1.2"><label>Slices <small class="text-muted">(catalog)</small></label>
+          <select multiple size="3" class="form-select form-select-sm" id="upfAddSlices"></select>
+        </div>
+        <div style="width:90px"><label>Max Sess</label><input type="number" class="form-control form-control-sm" id="upfAddMaxSess" value="8192"></div>
+        <div><button class="btn btn-sm btn-outline-primary" id="upfAddBtn" style="margin-top:18px" onclick="upfAdd()">Add / Update</button></div>
+        <div><button class="btn btn-sm btn-outline-secondary" style="margin-top:18px" onclick="upfFormClear()">Clear</button></div>
+      </div>
+      <div id="upfInstanceList"><small class="text-muted">No UPF instances registered</small></div>
+    </div>
+
+  </div>
+</div>

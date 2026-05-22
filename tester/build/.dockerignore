@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.git/
+.gitignore
+build/dist/
+build/output/
+data/
+python/
+*.db
+*.log
+.env
+.vscode/
+.idea/

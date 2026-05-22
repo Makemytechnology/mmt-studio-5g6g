@@ -1,0 +1,230 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# 5GSM messages — TS 24.501 clause 8.3.
+# Note: the generator automatically adds PDUSessionID + PTI fields to each
+# 5GSM struct (EPD == 0x2E), populated from the wire header before Decode runs.
+
+messages:
+
+  # -----------------------------------------------------------------
+  # PDU session establishment (§8.3.1 – 8.3.3)
+  # -----------------------------------------------------------------
+
+  - name: PDUSessionEstablishmentRequest
+    description: "PDU session establishment request — TS 24.501 Table 8.3.1.1.1"
+    epd: 0x2E
+    message_type: 0xC1
+    direction: ue_to_network
+    ies:
+      - {name: IntegrityProtectionMaximumDataRate, iei: null, presence: M, format: V, length: "2", type_ref: MaxDataRatePerUEForUserPlaneIntegrity}
+      - {name: PDUSessionType, iei: "9-", presence: O, format: TV, length: "1", type_ref: PDUSessionType}
+      - {name: SSCMode, iei: "A-", presence: O, format: TV, length: "1", type_ref: SSCMode}
+      - {name: FivegsmCapability, iei: "28", presence: O, format: TLV, length: "3-15", type_ref: MMCapability5G}
+      - {name: MaxNumberOfSupportedPacketFilters, iei: "55", presence: O, format: TLV, length: "4", type_ref: MaxNumberOfSupportedPacketFilters}
+      - {name: AlwaysOnPDUSessionRequested, iei: "B-", presence: O, format: TV, length: "1", type_ref: AlwaysOnPDUSessionRequested}
+      - {name: SMPDUDN, iei: "39", presence: O, format: TLV, length: "3-255", type_ref: DNN}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: IPHeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-257", type_ref: IPHeaderCompressionConfiguration}
+      - {name: EthernetHeaderCompressionConfiguration, iei: "1F", presence: O, format: TLV, length: "3", type_ref: EthernetHeaderCompressionConfiguration}
+      - {name: SuggestedInterfaceIdentifier, iei: "29", presence: O, format: TLV, length: "11", type_ref: PDUAddress}
+
+  - name: PDUSessionEstablishmentAccept
+    description: "PDU session establishment accept — TS 24.501 Table 8.3.2.1.1"
+    epd: 0x2E
+    message_type: 0xC2
+    direction: network_to_ue
+    ies:
+      - {name: SelectedPDUSessionType, iei: null, presence: M, format: V, length: "1/2", type_ref: PDUSessionType}
+      - {name: SelectedSSCMode,        iei: null, presence: M, format: V, length: "1/2", type_ref: SSCMode}
+      - {name: AuthorizedQoSRules,     iei: null, presence: M, format: LV-E, length: "6-65538", type_ref: AuthorizedQoSRules}
+      - {name: SessionAMBR,            iei: null, presence: M, format: LV, length: "7", type_ref: SessionAMBR}
+      - {name: Cause5GSM,              iei: "59", presence: O, format: TV,  length: "2", type_ref: FiveGSMCause}
+      - {name: PDUAddress,             iei: "29", presence: O, format: TLV, length: "7-15", type_ref: PDUAddress}
+      - {name: RQTimerValue,           iei: "56", presence: O, format: TV,  length: "2", type_ref: GPRSTimer}
+      - {name: SNSSAI,                 iei: "22", presence: O, format: TLV, length: "3-10", type_ref: SNSSAI}
+      - {name: AlwaysOnPDUSessionIndication, iei: "8-", presence: O, format: TV, length: "1", type_ref: AlwaysOnPDUSessionIndication}
+      - {name: MappedEPSBearerContexts, iei: "75", presence: O, format: TLV-E, length: "7-65538", type_ref: MappedEPSBearerContexts}
+      - {name: EAPMessage,             iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: AuthorizedQoSFlowDescriptions, iei: "79", presence: O, format: TLV-E, length: "6-65538", type_ref: AuthorizedQoSFlowDescriptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: DNN,                    iei: "25", presence: O, format: TLV, length: "3-102", type_ref: DNN}
+      - {name: FivegsmNetworkFeatureSupport, iei: "17", presence: O, format: TLV, length: "3-15", type_ref: MMCapability5G}
+      - {name: ServingPLMNRateControl, iei: "18", presence: O, format: TLV, length: "4", type_ref: ServingPLMNRateControl}
+      - {name: ATSSSContainer,         iei: "77", presence: O, format: TLV-E, length: "3-65538", type_ref: ATSSSContainer}
+      - {name: ControlPlaneOnlyIndication, iei: "C-", presence: O, format: TV, length: "1", type_ref: ControlPlaneOnlyIndication}
+      - {name: IPHeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-257", type_ref: IPHeaderCompressionConfiguration}
+      - {name: EthernetHeaderCompressionConfiguration, iei: "1F", presence: O, format: TLV, length: "3", type_ref: EthernetHeaderCompressionConfiguration}
+
+  - name: PDUSessionEstablishmentReject
+    description: "PDU session establishment reject — TS 24.501 Table 8.3.3.1.1"
+    epd: 0x2E
+    message_type: 0xC3
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GSM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGSMCause}
+      - {name: BackOffTimerValue, iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: AllowedSSCMode, iei: "F-", presence: O, format: TV, length: "1", type_ref: AllowedSSCMode}
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ReAttemptIndicator, iei: "1D", presence: O, format: TLV, length: "3", type_ref: ReAttemptIndicator}
+      - {name: FivegsmCongestionReAttemptIndicator, iei: "61", presence: O, format: TLV, length: "3", type_ref: FivegsmCongestionReAttemptIndicator}
+
+  # -----------------------------------------------------------------
+  # PDU session authentication (§8.3.4 – 8.3.6)
+  # -----------------------------------------------------------------
+
+  - name: PDUSessionAuthenticationCommand
+    description: "PDU session authentication command — TS 24.501 Table 8.3.4.1.1"
+    epd: 0x2E
+    message_type: 0xC5
+    direction: network_to_ue
+    ies:
+      - {name: EAPMessage, iei: null, presence: M, format: LV-E, length: "6-1502", type_ref: EAPMessage}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDUSessionAuthenticationComplete
+    description: "PDU session authentication complete — TS 24.501 Table 8.3.5.1.1"
+    epd: 0x2E
+    message_type: 0xC6
+    direction: ue_to_network
+    ies:
+      - {name: EAPMessage, iei: null, presence: M, format: LV-E, length: "6-1502", type_ref: EAPMessage}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDUSessionAuthenticationResult
+    description: "PDU session authentication result — TS 24.501 Table 8.3.6.1.1"
+    epd: 0x2E
+    message_type: 0xC7
+    direction: network_to_ue
+    ies:
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # PDU session modification (§8.3.7 – 8.3.11)
+  # -----------------------------------------------------------------
+
+  - name: PDUSessionModificationRequest
+    description: "PDU session modification request — TS 24.501 Table 8.3.7.1.1"
+    epd: 0x2E
+    message_type: 0xC9
+    direction: ue_to_network
+    ies:
+      - {name: FivegsmCapability, iei: "28", presence: O, format: TLV, length: "3-15", type_ref: MMCapability5G}
+      - {name: Cause5GSM, iei: "59", presence: O, format: TV, length: "2", type_ref: FiveGSMCause}
+      - {name: MaxNumberOfSupportedPacketFilters, iei: "55", presence: O, format: TLV, length: "4", type_ref: MaxNumberOfSupportedPacketFilters}
+      - {name: AlwaysOnPDUSessionRequested, iei: "B-", presence: O, format: TV, length: "1", type_ref: AlwaysOnPDUSessionRequested}
+      - {name: IntegrityProtectionMaximumDataRate, iei: "13", presence: O, format: TV, length: "3", type_ref: MaxDataRatePerUEForUserPlaneIntegrity}
+      - {name: RequestedQoSRules, iei: "7A", presence: O, format: TLV-E, length: "7-65538", type_ref: RequestedQoSRules}
+      - {name: RequestedQoSFlowDescriptions, iei: "79", presence: O, format: TLV-E, length: "6-65538", type_ref: RequestedQoSFlowDescriptions}
+      - {name: MappedEPSBearerContexts, iei: "75", presence: O, format: TLV-E, length: "7-65538", type_ref: MappedEPSBearerContexts}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: PortManagementInformationContainer, iei: "74", presence: O, format: TLV-E, length: "4-65538", type_ref: PortManagementInformationContainer}
+      - {name: IPHeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-257", type_ref: IPHeaderCompressionConfiguration}
+      - {name: EthernetHeaderCompressionConfiguration, iei: "1F", presence: O, format: TLV, length: "3", type_ref: EthernetHeaderCompressionConfiguration}
+
+  - name: PDUSessionModificationReject
+    description: "PDU session modification reject — TS 24.501 Table 8.3.8.1.1"
+    epd: 0x2E
+    message_type: 0xCA
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GSM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGSMCause}
+      - {name: BackOffTimerValue, iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: ReAttemptIndicator, iei: "1D", presence: O, format: TLV, length: "3", type_ref: ReAttemptIndicator}
+      - {name: FivegsmCongestionReAttemptIndicator, iei: "61", presence: O, format: TLV, length: "3", type_ref: FivegsmCongestionReAttemptIndicator}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDUSessionModificationCommand
+    description: "PDU session modification command — TS 24.501 Table 8.3.9.1.1"
+    epd: 0x2E
+    message_type: 0xCB
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GSM, iei: "59", presence: O, format: TV, length: "2", type_ref: FiveGSMCause}
+      - {name: SessionAMBR, iei: "2A", presence: O, format: TLV, length: "8", type_ref: SessionAMBR}
+      - {name: RQTimerValue, iei: "56", presence: O, format: TV, length: "2", type_ref: GPRSTimer}
+      - {name: AlwaysOnPDUSessionIndication, iei: "8-", presence: O, format: TV, length: "1", type_ref: AlwaysOnPDUSessionIndication}
+      - {name: AuthorizedQoSRules, iei: "7A", presence: O, format: TLV-E, length: "7-65538", type_ref: AuthorizedQoSRules}
+      - {name: MappedEPSBearerContexts, iei: "75", presence: O, format: TLV-E, length: "7-65538", type_ref: MappedEPSBearerContexts}
+      - {name: AuthorizedQoSFlowDescriptions, iei: "79", presence: O, format: TLV-E, length: "6-65538", type_ref: AuthorizedQoSFlowDescriptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ATSSSContainer, iei: "77", presence: O, format: TLV-E, length: "3-65538", type_ref: ATSSSContainer}
+      - {name: IPHeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-257", type_ref: IPHeaderCompressionConfiguration}
+      - {name: PortManagementInformationContainer, iei: "74", presence: O, format: TLV-E, length: "4-65538", type_ref: PortManagementInformationContainer}
+      - {name: ServingPLMNRateControl, iei: "1E", presence: O, format: TLV, length: "4", type_ref: ServingPLMNRateControl}
+      - {name: EthernetHeaderCompressionConfiguration, iei: "1F", presence: O, format: TLV, length: "3", type_ref: EthernetHeaderCompressionConfiguration}
+
+  - name: PDUSessionModificationComplete
+    description: "PDU session modification complete — TS 24.501 Table 8.3.10.1.1"
+    epd: 0x2E
+    message_type: 0xCC
+    direction: ue_to_network
+    ies:
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: PortManagementInformationContainer, iei: "74", presence: O, format: TLV-E, length: "4-65538", type_ref: PortManagementInformationContainer}
+
+  - name: PDUSessionModificationCommandReject
+    description: "PDU session modification command reject — TS 24.501 Table 8.3.11.1.1"
+    epd: 0x2E
+    message_type: 0xCD
+    direction: ue_to_network
+    ies:
+      - {name: Cause5GSM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGSMCause}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # PDU session release (§8.3.12 – 8.3.16)
+  # -----------------------------------------------------------------
+
+  - name: PDUSessionReleaseRequest
+    description: "PDU session release request — TS 24.501 Table 8.3.12.1.1"
+    epd: 0x2E
+    message_type: 0xD1
+    direction: ue_to_network
+    ies:
+      - {name: Cause5GSM, iei: "59", presence: O, format: TV, length: "2", type_ref: FiveGSMCause}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDUSessionReleaseReject
+    description: "PDU session release reject — TS 24.501 Table 8.3.13.1.1"
+    epd: 0x2E
+    message_type: 0xD2
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GSM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGSMCause}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDUSessionReleaseCommand
+    description: "PDU session release command — TS 24.501 Table 8.3.14.1.1"
+    epd: 0x2E
+    message_type: 0xD3
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GSM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGSMCause}
+      - {name: BackOffTimerValue, iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: FivegsmCongestionReAttemptIndicator, iei: "61", presence: O, format: TLV, length: "3", type_ref: FivegsmCongestionReAttemptIndicator}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: AccessType, iei: "D-", presence: O, format: TV, length: "1", type_ref: AccessType}
+
+  - name: PDUSessionReleaseComplete
+    description: "PDU session release complete — TS 24.501 Table 8.3.15.1.1"
+    epd: 0x2E
+    message_type: 0xD4
+    direction: ue_to_network
+    ies:
+      - {name: Cause5GSM, iei: "59", presence: O, format: TV, length: "2", type_ref: FiveGSMCause}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # 5GSM status (§8.3.16)
+  # -----------------------------------------------------------------
+
+  - name: FivegsmStatus
+    description: "5GSM status — TS 24.501 Table 8.3.16.1.1"
+    epd: 0x2E
+    message_type: 0xD6
+    direction: both
+    ies:
+      - {name: Cause5GSM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGSMCause}

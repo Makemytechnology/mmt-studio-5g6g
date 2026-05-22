@@ -1,0 +1,465 @@
+<!-- templates/charging_profiles.html — Charging Profile Management (TS 32.255) -->
+<div class="accordion mb-4" id="cpEditorAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="cpEditorToggleBtn"
+        class="accordion-button bg-secondary text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="cpEditorCollapse">
+        <div class="w-100">Charging Profile Editor</div>
+      </button>
+    </h2>
+    <div id="cpEditorCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body">
+
+        <!-- Row 1: Name, Method, Rating Group -->
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Profile Name</label>
+            <input id="cp_name" type="text" class="form-control" maxlength="64"
+                   placeholder="postpaid_default" pattern="[A-Za-z0-9_]+">
+            <div class="form-text">Alphanumeric + underscore, max 64</div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Charging Method</label>
+            <select id="cp_method" class="form-select">
+              <option value="offline">Offline (Postpaid)</option>
+              <option value="online">Online (Prepaid)</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Rating Group</label>
+            <input id="cp_rating_group" type="number" class="form-control" min="1" max="4294967295" placeholder="1">
+          </div>
+          <div class="col-md-5 d-flex justify-content-end gap-2">
+            <button id="btnCpNew" type="button" class="btn btn-outline-secondary mt-4">New</button>
+            <button id="btnCpSave" type="button" class="btn btn-primary mt-4">Save</button>
+          </div>
+        </div>
+
+        <!-- Row 2: Measurement Method -->
+        <div class="row g-2 mt-2">
+          <div class="col-md-12">
+            <label class="form-label fw-bold">Measurement Method</label>
+            <span class="text-muted small">(at least one required)</span>
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_meas_volume" checked>
+                <label class="form-check-label" for="cp_meas_volume">Volume</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_meas_duration">
+                <label class="form-check-label" for="cp_meas_duration">Duration</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_meas_event">
+                <label class="form-check-label" for="cp_meas_event">Event</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Reporting Triggers -->
+        <div class="row g-2 mt-2">
+          <div class="col-md-12">
+            <label class="form-label fw-bold">Reporting Triggers</label>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_trg_volume_limit" checked>
+                <label class="form-check-label small" for="cp_trg_volume_limit">Volume Limit</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_trg_time_limit">
+                <label class="form-check-label small" for="cp_trg_time_limit">Time Limit</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_trg_session_term" checked>
+                <label class="form-check-label small" for="cp_trg_session_term">Session Termination</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_trg_quota_exhaust">
+                <label class="form-check-label small" for="cp_trg_quota_exhaust">Quota Exhaustion</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_trg_threshold">
+                <label class="form-check-label small" for="cp_trg_threshold">Threshold</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cp_trg_periodic">
+                <label class="form-check-label small" for="cp_trg_periodic">Periodic</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- Prepaid section (visible when online) -->
+        <div id="cp_prepaid_section" style="display:none;">
+          <h6 class="fw-bold">Prepaid Quotas (Online Charging)</h6>
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label">Volume Quota UL (bytes)</label>
+              <input id="cp_vol_quota_ul" type="number" class="form-control" min="0" placeholder="e.g. 524288000">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Volume Quota DL (bytes)</label>
+              <input id="cp_vol_quota_dl" type="number" class="form-control" min="0" placeholder="e.g. 1073741824">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Time Quota (sec)</label>
+              <input id="cp_time_quota" type="number" class="form-control" min="0" placeholder="3600">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Final Unit Action</label>
+              <select id="cp_fua" class="form-select">
+                <option value="terminate">Terminate</option>
+                <option value="redirect">Redirect</option>
+                <option value="restrict">Restrict</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Redirect URL</label>
+              <input id="cp_redirect_url" type="text" class="form-control" placeholder="http://...">
+            </div>
+          </div>
+          <hr class="my-3">
+        </div>
+
+        <!-- Postpaid section (visible when offline) -->
+        <div id="cp_postpaid_section">
+          <h6 class="fw-bold">Postpaid Thresholds (Offline Charging)</h6>
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label">Volume Threshold UL (bytes)</label>
+              <input id="cp_vol_thresh_ul" type="number" class="form-control" min="0" placeholder="e.g. 104857600">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Volume Threshold DL (bytes)</label>
+              <input id="cp_vol_thresh_dl" type="number" class="form-control" min="0" placeholder="e.g. 104857600">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Time Threshold (sec)</label>
+              <input id="cp_time_thresh" type="number" class="form-control" min="0" placeholder="3600">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Measurement Period (sec)</label>
+              <input id="cp_meas_period" type="number" class="form-control" min="0" placeholder="60">
+            </div>
+          </div>
+        </div>
+
+        <div id="cp_status" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charging Profiles List -->
+<div class="accordion mb-4" id="cpListAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="cpListToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="cpListCollapse">
+        <div class="w-100">Charging Profiles <span id="cpListCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="cpListCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered table-hover mb-0" style="font-size:12px;">
+            <thead class="table-light">
+              <tr>
+                <th><input type="checkbox" id="cpCheckAll"></th>
+                <th>Name</th>
+                <th>Method</th>
+                <th>Rating Grp</th>
+                <th>Measurement</th>
+                <th>Triggers</th>
+                <th>Quotas / Thresholds</th>
+                <th>Services</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="cpListBody"></tbody>
+          </table>
+        </div>
+        <div class="d-flex gap-2 mt-2">
+          <button id="btnCpLoad" type="button" class="btn btn-sm btn-outline-primary">Refresh</button>
+          <button id="btnCpDeleteSel" type="button" class="btn btn-sm btn-outline-danger">Delete Selected</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const init = () => {
+    const gid = s => document.getElementById(s);
+
+    // Accordion toggles
+    for (const [btnId, colId] of [['cpEditorToggleBtn','cpEditorCollapse'],['cpListToggleBtn','cpListCollapse']]) {
+      const btn = gid(btnId), col = gid(colId);
+      if (btn && col && !btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        const inst = window.bootstrap?.Collapse?.getOrCreateInstance(col, {toggle:false})
+                     || { toggle: () => col.classList.toggle('show') };
+        btn.addEventListener('click', () => inst.toggle());
+      }
+    }
+
+    const note = (msg, type="info") => {
+      gid('cp_status').innerHTML = msg
+        ? `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>` : '';
+    };
+
+    const fmtBytes = b => {
+      if (b == null) return '-';
+      if (b >= 1e9) return (b/1e9).toFixed(1)+' GB';
+      if (b >= 1e6) return (b/1e6).toFixed(1)+' MB';
+      if (b >= 1e3) return (b/1e3).toFixed(1)+' KB';
+      return b+' B';
+    };
+
+    // Toggle prepaid/postpaid sections
+    const methodEl = gid('cp_method');
+    const syncSections = () => {
+      const online = methodEl.value === 'online';
+      gid('cp_prepaid_section').style.display = online ? '' : 'none';
+      gid('cp_postpaid_section').style.display = online ? 'none' : '';
+    };
+    methodEl.addEventListener('change', syncSections);
+    syncSections();
+
+    // Collect form
+    function collectForm() {
+      return {
+        name: gid('cp_name').value.trim(),
+        charging_method: gid('cp_method').value,
+        rating_group: parseInt(gid('cp_rating_group').value) || 0,
+        meas_volume: gid('cp_meas_volume').checked,
+        meas_duration: gid('cp_meas_duration').checked,
+        meas_event: gid('cp_meas_event').checked,
+        trg_volume_limit: gid('cp_trg_volume_limit').checked,
+        trg_time_limit: gid('cp_trg_time_limit').checked,
+        trg_session_term: gid('cp_trg_session_term').checked,
+        trg_quota_exhaust: gid('cp_trg_quota_exhaust').checked,
+        trg_threshold: gid('cp_trg_threshold').checked,
+        trg_periodic: gid('cp_trg_periodic').checked,
+        vol_quota_ul: gid('cp_vol_quota_ul').value || null,
+        vol_quota_dl: gid('cp_vol_quota_dl').value || null,
+        time_quota_sec: gid('cp_time_quota').value || null,
+        final_unit_action: gid('cp_fua').value,
+        redirect_url: gid('cp_redirect_url').value.trim() || null,
+        vol_threshold_ul: gid('cp_vol_thresh_ul').value || null,
+        vol_threshold_dl: gid('cp_vol_thresh_dl').value || null,
+        time_threshold_sec: gid('cp_time_thresh').value || null,
+        meas_period_sec: gid('cp_meas_period').value || null,
+      };
+    }
+
+    // Client-side warnings
+    function validate(d) {
+      const warnings = [];
+      if (!d.trg_session_term)
+        warnings.push('session_termination trigger not selected');
+      if (d.charging_method === 'online' && !d.trg_quota_exhaust)
+        warnings.push('Prepaid: no quota exhaustion trigger');
+      if (d.charging_method === 'offline' && !d.trg_threshold)
+        warnings.push('Postpaid: no threshold trigger');
+      if (d.charging_method === 'offline') {
+        if (d.meas_volume && !d.vol_threshold_ul && !d.vol_threshold_dl)
+          warnings.push('Postpaid + volume: volume threshold recommended');
+        if (d.meas_duration && !d.time_threshold_sec)
+          warnings.push('Postpaid + duration: time threshold recommended');
+        if (!d.vol_threshold_ul && !d.vol_threshold_dl && !d.time_threshold_sec && !d.meas_period_sec)
+          warnings.push('Postpaid: at least one threshold or measurement period recommended');
+      }
+      return warnings;
+    }
+
+    // Fill form from item
+    function fillForm(item) {
+      gid('cp_name').value = item.name || '';
+      gid('cp_method').value = item.charging_method || 'offline';
+      gid('cp_rating_group').value = item.rating_group || '';
+      gid('cp_meas_volume').checked = !!item.meas_volume;
+      gid('cp_meas_duration').checked = !!item.meas_duration;
+      gid('cp_meas_event').checked = !!item.meas_event;
+      gid('cp_trg_volume_limit').checked = !!item.trg_volume_limit;
+      gid('cp_trg_time_limit').checked = !!item.trg_time_limit;
+      gid('cp_trg_session_term').checked = !!item.trg_session_term;
+      gid('cp_trg_quota_exhaust').checked = !!item.trg_quota_exhaust;
+      gid('cp_trg_threshold').checked = !!item.trg_threshold;
+      gid('cp_trg_periodic').checked = !!item.trg_periodic;
+      gid('cp_vol_quota_ul').value = item.vol_quota_ul ?? '';
+      gid('cp_vol_quota_dl').value = item.vol_quota_dl ?? '';
+      gid('cp_time_quota').value = item.time_quota_sec ?? '';
+      gid('cp_fua').value = item.final_unit_action || 'terminate';
+      gid('cp_redirect_url').value = item.redirect_url || '';
+      gid('cp_vol_thresh_ul').value = item.vol_threshold_ul ?? '';
+      gid('cp_vol_thresh_dl').value = item.vol_threshold_dl ?? '';
+      gid('cp_time_thresh').value = item.time_threshold_sec ?? '';
+      gid('cp_meas_period').value = item.meas_period_sec ?? '';
+      syncSections();
+      note('');
+    }
+
+    function clearForm() {
+      fillForm({
+        name:'', charging_method:'offline', rating_group:'',
+        meas_volume:true, meas_duration:false, meas_event:false,
+        trg_volume_limit:true, trg_session_term:true,
+      });
+    }
+
+    // Save
+    gid('btnCpSave').addEventListener('click', async () => {
+      const d = collectForm();
+      const warnings = validate(d);
+      if (warnings.length) {
+        const proceed = confirm('Warnings:\n- ' + warnings.join('\n- ') + '\n\nSave anyway?');
+        if (!proceed) return;
+      }
+      try {
+        const r = await fetch('/api/charging-profiles', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(d),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        note('Saved: ' + j.name, 'success');
+        loadList();
+      } catch(e) {
+        note(e.message, 'danger');
+      }
+    });
+
+    gid('btnCpNew').addEventListener('click', clearForm);
+
+    // Load list
+    let listData = [];
+    async function loadList() {
+      try {
+        const [cpRes, svcRes] = await Promise.all([
+          fetch('/api/charging-profiles'),
+          fetch('/api/services'),
+        ]);
+        const cpData = await cpRes.json();
+        const svcData = await svcRes.json();
+        listData = cpData.items || [];
+        const svcs = svcData.items || [];
+
+        // Build service-to-profile map
+        const svcMap = {};
+        for (const s of svcs) {
+          if (s.charging_profile) {
+            if (!svcMap[s.charging_profile]) svcMap[s.charging_profile] = [];
+            svcMap[s.charging_profile].push(s.name);
+          }
+        }
+
+        gid('cpListCount').textContent = listData.length;
+        const tbody = gid('cpListBody');
+        tbody.innerHTML = '';
+
+        for (const cp of listData) {
+          const meas = [];
+          if (cp.meas_volume) meas.push('Vol');
+          if (cp.meas_duration) meas.push('Dur');
+          if (cp.meas_event) meas.push('Evt');
+
+          const trgs = [];
+          if (cp.trg_volume_limit) trgs.push('VolLim');
+          if (cp.trg_time_limit) trgs.push('TimLim');
+          if (cp.trg_session_term) trgs.push('SessTerm');
+          if (cp.trg_quota_exhaust) trgs.push('QuotaExh');
+          if (cp.trg_threshold) trgs.push('Thresh');
+          if (cp.trg_periodic) trgs.push('Periodic');
+
+          let quotaCol = '';
+          if (cp.charging_method === 'online') {
+            const parts = [];
+            if (cp.vol_quota_ul != null || cp.vol_quota_dl != null)
+              parts.push('Vol:' + fmtBytes(cp.vol_quota_ul) + '/' + fmtBytes(cp.vol_quota_dl));
+            if (cp.time_quota_sec != null)
+              parts.push('Time:' + cp.time_quota_sec + 's');
+            parts.push('FUA:' + (cp.final_unit_action || '-'));
+            quotaCol = parts.join(' ');
+          } else {
+            const parts = [];
+            if (cp.vol_threshold_ul != null || cp.vol_threshold_dl != null)
+              parts.push('Vol:' + fmtBytes(cp.vol_threshold_ul) + '/' + fmtBytes(cp.vol_threshold_dl));
+            if (cp.time_threshold_sec != null)
+              parts.push('Time:' + cp.time_threshold_sec + 's');
+            if (cp.meas_period_sec != null)
+              parts.push('Period:' + cp.meas_period_sec + 's');
+            quotaCol = parts.join(' ') || '-';
+          }
+
+          const linkedSvcs = (svcMap[cp.name] || []).map(s =>
+            `<span class="badge bg-light text-dark border">${s}</span>`).join(' ') || '-';
+
+          const methodBadge = cp.charging_method === 'online'
+            ? '<span class="badge bg-danger">Prepaid</span>'
+            : '<span class="badge bg-info">Postpaid</span>';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input type="checkbox" class="cp-check" data-name="${cp.name}"></td>
+            <td><strong>${cp.name}</strong></td>
+            <td>${methodBadge}</td>
+            <td>${cp.rating_group}</td>
+            <td><span class="badge bg-secondary">${meas.join('+')}</span></td>
+            <td style="font-size:11px;">${trgs.join(', ')}</td>
+            <td style="font-size:11px;font-family:monospace;">${quotaCol}</td>
+            <td>${linkedSvcs}</td>
+            <td><button class="btn btn-sm btn-outline-primary cp-edit" data-name="${cp.name}">Edit</button></td>
+          `;
+          tbody.appendChild(tr);
+        }
+
+        // Edit buttons
+        tbody.querySelectorAll('.cp-edit').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const item = listData.find(i => i.name === btn.dataset.name);
+            if (item) fillForm(item);
+          });
+        });
+
+        // Check all
+        gid('cpCheckAll').addEventListener('change', (e) => {
+          tbody.querySelectorAll('.cp-check').forEach(c => c.checked = e.target.checked);
+        });
+
+      } catch(e) {
+        gid('cpListBody').innerHTML = `<tr><td colspan="9" class="text-danger">Error: ${e.message}</td></tr>`;
+      }
+    }
+
+    gid('btnCpLoad').addEventListener('click', loadList);
+
+    // Delete selected
+    gid('btnCpDeleteSel').addEventListener('click', async () => {
+      const names = [...document.querySelectorAll('.cp-check:checked')].map(c => c.dataset.name);
+      if (!names.length) return;
+      if (!confirm('Delete ' + names.length + ' profile(s)?\n' + names.join(', '))) return;
+      for (const n of names) {
+        await fetch('/api/charging-profiles/' + encodeURIComponent(n), {method:'DELETE'});
+      }
+      loadList();
+    });
+
+    // Initial load
+    loadList();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

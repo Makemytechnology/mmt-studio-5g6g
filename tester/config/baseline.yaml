@@ -1,0 +1,204 @@
+# db/seed/baseline.yaml
+#
+# Canonical reset point for mmt-studio. Single declarative source of truth for
+# the "baseline" DB state that every test can reset to via:
+#   POST /api/admin/remove-db-file
+#
+# Consumers:
+#   - db/seed/*.go         current Go-coded seeders (gradually migrate to read
+#                          from this manifest so values aren't duplicated)
+#   - tools/seed-gen/      future generator that emits SQL files from this YAML
+#                          for offline review / migration tooling
+#   - tests                read this to know what's available without poking DB
+#
+# Mutation rules:
+#   - Bumping `version` is required when any byte changes.
+#   - Bumping `ue_credentials.kdf_version` rolls every UE's K/OPc — destructive,
+#     all stored auth vectors invalidated. Coordinate with tester teams.
+#   - Counts (`ue_buckets[].count`) can grow; shrinking requires audit of tests
+#     that hardcode IMSI ranges.
+
+name: baseline
+version: 1.0.0
+description: >
+  Default lab seed: 1 PLMN, 1 AMF, 3 slices (eMBB/URLLC/mIoT), 4 DNNs,
+  128 deterministic UEs, 16 IMS subscribers, 2 UPF anchors. Sized to fit
+  every existing test case without bespoke per-test seeding.
+
+# ── PLMN ─────────────────────────────────────────────────────────────
+# ITU test PLMN per TS 23.003 §2.2 — guaranteed not to collide with any
+# real operator's MCC/MNC.
+plmn:
+  mcc: "001"
+  mnc: "01"
+
+# ── AMF ──────────────────────────────────────────────────────────────
+amf:
+  guami:
+    region_id: 1
+    set_id: 1
+    pointer: 0
+  ngap_bind: 172.30.0.10:38412
+  served_tai:
+    - { tac: 1, mcc: "001", mnc: "01" }
+
+# ── Network Slices (S-NSSAI) ─────────────────────────────────────────
+# SST values per TS 23.501 Table 5.15.2.2-1.
+slices:
+  - { sst: 1, sd: "000001", name: eMBB,  description: "enhanced Mobile Broadband — bulk data, video, IMS" }
+  - { sst: 2, sd: "000002", name: URLLC, description: "Ultra-Reliable Low-Latency — GBR voice, mission-critical" }
+  - { sst: 3, sd: "000003", name: mIoT,  description: "massive IoT — low-rate, low-power" }
+
+# ── DNNs / APNs ──────────────────────────────────────────────────────
+# IP pools mirror what's already configured in upf.net_setup. Keep the
+# /16 sizes so per-UE allocation has plenty of headroom.
+dnns:
+  - name: internet
+    pool: 10.45.0.0/16
+    default_5qi: 9
+    session_ambr_dl_kbps: 100000
+    session_ambr_ul_kbps:  50000
+    slices: [1]               # SST=1 only
+  - name: ims
+    pool: 10.46.0.0/16
+    default_5qi: 5
+    session_ambr_dl_kbps:  10000
+    session_ambr_ul_kbps:   5000
+    slices: [1]
+  - name: mcx
+    pool: 10.47.0.0/16
+    default_5qi: 65
+    session_ambr_dl_kbps:  50000
+    session_ambr_ul_kbps:  25000
+    slices: [1]
+  - name: iot
+    pool: 10.48.0.0/16
+    default_5qi: 9
+    session_ambr_dl_kbps:   1000
+    session_ambr_ul_kbps:   1000
+    slices: [3]
+
+# ── UPF anchors ──────────────────────────────────────────────────────
+# Two anchors so slice-routing tests have something to route to.
+#   address     — PFCP/N4 endpoint (SMF→UPF control). Co-located inside
+#                 sacore, so loopback is correct.
+#   n3_address  — GTP-U/N3 endpoint advertised to the gNB in the PSR
+#                 Setup Request Transfer (TS 38.413 §9.3.2.2). Must be
+#                 reachable from the gNB; in this lab sacore lives on
+#                 172.30.0.10 on the mmtnet bridge.
+upfs:
+  - id: upf-embb
+    address: 127.0.0.1
+    n3_address: 172.30.0.10
+    port: 8805
+    supported_sst: [1, 2]
+    supported_dnns: [internet, ims, mcx]
+  - id: upf-miot
+    address: 127.0.0.1
+    n3_address: 172.30.0.10
+    port: 8806
+    supported_sst: [3]
+    supported_dnns: [iot]
+
+# ── gNB peers ────────────────────────────────────────────────────────
+gnbs:
+  - id: tester-gnb-00
+    address: 172.30.0.20
+    tac: 1
+    description: "in-cluster tester gNB simulator (satester container)"
+
+# ── 5QI / QoS catalog ────────────────────────────────────────────────
+# Values per TS 23.501 Table 5.7.4-1 (Standardized 5QI to QoS Mapping).
+qos_5qi_catalog:
+  - { id:  1, resource_type: GBR,                 priority: 20, pdb_ms: 100, pelr: 1e-2, description: "Conv voice" }
+  - { id:  2, resource_type: GBR,                 priority: 40, pdb_ms: 150, pelr: 1e-3, description: "Conv video" }
+  - { id:  5, resource_type: non-GBR,             priority: 10, pdb_ms: 100, pelr: 1e-6, description: "IMS signalling" }
+  - { id:  9, resource_type: non-GBR,             priority: 90, pdb_ms: 300, pelr: 1e-6, description: "Default best-effort" }
+  - { id: 65, resource_type: non-GBR,             priority:  7, pdb_ms:  75, pelr: 1e-2, description: "MCX signalling" }
+  - { id: 66, resource_type: GBR,                 priority: 20, pdb_ms: 100, pelr: 1e-2, description: "MCX voice" }
+  - { id: 82, resource_type: delay-critical-GBR,  priority: 19, pdb_ms:  10, pelr: 1e-4, description: "Discrete automation (URLLC)" }
+
+# ── Security catalog ─────────────────────────────────────────────────
+security:
+  ciphering_enabled: [NEA1, NEA2, NEA3]
+  integrity_enabled: [NIA1, NIA2, NIA3]
+  null_cipher_enabled: false          # tests that need NEA0/NIA0 apply an overlay
+  authentication_methods: ["5G-AKA"]  # EAP-AKA' disabled at baseline
+
+# ── UE credentials — deterministic derivation ────────────────────────
+# Every UE's K and OPc are computed at seed time from the IMSI + kdf_version:
+#   K   = hex(sha256(imsi || "MMT-K-"   || kdf_version)[:16])
+#   OPc = hex(sha256(imsi || "MMT-OPc-" || kdf_version)[:16])
+# Implemented in db/seed/manifest.go (DeriveK / DeriveOPc) and mirrored in
+# the tester's src/baseline.py (k() / opc()) — both sides must agree byte-for-byte.
+# Rotating kdf_version (e.g. "v1" → "v2") rolls all 128 UEs in one edit.
+ue_credentials:
+  kdf_version: v1
+  k_derivation:   "sha256(imsi || 'MMT-K-'   || kdf_version)[:16]"
+  opc_derivation: "sha256(imsi || 'MMT-OPc-' || kdf_version)[:16]"
+  amf: "8000"            # AKA authentication management field (hex)
+  initial_sqn: 0
+
+# ── UE roster ────────────────────────────────────────────────────────
+# 128 UEs split into four buckets. IMSI ranges are contiguous and non-
+# overlapping so tests can target a slice by IMSI range alone.
+#
+# IMSI format: 15 digits = MCC(3) + MNC(2) + MSIN(10). MSIN here is
+# "1234560" + a 3-digit sequence, matching the existing seed in
+# db/seed/ue.go (so we don't invalidate any test that hardcodes the
+# prefix).
+ue_buckets:
+  - name: embb-bulk
+    count: 100
+    imsi_start:   "001011234560001"
+    msisdn_start: "1234560001"
+    slices: [1]
+    dnns: [internet, ims]
+    default_dnn: internet
+    ue_ambr_dl_kbps: 100000
+    ue_ambr_ul_kbps:  50000
+
+  - name: miot-pool
+    count: 16
+    imsi_start:   "001011234560101"
+    msisdn_start: "1234560101"
+    slices: [3]
+    dnns: [iot]
+    default_dnn: iot
+    ue_ambr_dl_kbps:   1000
+    ue_ambr_ul_kbps:   1000
+
+  - name: urllc-pool
+    count: 8
+    imsi_start:   "001011234560117"
+    msisdn_start: "1234560117"
+    slices: [2]
+    dnns: [internet]
+    default_dnn: internet
+    ue_ambr_dl_kbps:  10000
+    ue_ambr_ul_kbps:   5000
+
+  - name: multi-slice
+    count: 4
+    imsi_start:   "001011234560125"
+    msisdn_start: "1234560125"
+    slices: [1, 2]              # multi-NSSAI
+    dnns: [internet, ims, mcx]
+    default_dnn: internet
+    ue_ambr_dl_kbps: 200000
+    ue_ambr_ul_kbps: 100000
+
+# Totals: 100 + 16 + 8 + 4 = 128 UEs. IMSI ranges 001..100, 101..116,
+# 117..124, 125..128 — no overlap.
+
+# ── IMS subscribers (overlay on UE roster) ───────────────────────────
+# A subset of the embb-bulk UEs additionally carry IMS records, so
+# SIP/REGISTER/INVITE tests have a known population without polluting
+# the auth tables for non-IMS tests.
+ims_subscribers:
+  imsi_start: "001011234560001"     # first 16 of embb-bulk
+  count: 16
+  realm: "ims.mnc001.mcc001.3gppnetwork.org"
+  impi_template: "{imsi}@{realm}"
+  impu_template: "sip:+1{msisdn}@{realm}"
+  hss_password_derivation: "sha256(imsi || 'MMT-IMS-PWD-' || kdf_version)[:8]"

@@ -1,0 +1,280 @@
+<!-- templates/ursp.html — UE Route Selection Policy (URSP, TS 23.503 section 6.6) -->
+
+<!-- Filter + Create -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>URSP Rules</strong>
+    <div class="d-flex gap-2 align-items-center">
+      <input type="text" class="form-control form-control-sm" id="urspFilterImsi"
+             placeholder="Filter by IMSI (blank=all)" style="width:200px">
+      <button class="btn btn-sm btn-outline-secondary" onclick="urspLoad()">Filter</button>
+      <button class="btn btn-sm btn-primary" onclick="urspShowCreate()">+ New Rule</button>
+    </div>
+  </div>
+  <div class="card-body py-2">
+    <div id="urspRuleList"><small class="text-muted">Loading...</small></div>
+  </div>
+</div>
+
+<!-- Evaluate Test Panel -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Evaluate URSP (Test)</strong></div>
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label form-label-sm">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="urspEvalImsi" placeholder="001010000000001"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">App ID</label>
+        <input type="text" class="form-control form-control-sm" id="urspEvalAppId" placeholder="optional"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">DNN</label>
+        <input type="text" class="form-control form-control-sm" id="urspEvalDnn" placeholder="internet"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">FQDN</label>
+        <input type="text" class="form-control form-control-sm" id="urspEvalFqdn" placeholder="*.example.com"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Conn Cap</label>
+        <input type="text" class="form-control form-control-sm" id="urspEvalConnCap" placeholder="ims"></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-outline-primary w-100" style="margin-top:18px" onclick="urspEvaluate()">Evaluate</button></div>
+    </div>
+    <div id="urspEvalResult" class="mt-2" style="font-size:0.82rem"></div>
+  </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="urspModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="urspModalTitle">New URSP Rule</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="urspEditId">
+        <div class="row g-2 mb-3">
+          <div class="col-md-3"><label class="form-label form-label-sm">Precedence (0-255)</label>
+            <input type="number" class="form-control form-control-sm" id="urspPrec" min="0" max="255" value="100"></div>
+          <div class="col-md-3"><label class="form-label form-label-sm">IMSI (blank=global)</label>
+            <input type="text" class="form-control form-control-sm" id="urspImsi" placeholder="global"></div>
+          <div class="col-md-4"><label class="form-label form-label-sm">Description</label>
+            <input type="text" class="form-control form-control-sm" id="urspDesc"></div>
+          <div class="col-md-2"><label class="form-label form-label-sm">Enabled</label>
+            <select class="form-select form-select-sm" id="urspEnabled"><option value="1">Yes</option><option value="0">No</option></select></div>
+        </div>
+
+        <!-- Traffic Descriptors -->
+        <h6>Traffic Descriptors</h6>
+        <div id="urspTdList" class="mb-2"></div>
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-md-3"><select class="form-select form-select-sm" id="urspTdType">
+            <option value="app_id">App ID</option><option value="ip_3tuple">IP 3-tuple</option>
+            <option value="dnn">DNN</option><option value="fqdn">FQDN</option>
+            <option value="conn_cap">Conn Capability</option><option value="domain">Domain</option>
+          </select></div>
+          <div class="col-md-5"><input type="text" class="form-control form-control-sm" id="urspTdValue" placeholder="match value"></div>
+          <div class="col-auto"><button class="btn btn-sm btn-outline-primary" onclick="urspAddTd()">+ TD</button></div>
+        </div>
+
+        <!-- Route Selection Descriptors -->
+        <h6>Route Selection Descriptors</h6>
+        <div id="urspRdList" class="mb-2"></div>
+        <div class="row g-2 align-items-end mb-2">
+          <div class="col-md-1"><label class="form-label form-label-sm">Prec</label>
+            <input type="number" class="form-control form-control-sm" id="urspRdPrec" min="0" max="255" value="0"></div>
+          <div class="col-md-1"><label class="form-label form-label-sm">SST</label>
+            <input type="number" class="form-control form-control-sm" id="urspRdSst" placeholder="1"></div>
+          <div class="col-md-2"><label class="form-label form-label-sm">SD</label>
+            <input type="text" class="form-control form-control-sm" id="urspRdSd" placeholder="optional"></div>
+          <div class="col-md-2"><label class="form-label form-label-sm">DNN</label>
+            <input type="text" class="form-control form-control-sm" id="urspRdDnn" placeholder="internet"></div>
+          <div class="col-md-2"><label class="form-label form-label-sm">PDU Type</label>
+            <select class="form-select form-select-sm" id="urspRdPduType">
+              <option value="">(any)</option><option value="IPv4">IPv4</option>
+              <option value="IPv6">IPv6</option><option value="IPv4v6">IPv4v6</option>
+              <option value="Unstructured">Unstructured</option>
+            </select></div>
+          <div class="col-md-2"><label class="form-label form-label-sm">Access</label>
+            <select class="form-select form-select-sm" id="urspRdAccess">
+              <option value="any">Any</option><option value="3GPP">3GPP</option>
+              <option value="non-3GPP">non-3GPP</option>
+            </select></div>
+          <div class="col-auto"><button class="btn btn-sm btn-outline-primary" onclick="urspAddRd()">+ RSD</button></div>
+        </div>
+      </div>
+      <div class="modal-footer py-1">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="urspSaveRule()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let _urspTds=[], _urspRds=[];
+
+function urspLoad(){
+  const imsi=document.getElementById('urspFilterImsi').value.trim();
+  const qs=imsi?'?imsi='+encodeURIComponent(imsi):'';
+  fetch('/api/ursp/rules'+qs).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('urspRuleList');
+    if(!d.ok||!d.rules||!d.rules.length){div.innerHTML='<small class="text-muted">No URSP rules</small>';return;}
+    let html='<table class="table table-sm table-striped mb-0" style="font-size:0.8rem"><thead><tr>'+
+      '<th>ID</th><th>Prec</th><th>IMSI</th><th>Description</th><th>Traffic Desc</th><th>Route Desc</th><th>Enabled</th><th></th></tr></thead><tbody>';
+    d.rules.forEach(r=>{
+      const tds=r.traffic_descriptors||[];
+      const rds=r.route_descriptors||[];
+      const tdStr=tds.length?tds.map(t=>'<span class="badge bg-info text-dark me-1">'+t.match_type+': '+t.match_value+'</span>').join(''):'<em>match-all</em>';
+      const rdStr=rds.length?rds.map(rd=>{
+        let s='';
+        if(rd.sst!=null)s+='SST:'+rd.sst;
+        if(rd.sd)s+='/'+rd.sd;
+        if(rd.dnn)s+=(s?' ':'')+'DNN:'+rd.dnn;
+        if(rd.pdu_session_type)s+=' '+rd.pdu_session_type;
+        if(rd.access_type&&rd.access_type!='any')s+=' ['+rd.access_type+']';
+        return '<span class="badge bg-success me-1">'+(s||'(empty)')+'</span>';
+      }).join(''):'<em>none</em>';
+      html+='<tr><td>'+r.id+'</td><td><strong>'+r.precedence+'</strong></td>'+
+        '<td>'+(r.imsi||'<em>global</em>')+'</td><td>'+((r.description||'').substring(0,40))+'</td>'+
+        '<td>'+tdStr+'</td><td>'+rdStr+'</td>'+
+        '<td>'+(r.enabled?'<span class="badge bg-success">Y</span>':'<span class="badge bg-secondary">N</span>')+'</td>'+
+        '<td><div class="btn-group btn-group-sm">'+
+        '<button class="btn btn-outline-primary py-0 px-1" onclick="urspEditRule('+r.id+')">Edit</button>'+
+        '<button class="btn btn-outline-warning py-0 px-1" onclick="urspPush('+r.id+')">Push</button>'+
+        '<button class="btn btn-outline-danger py-0 px-1" onclick="urspDelete('+r.id+')">Del</button>'+
+        '</div></td></tr>';
+    });
+    html+='</tbody></table>';
+    div.innerHTML=html;
+  });
+}
+
+function urspShowCreate(){
+  _urspTds=[];_urspRds=[];
+  document.getElementById('urspEditId').value='';
+  document.getElementById('urspModalTitle').textContent='New URSP Rule';
+  document.getElementById('urspPrec').value='100';
+  document.getElementById('urspImsi').value='';
+  document.getElementById('urspDesc').value='';
+  document.getElementById('urspEnabled').value='1';
+  urspRenderTds();urspRenderRds();
+  new bootstrap.Modal(document.getElementById('urspModal')).show();
+}
+
+function urspEditRule(id){
+  fetch('/api/ursp/rules/'+id).then(r=>r.json()).then(d=>{
+    if(!d.ok)return;
+    const r=d.rule;
+    _urspTds=(r.traffic_descriptors||[]).map(t=>({match_type:t.match_type,match_value:t.match_value}));
+    _urspRds=(r.route_descriptors||[]).map(rd=>({precedence:rd.precedence||0,sst:rd.sst,sd:rd.sd,dnn:rd.dnn,pdu_session_type:rd.pdu_session_type,access_type:rd.access_type||'any'}));
+    document.getElementById('urspEditId').value=r.id;
+    document.getElementById('urspModalTitle').textContent='Edit URSP Rule #'+r.id;
+    document.getElementById('urspPrec').value=r.precedence;
+    document.getElementById('urspImsi').value=r.imsi||'';
+    document.getElementById('urspDesc').value=r.description||'';
+    document.getElementById('urspEnabled').value=r.enabled?'1':'0';
+    urspRenderTds();urspRenderRds();
+    new bootstrap.Modal(document.getElementById('urspModal')).show();
+  });
+}
+
+function urspAddTd(){
+  const t=document.getElementById('urspTdType').value;
+  const v=document.getElementById('urspTdValue').value.trim();
+  if(!v){alert('Match value required');return;}
+  _urspTds.push({match_type:t,match_value:v});
+  document.getElementById('urspTdValue').value='';
+  urspRenderTds();
+}
+function urspRemoveTd(i){_urspTds.splice(i,1);urspRenderTds();}
+function urspRenderTds(){
+  const div=document.getElementById('urspTdList');
+  if(!_urspTds.length){div.innerHTML='<small class="text-muted">No traffic descriptors (match-all)</small>';return;}
+  div.innerHTML=_urspTds.map((t,i)=>'<span class="badge bg-info text-dark me-1">'+t.match_type+': '+t.match_value+' <a href="#" class="text-danger" onclick="urspRemoveTd('+i+');return false;">&times;</a></span>').join('');
+}
+
+function urspAddRd(){
+  const rd={
+    precedence:parseInt(document.getElementById('urspRdPrec').value)||0,
+    sst:document.getElementById('urspRdSst').value.trim()?parseInt(document.getElementById('urspRdSst').value):null,
+    sd:document.getElementById('urspRdSd').value.trim()||null,
+    dnn:document.getElementById('urspRdDnn').value.trim()||null,
+    pdu_session_type:document.getElementById('urspRdPduType').value||null,
+    access_type:document.getElementById('urspRdAccess').value||'any'
+  };
+  _urspRds.push(rd);urspRenderRds();
+}
+function urspRemoveRd(i){_urspRds.splice(i,1);urspRenderRds();}
+function urspRenderRds(){
+  const div=document.getElementById('urspRdList');
+  if(!_urspRds.length){div.innerHTML='<small class="text-muted">No route descriptors</small>';return;}
+  div.innerHTML=_urspRds.map((rd,i)=>{
+    let s='prec:'+rd.precedence;
+    if(rd.sst!=null)s+=' SST:'+rd.sst;
+    if(rd.sd)s+='/'+rd.sd;
+    if(rd.dnn)s+=' DNN:'+rd.dnn;
+    if(rd.pdu_session_type)s+=' '+rd.pdu_session_type;
+    if(rd.access_type&&rd.access_type!='any')s+=' ['+rd.access_type+']';
+    return '<span class="badge bg-success me-1">'+s+' <a href="#" class="text-danger" onclick="urspRemoveRd('+i+');return false;">&times;</a></span>';
+  }).join('');
+}
+
+function urspSaveRule(){
+  const editId=document.getElementById('urspEditId').value;
+  const payload={
+    precedence:parseInt(document.getElementById('urspPrec').value)||100,
+    imsi:document.getElementById('urspImsi').value.trim()||null,
+    description:document.getElementById('urspDesc').value.trim(),
+    enabled:parseInt(document.getElementById('urspEnabled').value),
+    traffic_descriptors:_urspTds,
+    route_descriptors:_urspRds
+  };
+  const url=editId?'/api/ursp/rules/'+editId:'/api/ursp/rules';
+  const method=editId?'PUT':'POST';
+  fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>r.json()).then(d=>{
+    if(!d.ok){alert(d.error||'Failed');return;}
+    bootstrap.Modal.getInstance(document.getElementById('urspModal')).hide();
+    urspLoad();
+  });
+}
+
+function urspDelete(id){
+  if(!confirm('Delete URSP rule #'+id+'?'))return;
+  fetch('/api/ursp/rules/'+id,{method:'DELETE'}).then(r=>r.json()).then(()=>urspLoad());
+}
+
+function urspPush(id){
+  fetch('/api/ursp/rules/'+id+'/push',{method:'POST'}).then(r=>r.json()).then(d=>{
+    if(!d.ok){alert(d.error||'Push failed');return;}
+    const ie=d.ursp_ie;
+    alert('URSP IE built: '+ie.rule_count+' rule(s), IEI=0x'+ie.iei.toString(16)+'\n\nSee console for details.');
+    console.log('URSP IE:', ie);
+  });
+}
+
+function urspEvaluate(){
+  const imsi=document.getElementById('urspEvalImsi').value.trim();
+  if(!imsi){alert('IMSI required');return;}
+  const payload={imsi};
+  const appId=document.getElementById('urspEvalAppId').value.trim();
+  const dnn=document.getElementById('urspEvalDnn').value.trim();
+  const fqdn=document.getElementById('urspEvalFqdn').value.trim();
+  const connCap=document.getElementById('urspEvalConnCap').value.trim();
+  if(appId)payload.app_id=appId;
+  if(dnn)payload.dnn=dnn;
+  if(fqdn)payload.fqdn=fqdn;
+  if(connCap)payload.conn_cap=connCap;
+  fetch('/api/ursp/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('urspEvalResult');
+    if(!d.ok){div.innerHTML='<span class="text-danger">'+d.error+'</span>';return;}
+    if(!d.match){div.innerHTML='<span class="text-muted">No matching URSP rule</span>';return;}
+    const m=d.match;
+    const rd=m.route_descriptor||{};
+    let html='<strong>Match!</strong> Rule #'+m.rule_id+' (prec '+m.rule_precedence+'): '+m.rule_description+'<br>';
+    html+='Route: ';
+    if(rd.sst!=null)html+='SST:'+rd.sst;
+    if(rd.sd)html+='/'+rd.sd;
+    if(rd.dnn)html+=' DNN:'+rd.dnn;
+    if(rd.pdu_session_type)html+=' '+rd.pdu_session_type;
+    if(rd.access_type&&rd.access_type!='any')html+=' ['+rd.access_type+']';
+    div.innerHTML=html;
+  });
+}
+
+document.querySelector('a[href="#ursp-tab"]')?.addEventListener('shown.bs.tab',urspLoad);
+</script>

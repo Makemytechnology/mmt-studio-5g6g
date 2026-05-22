@@ -1,0 +1,25 @@
+{
+  "mode": "standalone",
+  "node_id": "tester-01",
+  "role": "standalone",
+  "controller_url": "",
+  "db_engine": "sqlite",
+  "db_sqlite": {
+    "path": "data/sa_tester.db"
+  },
+  "db_postgresql": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "sa_tester",
+    "user": "satester",
+    "password": ""
+  },
+  "worker": {
+    "gnb_start": 0,
+    "gnb_count": 10000,
+    "ues_per_gnb_active": 1000,
+    "ues_per_gnb_idle": 10000,
+    "report_interval_s": 5
+  },
+  "nodes": []
+}

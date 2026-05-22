@@ -1,0 +1,335 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# PFCP messages — TS 29.244 §7.
+# has_seid=false for node-related (types 1-17).
+# has_seid=true for session-related (types 50-57).
+
+messages:
+
+  # -----------------------------------------------------------------
+  # Node-related (§7.4)
+  # -----------------------------------------------------------------
+
+  - name: HeartbeatRequest
+    description: "Heartbeat Request — TS 29.244 §7.4.2"
+    message_type: 1
+    direction: both
+    has_seid: false
+    ies:
+      - {name: RecoveryTimeStamp, presence: M, type_ref: RecoveryTimeStamp}
+      - {name: SourceIPAddress,   presence: O, type_ref: SourceIPAddress}
+
+  - name: HeartbeatResponse
+    description: "Heartbeat Response — TS 29.244 §7.4.3"
+    message_type: 2
+    direction: both
+    has_seid: false
+    ies:
+      - {name: RecoveryTimeStamp, presence: M, type_ref: RecoveryTimeStamp}
+
+  - name: PFDManagementRequest
+    description: "PFD Management Request — TS 29.244 §7.4.4"
+    message_type: 3
+    direction: cp_to_up
+    has_seid: false
+    ies:
+      - {name: ApplicationIDsPFDs, presence: M, type_ref: ApplicationIDsPFDs, multiple: true}
+      - {name: NodeID,             presence: O, type_ref: NodeID}
+
+  - name: PFDManagementResponse
+    description: "PFD Management Response — TS 29.244 §7.4.5"
+    message_type: 4
+    direction: up_to_cp
+    has_seid: false
+    ies:
+      - {name: Cause,       presence: M, type_ref: Cause}
+      - {name: OffendingIE, presence: C, type_ref: OffendingIE}
+      - {name: NodeID,      presence: O, type_ref: NodeID}
+
+  - name: AssociationSetupRequest
+    description: "Association Setup Request — TS 29.244 §7.4.4.1"
+    message_type: 5
+    direction: both
+    has_seid: false
+    ies:
+      - {name: NodeID,             presence: M, type_ref: NodeID}
+      - {name: RecoveryTimeStamp,  presence: M, type_ref: RecoveryTimeStamp}
+      - {name: UPFunctionFeatures, presence: C, type_ref: UPFunctionFeatures}
+      - {name: CPFunctionFeatures, presence: C, type_ref: CPFunctionFeatures}
+      - {name: UserPlaneIPResourceInformation, presence: C, type_ref: UserPlaneIPResourceInformation, multiple: true}
+      - {name: AlternativeSMFIPAddress, presence: C, type_ref: AlternativeSMFIPAddress, multiple: true}
+      - {name: SMFSetID,           presence: C, type_ref: SMFSetID}
+      - {name: PFCPSessionRetentionInformation, presence: C, type_ref: PFCPSessionRetentionInformation}
+      - {name: UEIPAddressPoolInformation, presence: C, type_ref: UEIPAddressPoolInformation, multiple: true}
+      - {name: ClockDriftControlInformation, presence: C, type_ref: ClockDriftControlInformation, multiple: true}
+
+  - name: AssociationSetupResponse
+    description: "Association Setup Response — TS 29.244 §7.4.4.2"
+    message_type: 6
+    direction: both
+    has_seid: false
+    ies:
+      - {name: NodeID,             presence: M, type_ref: NodeID}
+      - {name: Cause,              presence: M, type_ref: Cause}
+      - {name: RecoveryTimeStamp,  presence: M, type_ref: RecoveryTimeStamp}
+      - {name: UPFunctionFeatures, presence: C, type_ref: UPFunctionFeatures}
+      - {name: CPFunctionFeatures, presence: C, type_ref: CPFunctionFeatures}
+      - {name: UserPlaneIPResourceInformation, presence: C, type_ref: UserPlaneIPResourceInformation, multiple: true}
+      - {name: AlternativeSMFIPAddress, presence: C, type_ref: AlternativeSMFIPAddress, multiple: true}
+      - {name: SMFSetID,           presence: C, type_ref: SMFSetID}
+      - {name: UEIPAddressPoolInformation, presence: C, type_ref: UEIPAddressPoolInformation, multiple: true}
+      - {name: ClockDriftControlInformation, presence: C, type_ref: ClockDriftControlInformation, multiple: true}
+
+  - name: AssociationUpdateRequest
+    description: "Association Update Request — TS 29.244 §7.4.4.3"
+    message_type: 7
+    direction: both
+    has_seid: false
+    ies:
+      - {name: NodeID,                    presence: M, type_ref: NodeID}
+      - {name: UPFunctionFeatures,        presence: C, type_ref: UPFunctionFeatures}
+      - {name: CPFunctionFeatures,        presence: C, type_ref: CPFunctionFeatures}
+      - {name: PFCPAssociationReleaseRequest, presence: C, type_ref: PFCPAssociationReleaseRequest}
+      - {name: GracefulReleasePeriod,     presence: C, type_ref: GracefulReleasePeriod}
+      - {name: PFCPAUReqFlags,            presence: C, type_ref: PFCPAUReqFlags}
+      - {name: UserPlaneIPResourceInformation, presence: C, type_ref: UserPlaneIPResourceInformation, multiple: true}
+      - {name: AlternativeSMFIPAddress,   presence: C, type_ref: AlternativeSMFIPAddress, multiple: true}
+      - {name: SMFSetID,                  presence: C, type_ref: SMFSetID}
+      - {name: ClockDriftControlInformation, presence: C, type_ref: ClockDriftControlInformation, multiple: true}
+      - {name: UEIPAddressPoolInformation, presence: C, type_ref: UEIPAddressPoolInformation, multiple: true}
+
+  - name: AssociationUpdateResponse
+    description: "Association Update Response — TS 29.244 §7.4.4.4"
+    message_type: 8
+    direction: both
+    has_seid: false
+    ies:
+      - {name: NodeID,             presence: M, type_ref: NodeID}
+      - {name: Cause,              presence: M, type_ref: Cause}
+      - {name: UPFunctionFeatures, presence: C, type_ref: UPFunctionFeatures}
+      - {name: CPFunctionFeatures, presence: C, type_ref: CPFunctionFeatures}
+
+  - name: AssociationReleaseRequest
+    description: "Association Release Request — TS 29.244 §7.4.4.5"
+    message_type: 9
+    direction: both
+    has_seid: false
+    ies:
+      - {name: NodeID, presence: M, type_ref: NodeID}
+
+  - name: AssociationReleaseResponse
+    description: "Association Release Response — TS 29.244 §7.4.4.6"
+    message_type: 10
+    direction: both
+    has_seid: false
+    ies:
+      - {name: NodeID, presence: M, type_ref: NodeID}
+      - {name: Cause,  presence: M, type_ref: Cause}
+
+  - name: VersionNotSupportedResponse
+    description: "Version Not Supported Response — TS 29.244 §7.4.4.7"
+    message_type: 11
+    direction: both
+    has_seid: false
+    ies: []
+
+  - name: NodeReportRequest
+    description: "Node Report Request — TS 29.244 §7.4.5.1"
+    message_type: 12
+    direction: up_to_cp
+    has_seid: false
+    ies:
+      - {name: NodeID,                     presence: M, type_ref: NodeID}
+      - {name: NodeReportType,             presence: M, type_ref: NodeReportType}
+      - {name: UserPlanePathFailureReport, presence: C, type_ref: UserPlanePathFailureReport}
+      - {name: UserPlanePathRecoveryReport, presence: C, type_ref: UserPlanePathRecoveryReport}
+
+  - name: NodeReportResponse
+    description: "Node Report Response — TS 29.244 §7.4.5.2"
+    message_type: 13
+    direction: cp_to_up
+    has_seid: false
+    ies:
+      - {name: NodeID,      presence: M, type_ref: NodeID}
+      - {name: Cause,       presence: M, type_ref: Cause}
+      - {name: OffendingIE, presence: C, type_ref: OffendingIE}
+
+  - name: SessionSetDeletionRequest
+    description: "Session Set Deletion Request — TS 29.244 §7.4.6.1"
+    message_type: 14
+    direction: cp_to_up
+    has_seid: false
+    ies:
+      - {name: NodeID, presence: M, type_ref: NodeID}
+      - {name: FQCSID, presence: M, type_ref: FQCSID, multiple: true}
+
+  - name: SessionSetDeletionResponse
+    description: "Session Set Deletion Response — TS 29.244 §7.4.6.2"
+    message_type: 15
+    direction: up_to_cp
+    has_seid: false
+    ies:
+      - {name: NodeID,      presence: M, type_ref: NodeID}
+      - {name: Cause,       presence: M, type_ref: Cause}
+      - {name: OffendingIE, presence: C, type_ref: OffendingIE}
+
+  # -----------------------------------------------------------------
+  # Session-related (§7.5)
+  # -----------------------------------------------------------------
+
+  - name: SessionEstablishmentRequest
+    description: "Session Establishment Request — TS 29.244 §7.5.2"
+    message_type: 50
+    direction: cp_to_up
+    has_seid: true
+    ies:
+      - {name: NodeID,                  presence: M, type_ref: NodeID}
+      - {name: CPFSEID,                 presence: M, type_ref: FSEID}
+      - {name: CreatePDR,               presence: M, type_ref: CreatePDR, multiple: true}
+      - {name: CreateFAR,               presence: M, type_ref: CreateFAR, multiple: true}
+      - {name: CreateURR,               presence: C, type_ref: CreateURR, multiple: true}
+      - {name: CreateQER,               presence: C, type_ref: CreateQER, multiple: true}
+      - {name: CreateBAR,               presence: O, type_ref: CreateBAR}
+      - {name: CreateTrafficEndpoint,   presence: C, type_ref: CreateTrafficEndpoint, multiple: true}
+      - {name: PDNType,                 presence: C, type_ref: PDNType}
+      - {name: FQCSID,                  presence: C, type_ref: FQCSID, multiple: true}
+      - {name: UserPlaneInactivityTimer, presence: C, type_ref: UserPlaneInactivityTimer}
+      - {name: UserID,                  presence: O, type_ref: UserID}
+      - {name: TraceInformation,        presence: O, type_ref: TraceInformation}
+      - {name: APNDNN,                  presence: O, type_ref: APNDNN}
+      - {name: SNSSAI,                  presence: C, type_ref: SNSSAI}
+      - {name: CreateMAR,               presence: C, type_ref: CreateMAR, multiple: true}
+      - {name: PFCPSEReqFlags,          presence: C, type_ref: PFCPSEReqFlags}
+      - {name: CreateBridgeInfoForTSC,  presence: C, type_ref: CreateBridgeInfoForTSC}
+      - {name: CreateSRR,               presence: C, type_ref: CreateSRR, multiple: true}
+      - {name: ProvideATSSSControlInformation, presence: C, type_ref: ProvideATSSSControlInformation}
+      - {name: IPMulticastAddressingInfo, presence: C, type_ref: IPMulticastAddressingInfo, multiple: true}
+
+  - name: SessionEstablishmentResponse
+    description: "Session Establishment Response — TS 29.244 §7.5.3"
+    message_type: 51
+    direction: up_to_cp
+    has_seid: true
+    ies:
+      - {name: NodeID,                  presence: M, type_ref: NodeID}
+      - {name: Cause,                   presence: M, type_ref: Cause}
+      - {name: OffendingIE,             presence: C, type_ref: OffendingIE}
+      - {name: UPFSEID,                 presence: C, type_ref: FSEID}
+      - {name: CreatedPDR,              presence: C, type_ref: CreatedPDR, multiple: true}
+      - {name: LoadControlInformation,  presence: O, type_ref: LoadControlInformation}
+      - {name: OverloadControlInformation, presence: O, type_ref: OverloadControlInformation}
+      - {name: FQCSID,                  presence: C, type_ref: FQCSID, multiple: true}
+      - {name: FailedRuleID,            presence: C, type_ref: FailedRuleID}
+      - {name: CreatedTrafficEndpoint,  presence: C, type_ref: CreatedTrafficEndpoint, multiple: true}
+      - {name: ATSSSControlParameters,  presence: C, type_ref: ATSSSControlParameters}
+
+  - name: SessionModificationRequest
+    description: "Session Modification Request — TS 29.244 §7.5.4"
+    message_type: 52
+    direction: cp_to_up
+    has_seid: true
+    ies:
+      - {name: CPFSEID,              presence: C, type_ref: FSEID}
+      - {name: RemovePDR,            presence: C, type_ref: RemovePDR, multiple: true}
+      - {name: RemoveFAR,            presence: C, type_ref: RemoveFAR, multiple: true}
+      - {name: RemoveURR,            presence: C, type_ref: RemoveURR, multiple: true}
+      - {name: RemoveQER,            presence: C, type_ref: RemoveQER, multiple: true}
+      - {name: RemoveBAR,            presence: C, type_ref: RemoveBAR}
+      - {name: RemoveTrafficEndpoint, presence: C, type_ref: RemoveTrafficEndpoint, multiple: true}
+      - {name: CreatePDR,            presence: C, type_ref: CreatePDR, multiple: true}
+      - {name: CreateFAR,            presence: C, type_ref: CreateFAR, multiple: true}
+      - {name: CreateURR,            presence: C, type_ref: CreateURR, multiple: true}
+      - {name: CreateQER,            presence: C, type_ref: CreateQER, multiple: true}
+      - {name: CreateBAR,            presence: C, type_ref: CreateBAR}
+      - {name: CreateTrafficEndpoint, presence: C, type_ref: CreateTrafficEndpoint, multiple: true}
+      - {name: UpdatePDR,            presence: C, type_ref: UpdatePDR, multiple: true}
+      - {name: UpdateFAR,            presence: C, type_ref: UpdateFAR, multiple: true}
+      - {name: UpdateURR,            presence: C, type_ref: UpdateURR, multiple: true}
+      - {name: UpdateQER,            presence: C, type_ref: UpdateQER, multiple: true}
+      - {name: UpdateBAR,            presence: C, type_ref: UpdateBARSessionModificationRequest}
+      - {name: UpdateTrafficEndpoint, presence: C, type_ref: UpdateTrafficEndpoint, multiple: true}
+      - {name: PFCPSMReqFlags,       presence: C, type_ref: PFCPSMReqFlags}
+      - {name: QueryURR,             presence: C, type_ref: QueryURR, multiple: true}
+      - {name: FQCSID,               presence: C, type_ref: FQCSID, multiple: true}
+      - {name: UserPlaneInactivityTimer, presence: C, type_ref: UserPlaneInactivityTimer}
+      - {name: QueryURRReference,    presence: C, type_ref: QueryURRReference}
+      - {name: TraceInformation,     presence: O, type_ref: TraceInformation}
+      - {name: RemoveMAR,            presence: C, type_ref: RemoveMAR, multiple: true}
+      - {name: UpdateMAR,            presence: C, type_ref: UpdateMAR, multiple: true}
+      - {name: CreateMAR,            presence: C, type_ref: CreateMAR, multiple: true}
+      - {name: NodeID,               presence: C, type_ref: NodeID}
+      - {name: RemoveSRR,            presence: C, type_ref: RemoveSRR, multiple: true}
+      - {name: CreateSRR,            presence: C, type_ref: CreateSRR, multiple: true}
+      - {name: UpdateSRR,            presence: C, type_ref: UpdateSRR, multiple: true}
+      - {name: ProvideATSSSControlInformation, presence: C, type_ref: ProvideATSSSControlInformation}
+      - {name: IPMulticastAddressingInfo, presence: C, type_ref: IPMulticastAddressingInfo, multiple: true}
+
+  - name: SessionModificationResponse
+    description: "Session Modification Response — TS 29.244 §7.5.5"
+    message_type: 53
+    direction: up_to_cp
+    has_seid: true
+    ies:
+      - {name: Cause,                  presence: M, type_ref: Cause}
+      - {name: OffendingIE,            presence: C, type_ref: OffendingIE}
+      - {name: CreatedPDR,             presence: C, type_ref: CreatedPDR, multiple: true}
+      - {name: LoadControlInformation, presence: O, type_ref: LoadControlInformation}
+      - {name: OverloadControlInformation, presence: O, type_ref: OverloadControlInformation}
+      - {name: UsageReport,            presence: C, type_ref: UsageReportSessionModificationResponse, multiple: true}
+      - {name: FailedRuleID,           presence: C, type_ref: FailedRuleID}
+      - {name: AdditionalUsageReportsInformation, presence: C, type_ref: AdditionalUsageReportsInformation}
+      - {name: CreatedTrafficEndpoint, presence: C, type_ref: CreatedTrafficEndpoint, multiple: true}
+      - {name: ATSSSControlParameters, presence: C, type_ref: ATSSSControlParameters}
+
+  - name: SessionDeletionRequest
+    description: "Session Deletion Request — TS 29.244 §7.5.6"
+    message_type: 54
+    direction: cp_to_up
+    has_seid: true
+    ies: []
+
+  - name: SessionDeletionResponse
+    description: "Session Deletion Response — TS 29.244 §7.5.7"
+    message_type: 55
+    direction: up_to_cp
+    has_seid: true
+    ies:
+      - {name: Cause,                  presence: M, type_ref: Cause}
+      - {name: OffendingIE,            presence: C, type_ref: OffendingIE}
+      - {name: LoadControlInformation, presence: O, type_ref: LoadControlInformation}
+      - {name: OverloadControlInformation, presence: O, type_ref: OverloadControlInformation}
+      - {name: UsageReport,            presence: C, type_ref: UsageReportSessionDeletionResponse, multiple: true}
+      - {name: AdditionalUsageReportsInformation, presence: C, type_ref: AdditionalUsageReportsInformation}
+      - {name: PacketRateStatus,       presence: C, type_ref: PacketRateStatus, multiple: true}
+      - {name: SessionReport,          presence: C, type_ref: SessionReport, multiple: true}
+
+  - name: SessionReportRequest
+    description: "Session Report Request — TS 29.244 §7.5.8"
+    message_type: 56
+    direction: up_to_cp
+    has_seid: true
+    ies:
+      - {name: ReportType,             presence: M, type_ref: ReportType}
+      - {name: DownlinkDataReport,     presence: C, type_ref: DownlinkDataReport}
+      - {name: UsageReport,            presence: C, type_ref: UsageReportSessionReportRequest, multiple: true}
+      - {name: ErrorIndicationReport,  presence: C, type_ref: ErrorIndicationReport}
+      - {name: LoadControlInformation, presence: O, type_ref: LoadControlInformation}
+      - {name: OverloadControlInformation, presence: O, type_ref: OverloadControlInformation}
+      - {name: AdditionalUsageReportsInformation, presence: C, type_ref: AdditionalUsageReportsInformation}
+      - {name: PFCPSRReqFlags,         presence: C, type_ref: PFCPSRReqFlags}
+      - {name: FSEID,                  presence: C, type_ref: FSEID}
+      - {name: PacketRateStatusReport, presence: C, type_ref: PacketRateStatus, multiple: true}
+      - {name: SessionReport,          presence: C, type_ref: SessionReport, multiple: true}
+
+  - name: SessionReportResponse
+    description: "Session Report Response — TS 29.244 §7.5.9"
+    message_type: 57
+    direction: cp_to_up
+    has_seid: true
+    ies:
+      - {name: Cause,          presence: M, type_ref: Cause}
+      - {name: OffendingIE,    presence: C, type_ref: OffendingIE}
+      - {name: UpdateBAR,      presence: C, type_ref: UpdateBARSessionReportResponse}
+      - {name: PFCPSRRspFlags, presence: C, type_ref: PFCPSRRspFlags}
+      - {name: CPFSEID,        presence: C, type_ref: FSEID}
+      - {name: AlternativeSMFIPAddress, presence: C, type_ref: AlternativeSMFIPAddress, multiple: true}

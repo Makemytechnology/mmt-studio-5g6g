@@ -1,0 +1,18 @@
+# Placeholder. Will be renamed to Cargo.toml when Phase 3 starts.
+# Kept under .placeholder so `cargo` doesn't try to build an empty crate
+# from a CI job that sees the directory exists.
+[package]
+name = "sa_dataplane"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "fs", "macros", "signal"] }
+# tokio-tun — pick version at Phase 3 time
+# socket2 = "0.5"
+# dashmap = "6"
+# serde = { version = "1", features = ["derive"] }
+# minicbor = "0.25"
+# tracing = "0.1"
+# tracing-subscriber = "0.3"

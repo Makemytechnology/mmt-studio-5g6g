@@ -1,0 +1,29 @@
+# Keep `docker build` context small. Without this, ~1.6 GB ships to the
+# daemon (1.2 GB .git + 328 MB specs PDFs + 112 MB DPDK build artefacts).
+
+.git
+.gitignore
+.github
+
+# Build outputs — regenerated inside the image
+sacore-web
+libs/dpdk-25.11/build
+nf/upf/dataplane/*.o
+nf/upf/dataplane/*.so
+
+# Local logs / pid files
+*.log
+/tmp
+*.pid
+
+# Spec PDFs are only needed by speccheck at test time, not at runtime
+specs/
+
+# Editor / OS noise
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Tester repo (sibling, not part of core context)
+../mmt_studio_core_tester

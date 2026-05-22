@@ -1,0 +1,408 @@
+<!-- PLMN Configuration (TS 23.003 §12.1) -->
+<h5>PLMN Configuration <small class="text-muted">TS 23.003 §12.1</small></h5>
+
+<!-- ══════════ Home PLMN ══════════ -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Home PLMN
+    <button class="btn btn-primary btn-sm" onclick="phShowForm()">Add</button>
+  </div>
+  <div class="card-body border-bottom bg-light d-none" id="ph-form">
+    <div class="row g-2">
+      <div class="col-md-2"><label class="form-label small">MCC</label>
+        <input type="text" class="form-control form-control-sm" id="ph-mcc" placeholder="001" maxlength="3"></div>
+      <div class="col-md-2"><label class="form-label small">MNC</label>
+        <input type="text" class="form-control form-control-sm" id="ph-mnc" placeholder="01" maxlength="3"></div>
+      <div class="col-md-3"><label class="form-label small">Name (optional)</label>
+        <input type="text" class="form-control form-control-sm" id="ph-name" placeholder="SA Core Home"></div>
+      <div class="col-md-1"><label class="form-label small">Priority</label>
+        <input type="number" class="form-control form-control-sm" id="ph-prio" value="1" min="1"></div>
+    </div>
+    <div class="row g-2 mt-1">
+      <div class="col-md-2"><label class="form-label small">AMF Region ID</label>
+        <input type="number" class="form-control form-control-sm" id="ph-amf-region" placeholder="1" min="0" max="255">
+        <div class="form-text" style="font-size:0.7em">0-255</div></div>
+      <div class="col-md-2"><label class="form-label small">AMF Set ID</label>
+        <input type="number" class="form-control form-control-sm" id="ph-amf-set" placeholder="1" min="0" max="1023">
+        <div class="form-text" style="font-size:0.7em">0-1023</div></div>
+      <div class="col-md-2"><label class="form-label small">AMF Pointer</label>
+        <input type="number" class="form-control form-control-sm" id="ph-amf-ptr" placeholder="0" min="0" max="63">
+        <div class="form-text" style="font-size:0.7em">0-63</div></div>
+      <div class="col-md-6 d-flex align-items-end">
+        <small class="text-muted">TS 23.003 §2.10.1 — GUAMI = {MCC, MNC, AMF Region ID, AMF Set ID, AMF Pointer}</small>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="phSave()">Save</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="phHideForm()">Cancel</button>
+    </div>
+  </div>
+  <div class="card-body p-0" id="ph-content"></div>
+</div>
+
+<!-- ══════════ Equivalent PLMNs ══════════ -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Equivalent PLMNs
+    <button class="btn btn-primary btn-sm" onclick="peShowForm(-1)">Add</button>
+  </div>
+  <div class="card-body border-bottom bg-light d-none" id="pe-form">
+    <input type="hidden" id="pe-edit-id" value="">
+    <div class="row g-2">
+      <div class="col-md-3"><label class="form-label small">MCC</label>
+        <input type="text" class="form-control form-control-sm" id="pe-mcc" placeholder="001" maxlength="3"></div>
+      <div class="col-md-3"><label class="form-label small">MNC</label>
+        <input type="text" class="form-control form-control-sm" id="pe-mnc" placeholder="02" maxlength="3"></div>
+      <div class="col-md-4"><label class="form-label small">Name (optional)</label>
+        <input type="text" class="form-control form-control-sm" id="pe-name" placeholder="Partner Network"></div>
+      <div class="col-md-2"><label class="form-label small">Priority</label>
+        <input type="number" class="form-control form-control-sm" id="pe-prio" value="2" min="1"></div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="peSave()">Save</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="peHideForm()">Cancel</button>
+    </div>
+  </div>
+  <div class="card-body p-0" id="pe-content"></div>
+</div>
+
+<!-- ══════════ Roaming PLMNs ══════════ -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Roaming PLMNs
+    <button class="btn btn-primary btn-sm" onclick="prShowForm(-1)">Add</button>
+  </div>
+  <div class="card-body border-bottom bg-light d-none" id="pr-form">
+    <input type="hidden" id="pr-edit-id" value="">
+    <div class="row g-2">
+      <div class="col-md-3"><label class="form-label small">MCC</label>
+        <input type="text" class="form-control form-control-sm" id="pr-mcc" placeholder="310" maxlength="3"></div>
+      <div class="col-md-3"><label class="form-label small">MNC</label>
+        <input type="text" class="form-control form-control-sm" id="pr-mnc" placeholder="260" maxlength="3"></div>
+      <div class="col-md-4"><label class="form-label small">Name (optional)</label>
+        <input type="text" class="form-control form-control-sm" id="pr-name" placeholder="T-Mobile US"></div>
+      <div class="col-md-2"><label class="form-label small">Priority</label>
+        <input type="number" class="form-control form-control-sm" id="pr-prio" value="5" min="1"></div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="prSave()">Save</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="prHideForm()">Cancel</button>
+    </div>
+  </div>
+  <div class="card-body p-0" id="pr-content"></div>
+</div>
+
+<!-- ══════════ Equivalent Pairs ══════════ -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Equivalent PLMN Pairs <small class="text-muted ms-2">TS 24.501 §9.11.3.45</small>
+    <button class="btn btn-primary btn-sm" onclick="ppShowForm()">Add Pair</button>
+  </div>
+  <div class="card-body border-bottom bg-light d-none" id="pp-form">
+    <div class="row g-2">
+      <div class="col-md-4"><label class="form-label small">Home PLMN</label>
+        <input type="text" class="form-control form-control-sm" id="pp-home" readonly></div>
+      <div class="col-md-4"><label class="form-label small">Equivalent PLMN</label>
+        <select class="form-select form-select-sm" id="pp-equiv"></select></div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="ppSave()">Save</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="ppHideForm()">Cancel</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>Home PLMN</th><th>Equivalent PLMN</th><th></th></tr></thead>
+      <tbody id="pp-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const _sstNames = {1:'eMBB',2:'URLLC',3:'mIoT',4:'IoT',5:'V2X'};
+
+function _plmnApi(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('/api/plmn' + path, opts).then(r => r.json());
+}
+
+let _plmnCache = [];
+function _plmnRefresh() {
+  return _plmnApi('GET', '/supported').then(d => { _plmnCache = d; return d; });
+}
+function _plmnsByType(type) { return _plmnCache.filter(p => p.plmn_type === type); }
+function _homePlmn() { return _plmnCache.find(p => p.plmn_type === 'home'); }
+
+// ══════════ Render PLMN row + slices ══════════
+function _renderPlmnWithSlices(p, actions) {
+  const nssai = p.nssai || [];
+  // AMF ID rendered in plain (dark) cell text to match the rest of
+  // the row. Bootstrap's `text-muted` and `small` classes were
+  // making this column stand out as lighter / smaller than its
+  // siblings (MCC, MNC, Name, Priority, …); spec-wise the AMF ID
+  // triplet (TS 23.003 §2.10.1: Region/Set/Pointer) is just as
+  // load-bearing as those other columns, so it gets the same
+  // visual weight.
+  const amfId = (p.amf_region_id != null || p.amf_set_id != null || p.amf_pointer != null)
+    ? `${p.amf_region_id??'-'}/${p.amf_set_id??'-'}/${p.amf_pointer??'-'}` : '';
+  let html = `<table class="table table-sm mb-0"><thead>
+    <tr><th>MCC</th><th>MNC</th><th>Name</th><th>AMF ID (Region/Set/Ptr)</th><th>Priority</th><th>Status</th><th style="width:200px"></th></tr>
+    </thead><tbody>
+    <tr>
+      <td><strong>${p.mcc}</strong></td><td><strong>${p.mnc}</strong></td>
+      <td>${p.name||'-'}</td><td>${amfId||'-'}</td><td>${p.priority}</td>
+      <td><span class="badge bg-success">Active</span></td>
+      <td>${actions}</td>
+    </tr></tbody></table>`;
+
+  // Slices section
+  html += `<div class="px-3 py-2 border-top bg-white">`;
+  html += `<div class="d-flex justify-content-between align-items-center mb-1">`;
+  html += `<small class="fw-bold text-muted">Supported Slices (TS 38.413 §9.2.6.2)</small>`;
+  html += `<button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="_sliceShowAdd('${p.plmn_id}')">+ Slice</button>`;
+  html += `</div>`;
+
+  // Inline add form (hidden) — slice picker is sourced from
+  // nssai_catalog (/api/catalog/nssai) so PLMN advertisements stay
+  // in sync with the global slice registry. Each option's value is
+  // the catalog row index `<sst>|<sd>` so _sliceSave knows what to
+  // POST. Catalog is loaded lazily by _sliceShowAdd().
+  html += `<div class="d-none mb-2" id="sl-add-${p.plmn_id}">`;
+  html += `<div class="row g-1 align-items-end">`;
+  html += `<div class="col-6"><select class="form-select form-select-sm" id="sl-sst-${p.plmn_id}">`;
+  html += `<option value="">Loading slice catalog…</option></select>`;
+  html += `<small class="text-muted">Manage entries in <a href="#slices-tab" data-bs-toggle="list">Slice Config</a>.</small></div>`;
+  html += `<div class="col-2"><button class="btn btn-success btn-sm w-100" onclick="_sliceSave('${p.plmn_id}')">Add</button></div>`;
+  html += `<div class="col-2"><button class="btn btn-outline-secondary btn-sm w-100" onclick="_sliceHideAdd('${p.plmn_id}')">Cancel</button></div>`;
+  html += `</div></div>`;
+
+  if (nssai.length) {
+    html += `<table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>SST</th><th>SD</th><th>Type</th><th></th></tr></thead><tbody>`;
+    nssai.forEach(n => {
+      const name = _sstNames[n.sst] || 'Custom';
+      html += `<tr><td><span class="badge bg-primary">${n.sst}</span></td>`;
+      html += `<td>${n.sd||'<span class="text-muted">—</span>'}</td><td>${name}</td>`;
+      html += `<td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="_sliceDel('${p.plmn_id}',${n.sst},'${n.sd||''}')">Del</button></td></tr>`;
+    });
+    html += `</tbody></table>`;
+  } else {
+    html += `<div class="text-muted small">No slices — click <strong>+ Slice</strong></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ══════════ Slice add/delete ══════════
+let _sliceCatCache = []; // GET /api/catalog/nssai cache for the dropdown
+function _loadSliceCatalogInto(selectEl) {
+  return fetch('/api/catalog/nssai').then(r => r.json()).then(d => {
+    _sliceCatCache = d.items || [];
+    selectEl.innerHTML = '';
+    if (!_sliceCatCache.length) {
+      selectEl.innerHTML = '<option value="">No slices defined — add in Slice Config</option>';
+      selectEl.disabled = true;
+      return;
+    }
+    selectEl.disabled = false;
+    for (const s of _sliceCatCache) {
+      const sd = s.sd || '';
+      const label = (s.name ? s.name + ' — ' : '') + 'SST=' + s.sst + (sd ? ' SD=' + sd : '');
+      const opt = document.createElement('option');
+      opt.value = s.sst + '|' + sd;
+      opt.textContent = label;
+      selectEl.appendChild(opt);
+    }
+  });
+}
+function _sliceShowAdd(plmnId) {
+  document.getElementById('sl-add-' + plmnId).classList.remove('d-none');
+  _loadSliceCatalogInto(document.getElementById('sl-sst-' + plmnId));
+}
+function _sliceHideAdd(plmnId) {
+  document.getElementById('sl-add-' + plmnId).classList.add('d-none');
+}
+function _sliceSave(plmnId) {
+  const sel = document.getElementById('sl-sst-' + plmnId);
+  if (!sel.value) { alert('Pick a slice from the catalog'); return; }
+  const [sstStr, sd] = sel.value.split('|');
+  const sst = parseInt(sstStr, 10);
+  if (isNaN(sst) || sst < 1) { alert('Invalid SST'); return; }
+  _plmnApi('POST', '/supported/' + plmnId + '/nssai', {sst, sd: sd || null})
+    .then(() => _plmnRefresh().then(plmnLoadAll));
+}
+function _sliceDel(plmnId, sst, sd) {
+  _plmnApi('DELETE', '/supported/' + plmnId + '/nssai/' + sst + (sd ? '?sd=' + sd : ''))
+    .then(() => _plmnRefresh().then(plmnLoadAll));
+}
+
+// ══════════ Home ══════════
+let _phEditId = '';
+
+function phLoad() {
+  const homes = _plmnsByType('home');
+  const container = document.getElementById('ph-content');
+  if (!homes.length) {
+    container.innerHTML = '<div class="text-muted text-center py-3">No home PLMNs — click Add</div>';
+    return;
+  }
+  let html = '';
+  homes.forEach(p => {
+    const actions = `<button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="phEdit('${p.plmn_id}')">Edit</button>
+      <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="phDel('${p.plmn_id}')">Del</button>`;
+    html += _renderPlmnWithSlices(p, actions);
+  });
+  container.innerHTML = html;
+}
+
+function phShowForm(plmn) {
+  _phEditId = plmn ? plmn.plmn_id : '';
+  document.getElementById('ph-mcc').value = plmn ? plmn.mcc : '';
+  document.getElementById('ph-mnc').value = plmn ? plmn.mnc : '';
+  document.getElementById('ph-name').value = plmn ? plmn.name || '' : '';
+  document.getElementById('ph-prio').value = plmn ? plmn.priority : 1;
+  document.getElementById('ph-amf-region').value = plmn ? plmn.amf_region_id ?? '' : '';
+  document.getElementById('ph-amf-set').value = plmn ? plmn.amf_set_id ?? '' : '';
+  document.getElementById('ph-amf-ptr').value = plmn ? plmn.amf_pointer ?? '' : '';
+  document.getElementById('ph-form').classList.remove('d-none');
+}
+function phHideForm() { document.getElementById('ph-form').classList.add('d-none'); }
+function phEdit(plmnId) { const p = _plmnCache.find(x => x.plmn_id === plmnId); if (p) phShowForm(p); }
+function phDel(plmnId) {
+  if (!confirm('Delete home PLMN ' + plmnId + ' and its slices?')) return;
+  _plmnApi('DELETE', '/supported/' + plmnId).then(() => _plmnRefresh().then(plmnLoadAll));
+}
+function phSave() {
+  const mcc = document.getElementById('ph-mcc').value.trim();
+  const mnc = document.getElementById('ph-mnc').value.trim();
+  if (!mcc || !mnc) { alert('MCC and MNC required'); return; }
+  const newId = mcc + '-' + mnc;
+  const chain = _phEditId && _phEditId !== newId
+    ? _plmnApi('DELETE', '/supported/' + _phEditId) : Promise.resolve();
+  const amfRegion = document.getElementById('ph-amf-region').value.trim();
+  const amfSet = document.getElementById('ph-amf-set').value.trim();
+  const amfPtr = document.getElementById('ph-amf-ptr').value.trim();
+  chain.then(() => _plmnApi('POST', '/supported', {
+    mcc, mnc, name: document.getElementById('ph-name').value.trim(),
+    plmn_type: 'home', priority: parseInt(document.getElementById('ph-prio').value) || 1,
+    amf_region_id: amfRegion !== '' ? parseInt(amfRegion) : null,
+    amf_set_id: amfSet !== '' ? parseInt(amfSet) : null,
+    amf_pointer: amfPtr !== '' ? parseInt(amfPtr) : null
+  })).then(() => { phHideForm(); _plmnRefresh().then(plmnLoadAll); });
+}
+
+// ══════════ Equivalent / Roaming (shared) ══════════
+function _typeLoad(type, containerId) {
+  const plmns = _plmnsByType(type);
+  const container = document.getElementById(containerId);
+  if (!plmns.length) {
+    container.innerHTML = `<div class="text-muted text-center py-3">No ${type} PLMNs</div>`;
+    return;
+  }
+  let html = '';
+  plmns.forEach(p => {
+    const actions = `<button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="_typeEdit('${type}','${p.plmn_id}')">Edit</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="_typeClone('${type}','${p.plmn_id}')">Clone</button>
+      <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="_typeDel('${type}','${p.plmn_id}')">Del</button>`;
+    html += _renderPlmnWithSlices(p, actions);
+  });
+  container.innerHTML = html;
+}
+
+function _px(type) { return type === 'equivalent' ? 'pe' : 'pr'; }
+function _typeShowForm(type, plmn) {
+  const px = _px(type);
+  document.getElementById(px+'-edit-id').value = plmn ? plmn.plmn_id : '';
+  document.getElementById(px+'-mcc').value = plmn ? plmn.mcc : '';
+  document.getElementById(px+'-mnc').value = plmn ? plmn.mnc : '';
+  document.getElementById(px+'-name').value = plmn ? plmn.name || '' : '';
+  document.getElementById(px+'-prio').value = plmn ? plmn.priority : (type === 'equivalent' ? 2 : 5);
+  document.getElementById(px+'-form').classList.remove('d-none');
+}
+function _typeHideForm(type) { document.getElementById(_px(type)+'-form').classList.add('d-none'); }
+function _typeSave(type) {
+  const px = _px(type);
+  const mcc = document.getElementById(px+'-mcc').value.trim();
+  const mnc = document.getElementById(px+'-mnc').value.trim();
+  if (!mcc || !mnc) { alert('MCC and MNC required'); return; }
+  const editId = document.getElementById(px+'-edit-id').value;
+  const newId = mcc+'-'+mnc;
+  const chain = editId && editId !== newId
+    ? _plmnApi('DELETE', '/supported/' + editId) : Promise.resolve();
+  chain.then(() => _plmnApi('POST', '/supported', {
+    mcc, mnc, name: document.getElementById(px+'-name').value.trim(),
+    plmn_type: type, priority: parseInt(document.getElementById(px+'-prio').value) || 1
+  })).then(() => { _typeHideForm(type); _plmnRefresh().then(plmnLoadAll); });
+}
+function _typeEdit(type, plmnId) { const p = _plmnCache.find(x => x.plmn_id === plmnId); if (p) _typeShowForm(type, p); }
+function _typeClone(type, plmnId) {
+  const p = _plmnCache.find(x => x.plmn_id === plmnId);
+  if (p) { _typeShowForm(type, {mcc:'',mnc:'',name:(p.name||'')+'-copy',priority:p.priority,plmn_id:''}); document.getElementById(_px(type)+'-edit-id').value=''; }
+}
+function _typeDel(type, plmnId) {
+  if (!confirm('Delete '+plmnId+' and its slices?')) return;
+  _plmnApi('DELETE', '/supported/' + plmnId).then(() => _plmnRefresh().then(plmnLoadAll));
+}
+
+function peShowForm() { _typeShowForm('equivalent', null); }
+function peHideForm() { _typeHideForm('equivalent'); }
+function peSave() { _typeSave('equivalent'); }
+function prShowForm() { _typeShowForm('roaming', null); }
+function prHideForm() { _typeHideForm('roaming'); }
+function prSave() { _typeSave('roaming'); }
+
+// ══════════ Equivalent Pairs ══════════
+function ppLoad() {
+  const sel = document.getElementById('pp-equiv');
+  sel.innerHTML = '';
+  _plmnsByType('equivalent').forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.plmn_id;
+    opt.textContent = p.mcc + '/' + p.mnc + (p.name ? ' — ' + p.name : '');
+    sel.appendChild(opt);
+  });
+  const home = _homePlmn();
+  document.getElementById('pp-home').value = home ? home.plmn_id : '';
+
+  _plmnApi('GET', '/equivalent').then(eqs => {
+    const tb = document.getElementById('pp-list');
+    if (!eqs.length) { tb.innerHTML = '<tr><td colspan="3" class="text-muted text-center">No pairs</td></tr>'; return; }
+    tb.innerHTML = '';
+    eqs.forEach(e => {
+      tb.innerHTML += `<tr><td><code>${e.home_plmn_id}</code></td><td><code>${e.equiv_plmn_id}</code></td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="ppDel('${e.home_plmn_id}','${e.equiv_plmn_id}')">Del</button></td></tr>`;
+    });
+  });
+}
+function ppShowForm() {
+  const home = _homePlmn();
+  if (!home) { alert('Add a Home PLMN first'); return; }
+  if (!_plmnsByType('equivalent').length) { alert('Add Equivalent PLMNs first'); return; }
+  document.getElementById('pp-home').value = home.plmn_id;
+  document.getElementById('pp-form').classList.remove('d-none');
+}
+function ppHideForm() { document.getElementById('pp-form').classList.add('d-none'); }
+function ppSave() {
+  const home = document.getElementById('pp-home').value;
+  const equiv = document.getElementById('pp-equiv').value;
+  if (!home || !equiv) { alert('Select an equivalent PLMN'); return; }
+  _plmnApi('POST', '/equivalent', {home_plmn_id: home, equiv_plmn_id: equiv})
+    .then(() => { ppHideForm(); ppLoad(); });
+}
+function ppDel(h, e) { _plmnApi('DELETE', '/equivalent/' + h + '/' + e).then(() => ppLoad()); }
+
+// ══════════ Load all ══════════
+function plmnLoadAll() {
+  phLoad();
+  _typeLoad('equivalent', 'pe-content');
+  _typeLoad('roaming', 'pr-content');
+  ppLoad();
+}
+
+document.querySelector('[href="#plmn-tab"]')?.addEventListener('shown.bs.tab', () => {
+  _plmnRefresh().then(plmnLoadAll).catch(e => console.warn('PLMN refresh failed:', e));
+});
+
+// Initial load
+_plmnRefresh().then(plmnLoadAll).catch(e => console.warn('PLMN init load failed:', e));
+</script>

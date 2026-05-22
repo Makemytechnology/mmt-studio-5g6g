@@ -1,0 +1,16 @@
+# Compiled Python packages required by SA Tester. Mirrors the
+# pinned set from install.sh (lines 156-163). The pure-Python deps
+# (fastapi / uvicorn / starlette / anyio / jinja2 / requests / ...)
+# are bundled under libs/ and loaded via PYTHONPATH at runtime, so
+# they are intentionally not listed here.
+cryptography==46.0.5
+pydantic==2.12.5
+pydantic-core==2.41.5
+httptools==0.7.1
+cffi==2.0.0
+pysctp==0.7.3
+pyroute2>=0.7
+# baseline.yaml uses flow-style mappings (e.g. `- { sst: 1, sd: "000001" }`)
+# that the stdlib can't parse. PyYAML is the single canonical loader —
+# missing it is fatal, no stdlib fallback.
+PyYAML>=6.0

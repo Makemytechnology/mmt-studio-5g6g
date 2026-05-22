@@ -1,0 +1,196 @@
+<!-- ue_config.html -->
+<div class="accordion mb-4 mt-5" id="ueConfigAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="ueTopHeader">
+      <!-- ✅ FIX: remove data-bs-toggle/data-bs-target; we toggle via JS -->
+      <button
+        id="ueTopToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center text-center"
+        type="button"
+        aria-expanded="true"
+        aria-controls="ueTopCollapse">
+        <div class="w-100">UE Configuration</div>
+      </button>
+    </h2>
+
+    <div id="ueTopCollapse" class="accordion-collapse collapse show" aria-labelledby="ueTopHeader">
+      <div class="accordion-body">
+
+        <!-- Row 1: IMSI / MSISDN / Identity Type / Unified Actions -->
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">IMSI</label>
+            <input id="ue_imsi" type="text" class="form-control" placeholder="001010000000001" />
+            <div class="form-text">15 digits</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">MSISDN</label>
+            <input id="ue_msisdn" type="text" class="form-control" placeholder="+15551234567" pattern="^\+\d+$" title="E.164 format: + followed by digits (e.g. +15551234567)" />
+            <div class="form-text">&nbsp;</div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Identity Type</label>
+            <select id="ue_identity_type" class="form-select">
+              <option value="SUPI" selected>SUPI</option>
+              <option value="SUCI">SUCI</option>
+            </select>
+            <div class="form-text">SUPI = plaintext, SUCI = concealed</div>
+          </div>
+        </div>
+
+        <!-- SUCI details (hidden by default, shown when SUCI selected) -->
+        <div id="suci_details_row" class="row g-3 align-items-end mt-2" style="display: none;">
+          <div class="col-md-2">
+            <label class="form-label">SUCI Profile</label>
+            <select id="auth_suci_profile" class="form-select">
+              <option value="A" selected>A (X25519)</option>
+              <option value="B">B (secp256r1)</option>
+            </select>
+            <div class="form-text">ECIES profile</div>
+          </div>
+
+          <div class="col-md-5">
+            <label class="form-label">HN Private Key (64 hex)</label>
+            <input id="auth_hn_private_key" type="text" class="form-control"
+                   placeholder="c53c2208b61860b06c62e5406a7b330c2b577aa5558981510d128247d38bd1d"
+                   inputmode="latin" autocapitalize="off" spellcheck="false">
+            <div class="form-text">Home network private key for SUCI de-concealment</div>
+          </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <!-- Per-UE Auth Info -->
+        {% include "ue_auth_info.html" %}
+
+        <!-- Per-UE Subscription -->
+        {% include "ue_subscription.html" %}
+
+        <!-- Load / Clear / Save All -->
+        <div class="d-flex justify-content-end gap-2 mt-3">
+          <button id="btnUeLoad"  type="button" class="btn btn-outline-primary">Load</button>
+          <button id="btnUeClear" type="button" class="btn btn-outline-secondary">Clear</button>
+          <button id="btnUeSave"  type="button" class="btn btn-success">Save All</button>
+        </div>
+        <div id="ue_config_status" class="mt-2"></div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk clone (deep copy) — sits between the single-UE edit block
+     and the Configured UEs table. -->
+{% include "ue_bulk_clone.html" %}
+
+<!-- Bulk delete (range) — symmetric to Bulk Clone, sits directly
+     below it so admins can roll back a clone with one form. -->
+{% include "ue_bulk_delete.html" %}
+
+<!-- UE Dashboard (list of all configured UEs) -->
+{% include "ue_dashboard.html" %}
+
+<script>
+(function () {
+  const init = () => {
+    const toggleBtn  = document.getElementById("ueTopToggleBtn");
+    const collapseEl = document.getElementById("ueTopCollapse");
+
+    if (!toggleBtn || !collapseEl) return;
+
+    // ✅ Manual collapse instance (works even if Bootstrap default handler is broken)
+    let inst = null;
+
+    const syncBtnUI = () => {
+      const open = collapseEl.classList.contains("show");
+      toggleBtn.classList.toggle("collapsed", !open);
+      toggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+
+    const getInst = () => {
+      if (inst) return inst;
+
+      if (window.bootstrap && window.bootstrap.Collapse) {
+        inst = window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+        collapseEl.addEventListener("shown.bs.collapse", syncBtnUI);
+        collapseEl.addEventListener("hidden.bs.collapse", syncBtnUI);
+        return inst;
+      }
+
+      // Fallback if Bootstrap JS isn't present
+      inst = {
+        toggle() {
+          collapseEl.classList.toggle("show");
+          syncBtnUI();
+        }
+      };
+      return inst;
+    };
+
+    // Avoid double-binding if template is injected multiple times
+    if (!toggleBtn.dataset.bound) {
+      toggleBtn.dataset.bound = "1";
+      toggleBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        getInst().toggle();
+      });
+    }
+
+    syncBtnUI();
+
+    // SUPI/SUCI toggle — show/hide SUCI details
+    const idTypeEl = document.getElementById("ue_identity_type");
+    const suciRow  = document.getElementById("suci_details_row");
+    if (idTypeEl && suciRow) {
+      const syncSuci = () => {
+        suciRow.style.display = idTypeEl.value === "SUCI" ? "" : "none";
+      };
+      idTypeEl.addEventListener("change", syncSuci);
+      syncSuci();
+    }
+
+    // Expose only the field getters for child sections to read IMSI/MSISDN
+    window.__ue_get_ids = () => ({
+      imsi: (document.getElementById("ue_imsi")?.value || "").trim(),
+      msisdn: (document.getElementById("ue_msisdn")?.value || "").trim(),
+    });
+
+    // ── Unified Load / Clear / Save All ──
+    const statusBox = document.getElementById("ue_config_status");
+    const note = (msg, type="info") => {
+      if (statusBox) statusBox.innerHTML = msg
+        ? `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>` : "";
+    };
+
+    document.getElementById("btnUeLoad")?.addEventListener("click", () => {
+      const imsi = window.__ue_get_ids().imsi;
+      if (!imsi) return note("Enter IMSI first.", "warning");
+      note("");
+      document.dispatchEvent(new Event("ue:loadAll"));
+      note("Loading full configuration...", "info");
+    });
+
+    document.getElementById("btnUeClear")?.addEventListener("click", () => {
+      document.dispatchEvent(new Event("ue:clearAll"));
+      note("");
+    });
+
+    document.getElementById("btnUeSave")?.addEventListener("click", () => {
+      const imsi = window.__ue_get_ids().imsi;
+      if (!imsi) return note("Enter IMSI first.", "warning");
+      note("Saving full configuration...", "info");
+      document.dispatchEvent(new Event("ue:saveAll"));
+    });
+  };
+
+  // ✅ Works for both normal page load and partial template injection
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

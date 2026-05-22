@@ -1,0 +1,4 @@
+{
+  "_comment_pretest_mode": "How the runner brings the SUT to a known state before each test. 'full' = operator just ran run_studio.sh up --build; tester behaves like 'baseline' in the loop. 'baseline' (default) = POST /api/admin/remove-db-file before every test; order-independent, ~5-10 s per test. 'delta' = skip the reset; each test applies only its own pre-config and must clean up after itself; fastest but order-sensitive.",
+  "pretest_mode": "baseline"
+}

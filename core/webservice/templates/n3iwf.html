@@ -1,0 +1,160 @@
+<!-- templates/n3iwf.html — N3IWF Non-3GPP Access (TS 23.501 §6.3.1) -->
+
+<!-- N3IWF Status Overview -->
+<div class="row g-2 mb-3">
+  <div class="col-md-2"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-5" id="n3Status">OFF</div><div class="small text-muted">N3IWF</div></div></div>
+  <div class="col-md-2"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-5" id="n3Ues">0</div><div class="small text-muted">Wi-Fi UEs</div></div></div>
+  <div class="col-md-2"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-5" id="n3Registered">0</div><div class="small text-muted">Registered</div></div></div>
+  <div class="col-md-2"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-5" id="n3Pdu">0</div><div class="small text-muted">PDU Sessions</div></div></div>
+  <div class="col-md-4"><div class="card p-2"><div class="small text-muted">IKEv2 Endpoint</div><div class="fw-bold" id="n3Endpoint">-</div></div></div>
+</div>
+
+<!-- Configuration -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="n3CfgBtn" class="accordion-button bg-secondary text-white fw-bold" type="button"><div class="w-100 text-center">N3IWF Configuration (TS 24.502)</div></button></h2>
+  <div id="n3CfgCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-3">
+      <div class="col-md-2">
+        <label class="form-label">Enable</label>
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="n3CfgEnabled"><label class="form-check-label" for="n3CfgEnabled">N3IWF Active</label></div>
+      </div>
+      <div class="col-md-2"><label class="form-label">N3IWF IP</label><input id="n3CfgIp" class="form-control form-control-sm" placeholder="0.0.0.0"></div>
+      <div class="col-md-1"><label class="form-label">IKE Port</label><input id="n3CfgIkePort" class="form-control form-control-sm" type="number" value="500"></div>
+      <div class="col-md-1"><label class="form-label">NAT-T</label><input id="n3CfgNatPort" class="form-control form-control-sm" type="number" value="4500"></div>
+      <div class="col-md-2"><label class="form-label">Inner IP Pool</label><input id="n3CfgInnerPool" class="form-control form-control-sm" placeholder="10.60.0.0/24"></div>
+      <div class="col-md-2"><label class="form-label">Supported DNNs</label><input id="n3CfgDnns" class="form-control form-control-sm" placeholder="internet"></div>
+      <div class="col-md-2"><label class="form-label">Supported S-NSSAIs</label><input id="n3CfgNssai" class="form-control form-control-sm" placeholder="01"></div>
+    </div>
+    <div class="row g-3 mt-1">
+      <div class="col-md-2">
+        <label class="form-label">Encryption</label>
+        <select id="n3CfgEnc" class="form-select form-select-sm">
+          <option value="aes-cbc-128">AES-CBC-128</option>
+          <option value="aes-cbc-256">AES-CBC-256</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Integrity</label>
+        <select id="n3CfgInt" class="form-select form-select-sm">
+          <option value="hmac-sha256">HMAC-SHA-256</option>
+          <option value="hmac-sha384">HMAC-SHA-384</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">DH Group</label>
+        <select id="n3CfgDh" class="form-select form-select-sm">
+          <option value="14">14 (MODP 2048)</option>
+          <option value="19">19 (ECP 256)</option>
+          <option value="20">20 (ECP 384)</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end"><button id="btnN3Save" class="btn btn-primary btn-sm">Save Config</button></div>
+    </div>
+    <div id="n3CfgStatus" class="mt-2"></div>
+  </div></div>
+</div></div>
+
+<!-- Connected Wi-Fi UEs -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="n3UeBtn" class="accordion-button bg-primary text-white fw-bold" type="button"><div class="w-100 text-center">Connected Wi-Fi UEs</div></button></h2>
+  <div id="n3UeCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>UE ID</th><th>Wi-Fi IP</th><th>IMSI</th><th>State</th><th>Inner IP</th><th>IKE SPI</th><th>PDU Sessions</th><th>GTP-U Tunnels</th></tr>
+    </thead><tbody id="n3UeBody"><tr><td colspan="8" class="text-muted text-center">No Wi-Fi UEs connected</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex gap-2">
+    <button id="btnN3Refresh" class="btn btn-primary btn-sm">Refresh</button>
+    <div class="form-check form-switch mb-0 d-flex align-items-center">
+      <input class="form-check-input" type="checkbox" id="n3AutoRefresh">
+      <label class="form-check-label ms-1" for="n3AutoRefresh">Live</label>
+    </div>
+  </div>
+  <small id="n3LastRefresh" class="text-muted"></small>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=s=>{if(s==null)return'-';const e=document.createElement('span');e.textContent=String(s);return e.innerHTML;};
+
+  for(const[b,c]of[['n3CfgBtn','n3CfgCollapse'],['n3UeBtn','n3UeCollapse']]){
+    const btn=$(b),col=$(c);
+    if(btn&&col&&!btn.dataset.bound){btn.dataset.bound='1';const inst=bootstrap.Collapse.getOrCreateInstance(col,{toggle:false});btn.addEventListener('click',()=>inst.toggle());}
+  }
+
+  async function loadConfig(){
+    try{
+      const r=await fetch('/api/n3iwf/config');
+      const d=await r.json();
+      $('n3CfgEnabled').checked=!!d.enabled;
+      $('n3CfgIp').value=d.n3iwf_ip||'0.0.0.0';
+      $('n3CfgIkePort').value=d.ike_port||500;
+      $('n3CfgNatPort').value=d.ike_nat_port||4500;
+      $('n3CfgInnerPool').value=d.inner_ip_pool||'10.60.0.0/24';
+      $('n3CfgDnns').value=d.supported_dnns||'internet';
+      $('n3CfgNssai').value=d.supported_nssai||'01';
+      $('n3CfgEnc').value=d.ipsec_enc_algo||'aes-cbc-128';
+      $('n3CfgInt').value=d.ipsec_int_algo||'hmac-sha256';
+      $('n3CfgDh').value=String(d.dh_group||14);
+    }catch(e){}
+  }
+
+  $('btnN3Save').addEventListener('click',async()=>{
+    const r=await fetch('/api/n3iwf/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      enabled:$('n3CfgEnabled').checked?1:0,
+      n3iwf_ip:$('n3CfgIp').value,
+      ike_port:parseInt($('n3CfgIkePort').value)||500,
+      ike_nat_port:parseInt($('n3CfgNatPort').value)||4500,
+      inner_ip_pool:$('n3CfgInnerPool').value,
+      supported_dnns:$('n3CfgDnns').value,
+      supported_nssai:$('n3CfgNssai').value,
+      ipsec_enc_algo:$('n3CfgEnc').value,
+      ipsec_int_algo:$('n3CfgInt').value,
+      dh_group:parseInt($('n3CfgDh').value)||14,
+    })});
+    const d=await r.json();
+    $('n3CfgStatus').innerHTML=d.ok?'<div class="alert alert-success py-1 small mb-0">Saved (restart to apply)</div>':'<div class="alert alert-danger py-1 small mb-0">Error</div>';
+  });
+
+  async function pollStatus(){
+    try{
+      const r=await fetch('/api/n3iwf/status');
+      const d=await r.json();
+      $('n3Status').textContent=d.enabled?'ON':'OFF';
+      $('n3Status').className='fw-bold fs-5 '+(d.enabled?'text-success':'text-secondary');
+      $('n3Ues').textContent=d.stats?.total_ues||0;
+      $('n3Registered').textContent=d.stats?.registered_ues||0;
+      $('n3Pdu').textContent=d.stats?.active_pdu_sessions||0;
+      $('n3Endpoint').textContent=d.enabled?d.n3iwf_ip+':'+d.ike_port:'Disabled';
+
+      const ues=d.ues||[];
+      $('n3UeBody').innerHTML=ues.length?ues.map(u=>
+        `<tr><td>${u.ue_id}</td><td><code>${esc(u.ue_ip)}</code></td><td><code>${esc(u.imsi)}</code></td>`+
+        `<td><span class="badge bg-${u.state==='REGISTERED'||u.state==='PDU_ACTIVE'?'success':'warning'}">${u.state}</span></td>`+
+        `<td><code>${esc(u.inner_ip)}</code></td>`+
+        `<td>${u.amf_ue_ngap_id||'-'}</td>`+
+        `<td>${(u.pdu_sessions||[]).length}</td>`+
+        `<td>${u.gtpu_tunnels||0}</td></tr>`
+      ).join(''):'<tr><td colspan="8" class="text-muted text-center">No Wi-Fi UEs connected</td></tr>';
+
+      $('n3LastRefresh').textContent='Last: '+new Date().toLocaleTimeString();
+    }catch(e){}
+  }
+
+  async function poll(){ await Promise.all([pollStatus()]); }
+  $('btnN3Refresh').addEventListener('click',poll);
+  let timer=null;
+  $('n3AutoRefresh').addEventListener('change',()=>{
+    if($('n3AutoRefresh').checked){timer=setInterval(poll,3000);}
+    else{if(timer){clearInterval(timer);timer=null;}}
+  });
+
+  const tab=document.getElementById('n3iwf-tab');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active')){loadConfig();poll();}});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  if(tab&&tab.classList.contains('active')){loadConfig();poll();}
+})();
+</script>

@@ -1,0 +1,818 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# 5G NAS IE type definitions — TS 24.501 clause 9.11.
+#
+# Shape conventions:
+#   * Bit-field IE (≤8 bits total) — declare each sub-field with `bits` + `offset`.
+#     Generator emits Decode(byte)/Encode() byte AND DecodeBytes/EncodeBytes.
+#   * Structured IE — declare `bytes:` (and optional: true for tail fields).
+#   * Byte-container IE — omit `fields`. Generator emits `Value []byte` plus
+#     DecodeBytes/EncodeBytes that round-trip raw bytes. Use for IEs whose
+#     internal structure we don't need to surface yet (QoS rules, EAP messages,
+#     ePCO, etc.). min_length / max_length are still enforced.
+#   * Runtime alias — set `go_type:` to reuse a hand-written pkg/runtime type.
+
+ie_types:
+  # ===================================================================
+  # Bit-field / half-octet IEs (Type 1 V / TV)
+  # ===================================================================
+
+  - name: RegistrationType5GS
+    description: "5GS registration type — TS 24.501 9.11.3.7"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: FollowOnRequestPending
+        bits: 1
+        offset: 3
+        values:
+          0: "no_follow_on_request_pending"
+          1: "follow_on_request_pending"
+      - name: RegistrationType
+        bits: 3
+        offset: 0
+        values:
+          1: "initial_registration"
+          2: "mobility_registration_updating"
+          3: "periodic_registration_updating"
+          4: "emergency_registration"
+          7: "reserved"
+
+  - name: NASKeySetIdentifier
+    description: "NAS key set identifier — TS 24.501 9.11.3.32"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: TSC
+        bits: 1
+        offset: 3
+        values:
+          0: "native_security_context"
+          1: "mapped_security_context"
+      - name: KeySetIdentifier
+        bits: 3
+        offset: 0
+        values:
+          7: "no_key_available"
+
+  - name: ServiceType
+    description: "Service type — TS 24.501 9.11.3.50"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+        values:
+          0: "signalling"
+          1: "data"
+          2: "mobile_terminated_services"
+          3: "emergency_services"
+          4: "emergency_services_fallback"
+          5: "high_priority_access"
+          6: "elevated_signalling"
+
+  - name: MICOIndication
+    description: "MICO indication — TS 24.501 9.11.3.31"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: SPRTI
+        bits: 1
+        offset: 1
+      - name: RAAI
+        bits: 1
+        offset: 0
+
+  - name: NetworkSlicingIndication
+    description: "Network slicing indication — TS 24.501 9.11.3.36"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: DCNI
+        bits: 1
+        offset: 1
+      - name: NSSCI
+        bits: 1
+        offset: 0
+
+  - name: Non3GPPNWProvidedPolicies
+    description: "Non-3GPP NW provided policies — TS 24.501 9.11.3.36A"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: N3EN
+        bits: 1
+        offset: 0
+
+  - name: RequestType
+    description: "Request type — TS 24.501 9.11.3.47"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "initial_request"
+          2: "existing_pdu_session"
+          3: "initial_emergency_request"
+          4: "existing_emergency_pdu_session"
+          5: "modification_request"
+          6: "mobility_registration_update"
+
+  - name: PayloadContainerType
+    description: "Payload container type — TS 24.501 9.11.3.40"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Type
+        bits: 4
+        offset: 0
+        values:
+          1: "n1_sm_information"
+          2: "sms"
+          3: "lpp"
+          4: "sor_transparent_container"
+          5: "ue_policy_container"
+          6: "ue_parameters_update"
+          7: "location_services_message"
+          15: "multiple_payloads"
+
+  - name: IMEISVRequest
+    description: "IMEISV request — TS 24.008 10.5.5.10 (referenced by TS 24.501)"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          0: "imeisv_not_requested"
+          1: "imeisv_requested"
+
+  - name: ConfigurationUpdateIndication
+    description: "Configuration update indication — TS 24.501 9.11.3.18"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: RED
+        bits: 1
+        offset: 1
+      - name: ACK
+        bits: 1
+        offset: 0
+
+  - name: AllowedSSCMode
+    description: "Allowed SSC mode — TS 24.501 9.11.4.5"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: SSC3
+        bits: 1
+        offset: 2
+      - name: SSC2
+        bits: 1
+        offset: 1
+      - name: SSC1
+        bits: 1
+        offset: 0
+
+  - name: AlwaysOnPDUSessionRequested
+    description: "Always-on PDU session requested — TS 24.501 9.11.4.4"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: APSI
+        bits: 1
+        offset: 0
+
+  - name: AlwaysOnPDUSessionIndication
+    description: "Always-on PDU session indication — TS 24.501 9.11.4.3"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: APSR
+        bits: 1
+        offset: 0
+
+  - name: UEUsageSetting
+    description: "UE usage setting — TS 24.501 9.11.3.55"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: UsageSetting
+        bits: 1
+        offset: 0
+        values:
+          0: "voice_centric"
+          1: "data_centric"
+
+  - name: PDUSessionType
+    description: "PDU session type — TS 24.501 9.11.4.11"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "ipv4"
+          2: "ipv6"
+          3: "ipv4v6"
+          4: "unstructured"
+          5: "ethernet"
+
+  - name: SSCMode
+    description: "SSC mode — TS 24.501 9.11.4.16"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "ssc_mode_1"
+          2: "ssc_mode_2"
+          3: "ssc_mode_3"
+
+  # ===================================================================
+  # Bit-field single-byte IEs
+  # ===================================================================
+
+  - name: MMCapability5G
+    description: "5GMM capability — TS 24.501 9.11.3.1"
+    min_length: 1
+    max_length: 13
+    fields:
+      - name: SGC
+        bits: 1
+        offset: 0
+      - name: IPHCCP
+        bits: 1
+        offset: 1
+      - name: HO5GN26
+        bits: 1
+        offset: 2
+      - name: S1Mode
+        bits: 1
+        offset: 3
+      - name: RACS
+        bits: 1
+        offset: 4
+      - name: NSSAA
+        bits: 1
+        offset: 5
+      - name: LPP
+        bits: 1
+        offset: 6
+      - name: HOAttach
+        bits: 1
+        offset: 7
+
+  - name: UEStatus
+    description: "UE status — TS 24.501 9.11.3.56"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: S1ModeReg
+        bits: 1
+        offset: 1
+      - name: N1ModeReg
+        bits: 1
+        offset: 0
+
+  - name: DRXParameters5GS
+    description: "5GS DRX parameters — TS 24.501 9.11.3.2A"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: DRXValue
+        bits: 4
+        offset: 0
+        values:
+          0: "drx_value_not_specified"
+          1: "drx_cycle_32"
+          2: "drx_cycle_64"
+          3: "drx_cycle_128"
+          4: "drx_cycle_256"
+
+  - name: NASSecurityAlgorithms
+    description: "NAS security algorithms — TS 24.501 9.11.3.34"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: IntegrityAlgorithm
+        bits: 4
+        offset: 0
+      - name: CipheringAlgorithm
+        bits: 4
+        offset: 4
+
+  - name: AccessType
+    description: "Access type — TS 24.501 9.11.2.1A"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bits: 2
+        offset: 0
+        values:
+          1: "3gpp_access"
+          2: "non_3gpp_access"
+
+  # ===================================================================
+  # Structured IEs — fixed byte layout
+  # ===================================================================
+
+  - name: TrackingAreaIdentity5GS
+    description: "5GS tracking area identity — TS 24.501 9.11.3.8"
+    min_length: 6
+    max_length: 6
+    fields:
+      - name: PLMN
+        bytes: 3
+      - name: TAC
+        bytes: 3
+
+  - name: AuthenticationParameterRAND
+    description: "Authentication parameter RAND — TS 24.008 10.5.3.1"
+    min_length: 16
+    max_length: 16
+    fields:
+      - name: RAND
+        bytes: 16
+
+  - name: AuthenticationParameterAUTN
+    description: "Authentication parameter AUTN — TS 24.008 10.5.3.1.1"
+    min_length: 16
+    max_length: 16
+    fields:
+      - name: AUTN
+        bytes: 16
+
+  - name: AuthenticationFailureParameter
+    description: "Authentication failure parameter (AUTS) — TS 24.301 9.9.3.1"
+    min_length: 14
+    max_length: 14
+    fields:
+      - name: AUTS
+        bytes: 14
+
+  - name: FiveGMMCause
+    description: "5GMM cause — TS 24.501 9.11.3.2"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: FiveGSMCause
+    description: "5GSM cause — TS 24.501 9.11.4.2"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: GPRSTimer
+    description: "GPRS timer — TS 24.008 10.5.7.3"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: GPRSTimer2
+    description: "GPRS timer 2 — TS 24.008 10.5.7.4"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: GPRSTimer3
+    description: "GPRS timer 3 — TS 24.008 10.5.7.4a"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: TimeZone
+    description: "Time zone — TS 24.008 10.5.3.8"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: TimeZoneAndTime
+    description: "Time zone and time — TS 24.008 10.5.3.9"
+    min_length: 7
+    max_length: 7
+    fields:
+      - name: Year
+        bytes: 1
+      - name: Month
+        bytes: 1
+      - name: Day
+        bytes: 1
+      - name: Hour
+        bytes: 1
+      - name: Minute
+        bytes: 1
+      - name: Second
+        bytes: 1
+      - name: TimeZone
+        bytes: 1
+
+  - name: DaylightSavingTime
+    description: "Network daylight saving time — TS 24.008 10.5.3.12"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  # ===================================================================
+  # Runtime-typed aliases
+  # ===================================================================
+
+  - name: MobileIdentity5GS
+    description: "5GS mobile identity — TS 24.501 9.11.3.4"
+    min_length: 3
+    max_length: 0
+    go_type: "MobileIdentity5GS"
+
+  # ===================================================================
+  # Byte-container IEs — structure preserved as opaque bytes for now.
+  # The message codec round-trips them; callers can reach into .Value.
+  # ===================================================================
+
+  - name: UESecurityCapability
+    description: "UE security capability — TS 24.501 9.11.3.54"
+    min_length: 2
+    max_length: 8
+
+  - name: ReplayedUESecurityCapabilities
+    description: "Replayed UE security capabilities — TS 24.501 9.11.3.48A"
+    min_length: 2
+    max_length: 8
+
+  - name: S1UENetworkCapability
+    description: "S1 UE network capability — TS 24.301 9.9.3.34"
+    min_length: 2
+    max_length: 13
+
+  - name: ReplayedS1UENetworkCapability
+    description: "Replayed S1 UE network capability — TS 24.501 9.11.3.48"
+    min_length: 2
+    max_length: 13
+
+  - name: NSSAI
+    description: "NSSAI — TS 24.501 9.11.3.37"
+    min_length: 2
+    max_length: 74
+
+  - name: SNSSAI
+    description: "S-NSSAI — TS 24.501 9.11.2.8"
+    min_length: 1
+    max_length: 9
+
+  - name: DNN
+    description: "DNN (Data Network Name) — TS 24.501 §9.11.2.1B"
+    # APN per TS 23.003 §9.1: dotted labels with each label
+    # length-prefixed on the wire. Runtime exposes Value as the
+    # human-readable joined string ("ims" or
+    # "ims.mnc001.mcc001.gprs"); encoding is owned by runtime.DNN.
+    min_length: 1
+    max_length: 102
+    go_type: DNN
+
+  - name: ABBA
+    description: "ABBA — TS 24.501 9.11.3.10"
+    min_length: 2
+    max_length: 16
+
+  - name: EAPMessage
+    description: "EAP message — TS 24.501 9.11.2.2"
+    min_length: 4
+    max_length: 1500
+
+  - name: AuthenticationResponseParameter
+    description: "Authentication response parameter — TS 24.301 9.9.3.4"
+    min_length: 4
+    max_length: 16
+
+  - name: PDUSessionStatus
+    description: "PDU session status — TS 24.501 §9.11.3.44 (PSI bitmap)"
+    # Octet 3..n bitmap: bit N of octet 3 = PSI (N-1) for N=2..8;
+    # PSI 0 (bit 1 of octet 3) is always spare. Octets 4..n carry
+    # PSI 8..15 etc. Layout shared with §9.11.3.57 (UplinkDataStatus).
+    min_length: 2
+    max_length: 32
+    go_type: PSIBitmap
+
+  - name: UplinkDataStatus
+    description: "Uplink data status — TS 24.501 §9.11.3.57 (PSI bitmap)"
+    # Same bitmap layout as PDUSessionStatus; runtime alias to the
+    # shared PSIBitmap type.
+    min_length: 2
+    max_length: 32
+    go_type: PSIBitmap
+
+  - name: AllowedPDUSessionStatus
+    description: "Allowed PDU session status — TS 24.501 9.11.3.13"
+    min_length: 2
+    max_length: 32
+
+  - name: PDUSessionReactivationResult
+    description: "PDU session reactivation result — TS 24.501 9.11.3.42"
+    min_length: 2
+    max_length: 32
+
+  - name: PDUSessionReactivationResultErrorCause
+    description: "PDU session reactivation result error cause — TS 24.501 9.11.3.43"
+    min_length: 2
+    max_length: 512
+
+  - name: EPSBearerContextStatus
+    description: "EPS bearer context status — TS 24.501 9.11.3.23A"
+    min_length: 2
+    max_length: 2
+
+  - name: EPSNASMessageContainer
+    description: "EPS NAS message container — TS 24.501 9.11.3.24"
+    min_length: 1
+    max_length: 0
+
+  - name: NASMessageContainer
+    description: "NAS message container — TS 24.501 9.11.3.33"
+    min_length: 3
+    max_length: 0
+
+  - name: PayloadContainer
+    description: "Payload container — TS 24.501 9.11.3.39"
+    min_length: 1
+    max_length: 65535
+
+  - name: LADNIndication
+    description: "LADN indication — TS 24.501 9.11.3.29"
+    min_length: 0
+    max_length: 811
+
+  - name: LADNInformation
+    description: "LADN information — TS 24.501 9.11.3.30"
+    min_length: 11
+    max_length: 1707
+
+  - name: ServiceAreaList
+    description: "Service area list — TS 24.501 9.11.3.49"
+    min_length: 4
+    max_length: 114
+
+  - name: RejectedNSSAI
+    description: "Rejected NSSAI — TS 24.501 9.11.3.46"
+    min_length: 2
+    max_length: 42
+
+  - name: EquivalentPLMNs
+    description: "Equivalent PLMNs — TS 24.008 10.5.1.13"
+    min_length: 3
+    max_length: 47
+
+  - name: EmergencyNumberList
+    description: "Emergency number list — TS 24.008 10.5.3.13"
+    min_length: 3
+    max_length: 50
+
+  - name: ExtendedEmergencyNumberList
+    description: "Extended emergency number list — TS 24.501 9.11.3.26"
+    min_length: 4
+    max_length: 65535
+
+  - name: SORTransparentContainer
+    description: "SOR transparent container — TS 24.501 9.11.3.51"
+    min_length: 17
+    max_length: 2048
+
+  - name: NetworkName
+    description: "Network name — TS 24.008 10.5.3.5A"
+    min_length: 1
+    max_length: 255
+
+  - name: CAGInformationList
+    description: "CAG information list — TS 24.501 9.11.3.18A"
+    min_length: 1
+    max_length: 2048
+
+  - name: OperatorDefinedAccessCategoryDefinitions
+    description: "Operator-defined access category definitions — TS 24.501 9.11.3.38"
+    min_length: 3
+    max_length: 8000
+
+  - name: UEParametersUpdate
+    description: "UE parameters update transparent container — TS 24.501 9.11.3.53A"
+    min_length: 1
+    max_length: 65535
+
+  - name: UERadioCapabilityID
+    description: "UE radio capability ID — TS 24.501 9.11.3.68"
+    min_length: 1
+    max_length: 256
+
+  - name: UERadioCapabilityIDDeletionIndication
+    description: "UE radio capability ID deletion indication — TS 24.501 9.11.3.70"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: DEL
+        bits: 3
+        offset: 0
+        values:
+          0: "ue_radio_capability_id_deletion_not_requested"
+          1: "ue_radio_capability_id_deletion_requested"
+
+  - name: TruncatedGUTI5G
+    description: "Truncated 5G-S-TMSI configuration — TS 24.501 9.11.3.70"
+    min_length: 1
+    max_length: 1
+
+  - name: WUSAssistanceInformation
+    description: "WUS assistance information — TS 24.501 9.11.3.71"
+    min_length: 1
+    max_length: 255
+
+  - name: AdditionalInformation
+    description: "Additional information — TS 24.008 10.5.5.24"
+    min_length: 2
+    max_length: 255
+
+  - name: Nonce
+    description: "Nonce — TS 24.501 9.11.3.35"
+    min_length: 4
+    max_length: 4
+
+  - name: Additional5GSecurityInformation
+    description: "Additional 5G security information — TS 24.501 9.11.3.12"
+    min_length: 1
+    max_length: 1
+
+  - name: FiveGSNetworkFeatureSupport
+    description: "5GS network feature support — TS 24.501 9.11.3.5"
+    # Spec value layout (1–3 octets; bytes 2 and 3 optional):
+    #   Octet 3: MPSI | IWK-N26 | EMF(2b) | EMC(2b) | IMS-VoPS-N3GPP | IMS-VoPS
+    #   Octet 4: 5G-UP-CIoT | 5G-IPHC-CP-CIoT | N3data | 5G-CP-CIoT
+    #            | RestrictEC(2b) | MCSI | EMCN3
+    #   Octet 5: spare / R17+ flags
+    # Carried as opaque bytes; application chooses how many octets to emit.
+    min_length: 1
+    max_length: 3
+
+  - name: HashMINI
+    description: "HashMINI — TS 24.501 9.11.3.28"
+    min_length: 8
+    max_length: 8
+
+  # 5GSM-specific IEs
+  - name: SessionAMBR
+    description: "Session-AMBR — TS 24.501 9.11.4.14"
+    min_length: 6
+    max_length: 6
+    fields:
+      - name: UnitUL
+        bytes: 1
+      - name: SessionAMBRUL
+        bytes: 2
+      - name: UnitDL
+        bytes: 1
+      - name: SessionAMBRDL
+        bytes: 2
+
+  - name: PDUAddress
+    description: "PDU address — TS 24.501 9.11.4.10"
+    min_length: 5
+    max_length: 29
+
+  - name: AuthorizedQoSRules
+    description: "Authorized QoS rules — TS 24.501 9.11.4.13"
+    min_length: 4
+    max_length: 65535
+
+  - name: AuthorizedQoSFlowDescriptions
+    description: "Authorized QoS flow descriptions — TS 24.501 9.11.4.12"
+    min_length: 6
+    max_length: 65535
+
+  - name: RequestedQoSRules
+    description: "Requested QoS rules — TS 24.501 9.11.4.13"
+    min_length: 7
+    max_length: 65535
+
+  - name: RequestedQoSFlowDescriptions
+    description: "Requested QoS flow descriptions — TS 24.501 9.11.4.12"
+    min_length: 6
+    max_length: 65535
+
+  - name: ExtendedProtocolConfigurationOptions
+    description: "Extended protocol configuration options — TS 24.008 10.5.6.3A"
+    min_length: 1
+    max_length: 65535
+
+  - name: MappedEPSBearerContexts
+    description: "Mapped EPS bearer contexts — TS 24.501 9.11.4.8"
+    min_length: 7
+    max_length: 65535
+
+  - name: ATSSSContainer
+    description: "ATSSS container — TS 24.501 9.11.4.22"
+    min_length: 3
+    max_length: 65535
+
+  - name: ControlPlaneOnlyIndication
+    description: "Control plane only indication — TS 24.501 9.11.4.23"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: CPOI
+        bits: 1
+        offset: 0
+
+  - name: IPHeaderCompressionConfiguration
+    description: "IP header compression configuration — TS 24.501 9.11.4.24"
+    min_length: 5
+    max_length: 257
+
+  - name: EthernetHeaderCompressionConfiguration
+    description: "Ethernet header compression configuration — TS 24.501 9.11.4.28"
+    min_length: 1
+    max_length: 1
+
+  - name: ServingPLMNRateControl
+    description: "Serving PLMN rate control — TS 24.501 9.11.4.20"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: Value
+        bytes: 2
+
+  - name: MaxDataRatePerUEForUserPlaneIntegrity
+    description: "Max data rate per UE for user plane integrity — TS 24.501 9.11.4.7"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: MaxUL
+        bytes: 1
+      - name: MaxDL
+        bytes: 1
+
+  - name: BackoffTimerValue
+    description: "Back-off timer value (GPRS timer 3) — TS 24.501 9.11.4.2"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: ReAttemptIndicator
+    description: "Re-attempt indicator — TS 24.501 9.11.4.17"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: FivegsmCongestionReAttemptIndicator
+    description: "5GSM congestion re-attempt indicator — TS 24.501 9.11.4.21"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: AllowedSSCModeTLV
+    description: "Allowed SSC mode (TLV wrapper) — TS 24.501 9.11.4.5"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: AdditionalInformationRequested
+    description: "Additional information requested — TS 24.501 9.11.4.18"
+    min_length: 1
+    max_length: 1
+
+  - name: PortManagementInformationContainer
+    description: "Port management information container — TS 24.501 9.11.4.27"
+    min_length: 1
+    max_length: 65535
+
+  - name: MaxNumberOfSupportedPacketFilters
+    description: "Maximum number of supported packet filters — TS 24.501 9.11.4.9"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: Value
+        bytes: 2

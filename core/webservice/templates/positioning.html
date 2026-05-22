@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SA CORE — Positioning</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', 'bootstrap/css/bootstrap.min.css') }}">
+  <!-- Leaflet.js for map — TS 23.273 §6: Positioning visualization -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    .sidebar-group { margin-bottom: 2px; }
+    .sidebar-heading {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #6c757d; padding: 10px 12px 4px; margin-top: 4px;
+      border-top: 1px solid #e9ecef;
+    }
+    .sidebar-group:first-child .sidebar-heading { border-top: none; margin-top: 0; }
+    #sidebar .list-group-item {
+      font-size: 13px; padding: 6px 12px 6px 20px; border: none; border-radius: 0;
+    }
+    #sidebar .list-group-item:hover { background: #e8f0fe; }
+    #sidebar .list-group-item.active {
+      background: #0d6efd; color: #fff; border-left: 3px solid #0558b6; padding-left: 17px;
+    }
+    #pos-map { height: 420px; border: 1px solid #dee2e6; border-radius: 4px; }
+    .section-card { margin-bottom: 1rem; }
+    .table-sm td, .table-sm th { font-size: 0.82rem; padding: 0.3rem 0.5rem; }
+    .badge-state { font-size: 0.72rem; }
+  </style>
+</head>
+
+<body class="bg-light">
+
+  <!-- Top Brand Bar -->
+  <div class="d-flex align-items-center px-3 py-2 border-bottom"
+       style="background:#0558b6; position:sticky; top:0; z-index:1000;">
+    <a href="/" class="fw-bold text-white text-decoration-none">
+      MAKE<span style="color:#ff2b2b;">MY</span>TECHNOLOGY
+    </a>
+    <span class="ms-3 text-white-50" style="font-size:0.85rem">/ Positioning</span>
+    <div class="ms-auto d-flex align-items-center gap-2">
+    </div>
+  </div>
+
+  <div class="container-fluid mt-3">
+    <div class="row">
+
+      <!-- Sidebar -->
+      <div class="col-12 col-md-3 col-lg-2 border-end">
+        <nav id="sidebar">
+          <div class="sidebar-group">
+            <div class="sidebar-heading">Positioning</div>
+            <div class="list-group list-group-flush" role="tablist">
+              <a class="list-group-item list-group-item-action active"
+                 data-bs-toggle="list" href="#tab-map" role="tab">Map View</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-request" role="tab">Location Request</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-sessions" role="tab">Active Sessions</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-history" role="tab">Location History</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-gnb" role="tab">gNB Positions</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-geofences" role="tab">Geofences</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-privacy" role="tab">LCS Privacy</a>
+            </div>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-heading">Navigation</div>
+            <div class="list-group list-group-flush">
+              <a class="list-group-item list-group-item-action" href="/">Back to Dashboard</a>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Main content -->
+      <div class="col-12 col-md-9 col-lg-10">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="tab-content">
+
+              <!-- ═══ MAP VIEW ═══ -->
+              <div class="tab-pane fade show active" id="tab-map" role="tabpanel">
+                <h5>Positioning Map</h5>
+                <p class="text-muted" style="font-size:0.85rem">
+                  UE positions, gNB locations, and geofence zones — TS 23.273 §6
+                </p>
+                <div id="pos-map"></div>
+                <div class="mt-2 d-flex gap-2">
+                  <button class="btn btn-sm btn-outline-primary" onclick="POS.refreshMap()">Refresh Map</button>
+                  <span class="text-muted" style="font-size:0.8rem; line-height:2">
+                    <span class="badge bg-primary">&#9679;</span> UE
+                    <span class="badge bg-success ms-1">&#9650;</span> gNB
+                    <span class="badge bg-warning ms-1">&#9711;</span> Geofence
+                  </span>
+                </div>
+              </div>
+
+              <!-- ═══ LOCATION REQUEST ═══ -->
+              <div class="tab-pane fade" id="tab-request" role="tabpanel">
+                <h5>Location Request</h5>
+                <p class="text-muted" style="font-size:0.85rem">
+                  Nlmf_Location_DetermineLocation — TS 29.572 §5.2.1
+                </p>
+                <form id="frm-loc-request" class="row g-2" style="max-width:600px">
+                  <div class="col-12">
+                    <label class="form-label">IMSI</label>
+                    <input type="text" class="form-control form-control-sm" id="req-imsi"
+                           placeholder="001010000000001" required />
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Method</label>
+                    <select class="form-select form-select-sm" id="req-method">
+                      <option value="auto">Auto</option>
+                      <option value="ecid">E-CID</option>
+                      <option value="multi_rtt">Multi-RTT</option>
+                      <option value="dl_tdoa">DL-TDoA</option>
+                      <option value="agnss">A-GNSS</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Accuracy (m): <span id="acc-val">100</span></label>
+                    <input type="range" class="form-range" id="req-accuracy" min="1" max="1000" value="100"
+                           oninput="document.getElementById('acc-val').textContent=this.value" />
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Response Time (s)</label>
+                    <input type="number" class="form-control form-control-sm" id="req-time" value="10" min="1" max="60" />
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Client Type</label>
+                    <select class="form-select form-select-sm" id="req-client">
+                      <option value="commercial">Commercial</option>
+                      <option value="emergency">Emergency</option>
+                      <option value="lawful_intercept">Lawful Intercept</option>
+                    </select>
+                  </div>
+                  <div class="col-12 mt-2">
+                    <button type="submit" class="btn btn-primary btn-sm">Submit Location Request</button>
+                  </div>
+                </form>
+                <div id="loc-result" class="mt-3"></div>
+              </div>
+
+              <!-- ═══ ACTIVE SESSIONS ═══ -->
+              <div class="tab-pane fade" id="tab-sessions" role="tabpanel">
+                <h5>Active Sessions
+                  <button class="btn btn-sm btn-outline-secondary ms-2" onclick="POS.loadSessions()">Refresh</button>
+                </h5>
+                <p class="text-muted" style="font-size:0.85rem">Auto-refreshes every 5s</p>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="tbl-sessions">
+                    <thead>
+                      <tr>
+                        <th>Session ID</th><th>IMSI</th><th>Method</th><th>State</th>
+                        <th>Position</th><th>Uncertainty</th><th>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- ═══ LOCATION HISTORY ═══ -->
+              <div class="tab-pane fade" id="tab-history" role="tabpanel">
+                <h5>Location History</h5>
+                <div class="row g-2 mb-2" style="max-width:400px">
+                  <div class="col-8">
+                    <input type="text" class="form-control form-control-sm" id="hist-imsi"
+                           placeholder="IMSI filter" />
+                  </div>
+                  <div class="col-4">
+                    <button class="btn btn-sm btn-primary w-100" onclick="POS.loadHistory()">Search</button>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="tbl-history">
+                    <thead>
+                      <tr>
+                        <th>IMSI</th><th>Position</th><th>Altitude</th>
+                        <th>Uncertainty</th><th>Method</th><th>Source</th><th>Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- ═══ gNB POSITIONS ═══ -->
+              <div class="tab-pane fade" id="tab-gnb" role="tabpanel">
+                <h5>gNB Positions</h5>
+                <p class="text-muted" style="font-size:0.85rem">
+                  Register gNB geographic coordinates — TS 38.455 §9.2.16
+                </p>
+                <form id="frm-gnb" class="row g-2 mb-3" style="max-width:600px">
+                  <div class="col-4">
+                    <label class="form-label">gNB ID</label>
+                    <input type="text" class="form-control form-control-sm" id="gnb-id"
+                           placeholder="gnb-001" required />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Latitude</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="gnb-lat" required />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Longitude</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="gnb-lon" required />
+                  </div>
+                  <div class="col-2">
+                    <label class="form-label">Altitude</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="gnb-alt" value="0" />
+                  </div>
+                  <div class="col-12 mt-1">
+                    <button type="submit" class="btn btn-primary btn-sm">Register gNB</button>
+                  </div>
+                </form>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="tbl-gnb">
+                    <thead>
+                      <tr><th>gNB ID</th><th>Latitude</th><th>Longitude</th><th>Altitude</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- ═══ GEOFENCES ═══ -->
+              <div class="tab-pane fade" id="tab-geofences" role="tabpanel">
+                <h5>Geofences</h5>
+                <p class="text-muted" style="font-size:0.85rem">
+                  Area event triggers — TS 23.273 §6.7 / TS 23.271 §9.5
+                </p>
+                <form id="frm-geofence" class="row g-2 mb-3" style="max-width:700px">
+                  <div class="col-4">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control form-control-sm" id="gf-name" required />
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label">IMSI (blank = all)</label>
+                    <input type="text" class="form-control form-control-sm" id="gf-imsi" />
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label">Trigger</label>
+                    <select class="form-select form-select-sm" id="gf-trigger">
+                      <option value="both">Enter + Leave</option>
+                      <option value="enter">Enter only</option>
+                      <option value="leave">Leave only</option>
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Center Lat</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="gf-lat" required />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Center Lon</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="gf-lon" required />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Radius (m)</label>
+                    <input type="number" step="any" class="form-control form-control-sm" id="gf-radius" required />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Callback URL</label>
+                    <input type="text" class="form-control form-control-sm" id="gf-callback"
+                           placeholder="http://..." />
+                  </div>
+                  <div class="col-12 mt-1">
+                    <button type="submit" class="btn btn-primary btn-sm">Create Geofence</button>
+                  </div>
+                </form>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="tbl-geofences">
+                    <thead>
+                      <tr>
+                        <th>ID</th><th>Name</th><th>IMSI</th><th>Center</th>
+                        <th>Radius</th><th>Trigger</th><th>Active</th><th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- ═══ LCS PRIVACY ═══ -->
+              <div class="tab-pane fade" id="tab-privacy" role="tabpanel">
+                <h5>LCS Privacy Settings</h5>
+                <p class="text-muted" style="font-size:0.85rem">
+                  Per-subscriber privacy classes — TS 23.271 §9
+                </p>
+                <form id="frm-privacy" class="row g-2 mb-3" style="max-width:500px">
+                  <div class="col-5">
+                    <label class="form-label">IMSI</label>
+                    <input type="text" class="form-control form-control-sm" id="priv-imsi" required />
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label">Client Type</label>
+                    <select class="form-select form-select-sm" id="priv-client">
+                      <option value="commercial">Commercial</option>
+                      <option value="emergency">Emergency</option>
+                      <option value="lawful_intercept">Lawful Intercept</option>
+                    </select>
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label">Allowed</label>
+                    <select class="form-select form-select-sm" id="priv-allowed">
+                      <option value="1">Yes</option>
+                      <option value="0">No</option>
+                    </select>
+                  </div>
+                  <div class="col-12 mt-1">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-1" onclick="POS.loadPrivacy()">Load</button>
+                  </div>
+                </form>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped" id="tbl-privacy">
+                    <thead>
+                      <tr><th>IMSI</th><th>Client Type</th><th>Allowed</th><th>Created</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div><!-- /tab-content -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', 'bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+  /**
+   * SA Core Positioning GUI
+   * 3GPP TS 23.273 — 5G Positioning Services
+   */
+  const POS = (function() {
+    let map, ueLayer, gnbLayer, fenceLayer;
+    let sessionTimer = null;
+    // Stored gNB positions (local — also pushed to LMF via API)
+    let gnbPositions = [];
+
+    // ── Map init ──
+    function initMap() {
+      map = L.map('pos-map').setView([37.7749, -122.4194], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+      ueLayer = L.layerGroup().addTo(map);
+      gnbLayer = L.layerGroup().addTo(map);
+      fenceLayer = L.layerGroup().addTo(map);
+      // Invalidate size after tab shown (Leaflet needs visible container)
+      setTimeout(function() { map.invalidateSize(); }, 200);
+    }
+
+    function refreshMap() {
+      if (!map) return;
+      map.invalidateSize();
+      ueLayer.clearLayers();
+      gnbLayer.clearLayers();
+      fenceLayer.clearLayers();
+
+      // Load sessions (UE positions)
+      fetch('/api/positioning/sessions?state=COMPLETED&limit=100')
+        .then(r => r.json()).then(data => {
+          let bounds = [];
+          (data.sessions || []).forEach(s => {
+            if (s.latitude != null && s.longitude != null) {
+              let m = L.circleMarker([s.latitude, s.longitude], {
+                radius: 7, color: '#0d6efd', fillColor: '#4d94ff', fillOpacity: 0.8
+              }).bindPopup('<b>UE:</b> ' + s.imsi + '<br><b>Method:</b> ' + s.method +
+                           '<br><b>Accuracy:</b> ' + (s.uncertainty_m || '?') + 'm');
+              ueLayer.addLayer(m);
+              // Uncertainty circle
+              if (s.uncertainty_m) {
+                ueLayer.addLayer(L.circle([s.latitude, s.longitude], {
+                  radius: s.uncertainty_m, color: '#0d6efd', fillOpacity: 0.08, weight: 1
+                }));
+              }
+              bounds.push([s.latitude, s.longitude]);
+            }
+          });
+          // Add gNBs
+          gnbPositions.forEach(g => {
+            let m = L.marker([g.lat, g.lon], {
+              icon: L.divIcon({
+                html: '<span style="color:#198754;font-size:20px;">&#9650;</span>',
+                className: '', iconSize: [20, 20], iconAnchor: [10, 20]
+              })
+            }).bindPopup('<b>gNB:</b> ' + g.id);
+            gnbLayer.addLayer(m);
+            bounds.push([g.lat, g.lon]);
+          });
+          // Load geofences
+          fetch('/api/geofences').then(r => r.json()).then(gf => {
+            (gf.geofences || []).forEach(f => {
+              let c = L.circle([f.center_lat, f.center_lon], {
+                radius: f.radius_m, color: '#ffc107', fillColor: '#ffc107',
+                fillOpacity: 0.12, weight: 2, dashArray: '5,5'
+              }).bindPopup('<b>Fence:</b> ' + f.name + '<br><b>Radius:</b> ' + f.radius_m + 'm' +
+                           '<br><b>Trigger:</b> ' + f.trigger_type);
+              fenceLayer.addLayer(c);
+              bounds.push([f.center_lat, f.center_lon]);
+            });
+            if (bounds.length > 0) {
+              map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+            }
+          });
+        });
+    }
+
+    // ── Location Request ──
+    function submitRequest(e) {
+      e.preventDefault();
+      let body = {
+        imsi: document.getElementById('req-imsi').value.trim(),
+        method: document.getElementById('req-method').value,
+        accuracy_m: parseInt(document.getElementById('req-accuracy').value),
+        response_time_s: parseInt(document.getElementById('req-time').value),
+        client_type: document.getElementById('req-client').value
+      };
+      fetch('/api/location/request', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(r => r.json()).then(data => {
+        let div = document.getElementById('loc-result');
+        if (data.error) {
+          div.innerHTML = '<div class="alert alert-danger">' + data.error + '</div>';
+        } else {
+          let pos = (data.latitude != null)
+            ? data.latitude.toFixed(6) + ', ' + data.longitude.toFixed(6)
+            : 'Pending...';
+          div.innerHTML = '<div class="alert alert-info">' +
+            '<b>Session:</b> ' + (data.session_id || '?') +
+            ' | <b>State:</b> ' + (data.state || '?') +
+            ' | <b>Position:</b> ' + pos +
+            '</div>';
+        }
+      }).catch(err => {
+        document.getElementById('loc-result').innerHTML =
+          '<div class="alert alert-danger">Request failed: ' + err + '</div>';
+      });
+    }
+
+    // ── Sessions table ──
+    function loadSessions() {
+      fetch('/api/positioning/sessions?limit=50')
+        .then(r => r.json()).then(data => {
+          let tb = document.querySelector('#tbl-sessions tbody');
+          tb.innerHTML = '';
+          (data.sessions || []).forEach(s => {
+            let pos = (s.latitude != null)
+              ? s.latitude.toFixed(6) + ', ' + s.longitude.toFixed(6) : '-';
+            let badge = 'secondary';
+            if (s.state === 'COMPLETED') badge = 'success';
+            else if (s.state === 'IN_PROGRESS' || s.state === 'PENDING') badge = 'primary';
+            else if (s.state === 'FAILED') badge = 'danger';
+            tb.innerHTML += '<tr>' +
+              '<td><code style="font-size:0.75rem">' + (s.session_id || '').substring(0, 12) + '...</code></td>' +
+              '<td>' + s.imsi + '</td>' +
+              '<td>' + s.method + '</td>' +
+              '<td><span class="badge bg-' + badge + ' badge-state">' + s.state + '</span></td>' +
+              '<td>' + pos + '</td>' +
+              '<td>' + (s.uncertainty_m != null ? s.uncertainty_m.toFixed(1) + 'm' : '-') + '</td>' +
+              '<td>' + (s.created_at || '') + '</td></tr>';
+          });
+        });
+    }
+
+    // ── History table ──
+    function loadHistory() {
+      let imsi = document.getElementById('hist-imsi').value.trim();
+      if (!imsi) { alert('Enter IMSI'); return; }
+      fetch('/api/positioning/history?imsi=' + encodeURIComponent(imsi) + '&limit=50')
+        .then(r => r.json()).then(data => {
+          let tb = document.querySelector('#tbl-history tbody');
+          tb.innerHTML = '';
+          (data.history || []).forEach(h => {
+            tb.innerHTML += '<tr>' +
+              '<td>' + h.imsi + '</td>' +
+              '<td>' + h.latitude.toFixed(6) + ', ' + h.longitude.toFixed(6) + '</td>' +
+              '<td>' + (h.altitude != null ? h.altitude.toFixed(1) : '-') + '</td>' +
+              '<td>' + (h.uncertainty_m != null ? h.uncertainty_m.toFixed(1) + 'm' : '-') + '</td>' +
+              '<td>' + (h.method || '-') + '</td>' +
+              '<td>' + (h.source || '-') + '</td>' +
+              '<td>' + (h.timestamp || '') + '</td></tr>';
+          });
+        });
+    }
+
+    // ── gNB registration ──
+    function submitGnb(e) {
+      e.preventDefault();
+      let body = {
+        gnb_id: document.getElementById('gnb-id').value.trim(),
+        latitude: parseFloat(document.getElementById('gnb-lat').value),
+        longitude: parseFloat(document.getElementById('gnb-lon').value),
+        altitude: parseFloat(document.getElementById('gnb-alt').value) || 0
+      };
+      fetch('/api/gnb/position', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(r => r.json()).then(data => {
+        if (data.status === 'registered') {
+          gnbPositions.push({ id: body.gnb_id, lat: body.latitude, lon: body.longitude, alt: body.altitude });
+          renderGnbTable();
+          document.getElementById('frm-gnb').reset();
+        }
+      });
+    }
+
+    function renderGnbTable() {
+      let tb = document.querySelector('#tbl-gnb tbody');
+      tb.innerHTML = '';
+      gnbPositions.forEach(g => {
+        tb.innerHTML += '<tr><td>' + g.id + '</td><td>' + g.lat + '</td>' +
+          '<td>' + g.lon + '</td><td>' + g.alt + '</td></tr>';
+      });
+    }
+
+    // ── Geofences ──
+    function submitGeofence(e) {
+      e.preventDefault();
+      let body = {
+        name: document.getElementById('gf-name').value.trim(),
+        imsi: document.getElementById('gf-imsi').value.trim() || null,
+        center_lat: parseFloat(document.getElementById('gf-lat').value),
+        center_lon: parseFloat(document.getElementById('gf-lon').value),
+        radius_m: parseFloat(document.getElementById('gf-radius').value),
+        trigger_type: document.getElementById('gf-trigger').value,
+        callback_url: document.getElementById('gf-callback').value.trim() || null
+      };
+      fetch('/api/geofences', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(r => r.json()).then(data => {
+        if (data.ok) {
+          document.getElementById('frm-geofence').reset();
+          loadGeofences();
+        }
+      });
+    }
+
+    function loadGeofences() {
+      fetch('/api/geofences').then(r => r.json()).then(data => {
+        let tb = document.querySelector('#tbl-geofences tbody');
+        tb.innerHTML = '';
+        (data.geofences || []).forEach(f => {
+          tb.innerHTML += '<tr>' +
+            '<td>' + f.id + '</td>' +
+            '<td>' + f.name + '</td>' +
+            '<td>' + (f.imsi || 'All') + '</td>' +
+            '<td>' + f.center_lat.toFixed(4) + ', ' + f.center_lon.toFixed(4) + '</td>' +
+            '<td>' + f.radius_m + 'm</td>' +
+            '<td>' + f.trigger_type + '</td>' +
+            '<td>' + (f.active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>') + '</td>' +
+            '<td><button class="btn btn-sm btn-outline-danger" onclick="POS.deleteGeofence(' + f.id + ')">Delete</button></td></tr>';
+        });
+      });
+    }
+
+    function deleteGeofence(id) {
+      if (!confirm('Delete geofence #' + id + '?')) return;
+      fetch('/api/geofences/' + id, { method: 'DELETE' })
+        .then(r => r.json()).then(() => loadGeofences());
+    }
+
+    // ── LCS Privacy ──
+    function submitPrivacy(e) {
+      e.preventDefault();
+      let body = {
+        imsi: document.getElementById('priv-imsi').value.trim(),
+        client_type: document.getElementById('priv-client').value,
+        allowed: document.getElementById('priv-allowed').value === '1'
+      };
+      fetch('/api/lcs-privacy', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(r => r.json()).then(() => loadPrivacy());
+    }
+
+    function loadPrivacy() {
+      let imsi = document.getElementById('priv-imsi').value.trim();
+      if (!imsi) { alert('Enter IMSI'); return; }
+      fetch('/api/lcs-privacy?imsi=' + encodeURIComponent(imsi))
+        .then(r => r.json()).then(data => {
+          let tb = document.querySelector('#tbl-privacy tbody');
+          tb.innerHTML = '';
+          (data.privacy || []).forEach(p => {
+            tb.innerHTML += '<tr>' +
+              '<td>' + p.imsi + '</td>' +
+              '<td>' + p.client_type + '</td>' +
+              '<td>' + (p.allowed ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-danger">No</span>') + '</td>' +
+              '<td>' + (p.created_at || '') + '</td></tr>';
+          });
+        });
+    }
+
+    // ── Auto-refresh sessions every 5s ──
+    function startAutoRefresh() {
+      sessionTimer = setInterval(function() {
+        // Only refresh if sessions tab is active
+        let pane = document.getElementById('tab-sessions');
+        if (pane && pane.classList.contains('active')) {
+          loadSessions();
+        }
+      }, 5000);
+    }
+
+    // ── Init ──
+    function init() {
+      initMap();
+      // Tab sidebar — cross-group deactivation (same pattern as index.html)
+      document.querySelectorAll('#sidebar a[data-bs-toggle="list"]').forEach(link => {
+        link.addEventListener('click', function() {
+          document.querySelectorAll('#sidebar a.active').forEach(a => {
+            if (a !== link) a.classList.remove('active');
+          });
+          document.querySelectorAll('.tab-content .tab-pane').forEach(p => {
+            p.classList.remove('show', 'active');
+          });
+          let target = document.querySelector(link.getAttribute('href'));
+          if (target) {
+            target.classList.add('show', 'active');
+            // Re-invalidate map size when switching to map tab
+            if (link.getAttribute('href') === '#tab-map') {
+              setTimeout(function() { map.invalidateSize(); refreshMap(); }, 100);
+            }
+          }
+        });
+      });
+      // Form handlers
+      document.getElementById('frm-loc-request').addEventListener('submit', submitRequest);
+      document.getElementById('frm-gnb').addEventListener('submit', submitGnb);
+      document.getElementById('frm-geofence').addEventListener('submit', submitGeofence);
+      document.getElementById('frm-privacy').addEventListener('submit', submitPrivacy);
+      // Initial data loads
+      loadSessions();
+      loadGeofences();
+      refreshMap();
+      startAutoRefresh();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    return {
+      refreshMap: refreshMap,
+      loadSessions: loadSessions,
+      loadHistory: loadHistory,
+      loadGeofences: loadGeofences,
+      deleteGeofence: deleteGeofence,
+      loadPrivacy: loadPrivacy
+    };
+  })();
+  </script>
+</body>
+</html>

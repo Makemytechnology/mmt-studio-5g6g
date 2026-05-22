@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Services (5QI / ARP / GBR / Flow Rules)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="accordion mb-4" id="servicesAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="servicesHeader">
+
+      <!-- ✅ FIX: remove data-bs-toggle/data-bs-target, toggle via JS -->
+      <button
+        id="servicesToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center"
+        type="button"
+        aria-expanded="true"
+        aria-controls="servicesCollapse">
+        <div class="w-100 text-center">Services/QoS Flows (5QI / ARP / GBR / Flow Rules)</div>
+      </button>
+
+    </h2>
+
+    <div id="servicesCollapse" class="accordion-collapse collapse show"
+         aria-labelledby="servicesHeader" data-bs-parent="#servicesAccordion">
+      <div class="accordion-body">
+
+        <!-- Editor -->
+        <div class="card p-3 mb-3 shadow-sm">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Service Name</label>
+              <input id="svc_name" type="text" class="form-control" placeholder="Voice_VoNR">
+              <div class="form-text">Unique: letters, digits, underscore</div>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">5QI</label>
+              <input id="svc_5qi" type="number" class="form-control" min="1" max="255" placeholder="1">
+              <div class="form-text">1–255</div>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Resource Type</label>
+              <select id="svc_res_type" class="form-select">
+                <option value="NonGBR">NonGBR</option>
+                <option value="GBR">GBR</option>
+              </select>
+              <div class="form-text">Auto-suggested from 5QI; you can override</div>
+            </div>
+          </div>
+
+          <!-- ARP Row -->
+          <div class="row g-3 mt-1">
+            <div class="col-md-3">
+              <label class="form-label">ARP Priority (1–15)</label>
+              <input id="svc_arp_prio" type="number" class="form-control" min="1" max="15" placeholder="8">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">ARP Pre-emption Capability</label>
+              <select id="svc_arp_pcap" class="form-select">
+                <option value="0">Not allowed (0)</option>
+                <option value="1" selected>Allowed (1)</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">ARP Pre-emption Vulnerability</label>
+              <select id="svc_arp_pvuln" class="form-select">
+                <option value="0" selected>Not vulnerable (0)</option>
+                <option value="1">Vulnerable (1)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MBR Fields (always visible) -->
+          <div id="svc_mbr_box" class="row g-3 mt-1">
+            <div class="col-md-3">
+              <label class="form-label">MBR UL (kbps)</label>
+              <input id="svc_mbr_ul" type="number" class="form-control" placeholder="128">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">MBR DL (kbps)</label>
+              <input id="svc_mbr_dl" type="number" class="form-control" placeholder="128">
+            </div>
+          </div>
+
+          <!-- GBR Fields (visible only when Resource Type = GBR) -->
+          <div id="svc_gbr_box" class="row g-3 mt-1" style="display:none;">
+            <div class="col-md-3">
+              <label class="form-label">GBR UL (kbps)</label>
+              <input id="svc_gbr_ul" type="number" class="form-control" placeholder="128">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">GBR DL (kbps)</label>
+              <input id="svc_gbr_dl" type="number" class="form-control" placeholder="128">
+            </div>
+          </div>
+
+          <!-- Charging Profile + Status -->
+          <div class="row g-2 mt-2">
+            <div class="col-md-4">
+              <label class="form-label">Charging Profile</label>
+              <select id="svc_charging_profile" class="form-select">
+                <option value="">(none)</option>
+              </select>
+              <div class="form-text">Optional — links to URR configuration</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <select id="svc_status_field" class="form-select">
+                <option value="ACTIVE">ACTIVE — Rule applied immediately</option>
+                <option value="INACTIVE">INACTIVE — Rule exists but does nothing</option>
+                <option value="INACTIVE (event gated)">INACTIVE (event gated) — Activates on trigger</option>
+                <option value="PENDING">PENDING — Waiting for installation</option>
+                <option value="REMOVED">REMOVED — Rule deleted</option>
+              </select>
+              <div class="form-text">PCC rule state (TS 23.503 §6.1.3.4)</div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Flow Rules -->
+          <div class="d-flex align-items-center justify-content-between">
+            <h6 class="m-0">Flow Rules (Diameter AVP style)</h6>
+            <button id="btnAddFlow" type="button" class="btn btn-sm btn-outline-primary">+ Add Rule</button>
+          </div>
+
+          <div class="small text-muted mt-1">
+            Each packet filter is variable-length and consists of direction, identifier, length, and contents.<br>
+            Use: <code>action dir proto from src_cidr src_port to dst_cidr dst_port</code> e.g.
+            <code>permit in 6 from 10.98.254.0/24 5061 to 10.98.0.0/24 5060</code>
+          </div>
+
+          <div id="svc_flows" class="vstack gap-2 mt-2"></div>
+
+          <!-- Buttons -->
+          <div class="d-flex gap-2 mt-3">
+            <button id="btnSvcSave" type="button" class="btn btn-primary">Save / Update</button>
+            <button id="btnSvcDelete" type="button" class="btn btn-danger">Delete</button>
+            <button id="btnSvcClone" type="button" class="btn btn-outline-secondary ms-auto">Clone</button>
+          </div>
+
+          <div id="svc_status" class="mt-2"></div>
+        </div>
+
+        <!-- Services List -->
+        <div class="card p-3 shadow-sm">
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <button id="btnAddNew" type="button" class="btn btn-success btn-sm">+ Add New Service</button>
+            <div class="ms-auto d-flex gap-2">
+              <button id="btnLoadAll" type="button" class="btn btn-outline-primary btn-sm">Load</button>
+              <button id="btnBulkDelete" type="button" class="btn btn-outline-danger btn-sm">Delete Selected</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th><input id="svc_select_all" type="checkbox" class="form-check-input"></th>
+                  <th>Name</th><th>5QI</th><th>ResType</th><th>ARP(prio/cap/vul)</th><th>GBR/MBR (Kbps)</th><th>Charging</th><th>Status</th><th>Flows</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="svc_table_body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ IMPORTANT: Load Bootstrap JS BEFORE your custom script -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+(function(){
+
+  // -------------------------------------------------------
+  // ✅ FIX: Manual toggle so open AND close always work
+  // -------------------------------------------------------
+  const toggleBtn  = document.getElementById('servicesToggleBtn');
+  const collapseEl = document.getElementById('servicesCollapse');
+
+  let instance = null;
+
+  function syncBtnUI() {
+    const isOpen = collapseEl.classList.contains('show');
+    toggleBtn.classList.toggle('collapsed', !isOpen);
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  function getInstance() {
+    if (instance) return instance;
+    instance = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+    collapseEl.addEventListener('shown.bs.collapse', syncBtnUI);
+    collapseEl.addEventListener('hidden.bs.collapse', syncBtnUI);
+    return instance;
+  }
+
+  toggleBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    getInstance().toggle();
+  });
+
+  // -------------------------------------------------------
+  // Your existing logic (unchanged except button types)
+  // -------------------------------------------------------
+  const id = s => document.getElementById(s);
+  const statusBox = id("svc_status");
+  const note = (msg, type="info") => {
+    statusBox.innerHTML = msg
+      ? `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>`
+      : "";
+  };
+
+  const flowsEl = id("svc_flows");
+  const resTypeEl = id("svc_res_type");
+  const fiveqiEl = id("svc_5qi");
+  const gbrBox = id("svc_gbr_box");
+
+  function suggestResTypeFrom5qi(v){
+    const gbrSet = new Set([1,2,3,4,65,66,69,70]);
+    return gbrSet.has(v) ? "GBR" : "NonGBR";
+  }
+
+  fiveqiEl.addEventListener("input", ()=>{
+    const v = parseInt(fiveqiEl.value||"0",10);
+    if(!isNaN(v) && v>0) resTypeEl.value = suggestResTypeFrom5qi(v);
+    toggleGbrBox();
+  });
+  resTypeEl.addEventListener("change", toggleGbrBox);
+
+  function toggleGbrBox(){
+    gbrBox.style.display = resTypeEl.value === "GBR" ? "" : "none";
+    if (resTypeEl.value !== "GBR") {
+      id("svc_gbr_ul").value = "";
+      id("svc_gbr_dl").value = "";
+    }
+  }
+
+  function makeFlowRow(text=""){
+    const row = document.createElement("div");
+    row.className = "card p-2";
+    row.innerHTML = `
+      <input class="form-control flow_line" placeholder="permit in 6 from 10.98.254.0/24 5061 to 10.98.0.0/24 5060">
+      <div class="d-flex gap-2 mt-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm btnCloneFlow">Clone</button>
+        <button type="button" class="btn btn-outline-danger btn-sm btnDeleteFlow">Delete</button>
+      </div>`;
+    row.querySelector(".flow_line").value = text;
+    row.querySelector(".btnDeleteFlow").addEventListener("click",()=>row.remove());
+    row.querySelector(".btnCloneFlow").addEventListener("click",()=>{
+      flowsEl.insertBefore(makeFlowRow(row.querySelector(".flow_line").value), row.nextSibling);
+    });
+    return row;
+  }
+  id("btnAddFlow").addEventListener("click",()=>flowsEl.appendChild(makeFlowRow()));
+
+  function parseFlowLine(line){
+    const s=(line||"").trim().replace(/\s+/g," ");
+    if(!s) return null; // skip empty
+    const re=/^(permit|deny)\s+(in|out|bidirectional)\s+(any|icmp|tcp|udp|\d{1,3})\s+from\s+(any|[\d.]+(?:\/\d+)?)\s+([\d:,-]+|\*)\s+to\s+(any|[\d.]+(?:\/\d+)?)\s+([\d:,-]+|\*)$/i;
+    const m=s.match(re);
+    if(!m) throw new Error("Invalid filter: \"" + s + "\"\nExpected: permit|deny in|out|bidirectional proto from src port to dst port");
+    const [,action,dir,proto,src,sp,dst,dp]=m;
+    const srcCidr = src.toLowerCase()==="any" ? "0.0.0.0/0" : (src.includes("/") ? src : src+"/32");
+    const dstCidr = dst.toLowerCase()==="any" ? "0.0.0.0/0" : (dst.includes("/") ? dst : dst+"/32");
+    return {action, direction:dir, protocol:proto, src_cidr:srcCidr, dst_cidr:dstCidr,
+            src_ports: sp==="*"?"":sp, dst_ports: dp==="*"?"":dp};
+  }
+  function collectRules(){
+    const lines = Array.from(flowsEl.querySelectorAll(".flow_line"));
+    const rules = [];
+    for(let i=0; i<lines.length; i++){
+      const r = parseFlowLine(lines[i].value);
+      if(r) rules.push(r);
+    }
+    return rules;
+  }
+
+  // 0 means "no rate limit" (TS 23.501 §5.7.2.6) — render as
+  // "unlimited" so a service configured with 0 doesn't read as a
+  // hard zero-throughput cap.
+  const _fmtBr = (v) => (v > 0 ? v : 'unlimited');
+  function rowToTr(item){
+    const tr=document.createElement("tr");
+    const flows=(item.flow_rules||[]).length;
+    const mbrStr = `MBR UL/DL: ${_fmtBr(item.mbr_ul_kbps)}/${_fmtBr(item.mbr_dl_kbps)}`;
+    const gbrStr = (item.resource_type === "GBR")
+      ? `<br>GBR UL/DL: ${_fmtBr(item.gbr_ul_kbps)}/${_fmtBr(item.gbr_dl_kbps)}`
+      : "";
+
+    const cpBadge = item.charging_profile
+      ? `<span class="badge bg-info text-dark">${item.charging_profile}</span>`
+      : `<span class="text-muted">—</span>`;
+
+    const st = item.status || "ACTIVE";
+    const stColor = st === "ACTIVE" ? "success"
+      : st === "PENDING" ? "warning"
+      : st === "REMOVED" ? "secondary"
+      : "danger";  // INACTIVE / INACTIVE (event gated)
+    const stBadge = `<span class="badge bg-${stColor}">${st}</span>`;
+
+    tr.innerHTML=`
+      <td><input type="checkbox" class="form-check-input svc_row_select" data-name="${item.name}"></td>
+      <td>${item.name}</td><td>${item.fiveqi}</td><td>${item.resource_type}</td>
+      <td>${item.arp_priority}/${item.arp_pcap}/${item.arp_pvuln}</td>
+      <td>${mbrStr}${gbrStr}</td>
+      <td>${cpBadge}</td>
+      <td>${stBadge}</td>
+      <td>${flows}</td>
+      <td class="text-nowrap">
+        <button type="button" class="btn btn-sm btn-outline-primary btnRowEdit">Edit</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary btnRowClone">Clone</button>
+      </td>`;
+    tr.querySelector(".btnRowEdit").addEventListener("click",()=>fillForm(item));
+    tr.querySelector(".btnRowClone").addEventListener("click",()=>{
+      const newName=prompt("Clone as new service:", item.name+"_copy");
+      if(!newName||!newName.trim()) return;
+      (async()=>{
+        try{
+          const p={...item, name:newName.trim()};
+          p.flow_rules=item.flow_rules||[];
+          const r=await fetch("/api/services",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+          const j=await r.json();
+          if(!r.ok) throw new Error(j.error||r.statusText);
+          note(`Cloned "${item.name}" to "${newName.trim()}"`,"success");
+          await refreshTable();
+        }catch(e){note("Clone failed: "+e.message,"danger");}
+      })();
+    });
+    return tr;
+  }
+
+  async function refreshTable(){
+    try{
+      id("btnLoadAll")?.setAttribute("disabled","true");
+      const r=await fetch("/api/services");
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||r.statusText);
+      const body=id("svc_table_body");
+      body.innerHTML="";
+      const sorted = (j.items||[]).sort((a,b) => (a.fiveqi||0) - (b.fiveqi||0));
+      sorted.forEach(i=>body.appendChild(rowToTr(i)));
+      id("svc_select_all").checked=false;
+      note("");
+    }catch(e){note("Load failed: "+e.message,"danger");}
+    finally{ id("btnLoadAll")?.removeAttribute("disabled"); }
+  }
+
+  function formPayload(){
+    return {
+      name:id("svc_name").value.trim(),
+      fiveqi:+id("svc_5qi").value||0,
+      resource_type:id("svc_res_type").value,
+      arp_priority:+id("svc_arp_prio").value||8,
+      arp_pcap: Number(id("svc_arp_pcap").value),
+      arp_pvuln: Number(id("svc_arp_pvuln").value),
+      gbr_ul_kbps:+id("svc_gbr_ul").value||0,
+      gbr_dl_kbps:+id("svc_gbr_dl").value||0,
+      mbr_ul_kbps:+id("svc_mbr_ul").value||0,
+      mbr_dl_kbps:+id("svc_mbr_dl").value||0,
+      flow_rules:collectRules(),
+      charging_profile:id("svc_charging_profile").value||null,
+      status:id("svc_status_field").value||"ACTIVE"
+    };
+  }
+
+  function clearForm(){
+    ["svc_name","svc_5qi","svc_gbr_ul","svc_gbr_dl","svc_mbr_ul","svc_mbr_dl"].forEach(id_=>id(id_).value="");
+    id("svc_res_type").value="NonGBR";
+    id("svc_arp_prio").value="8";
+    id("svc_arp_pcap").value="1";
+    id("svc_arp_pvuln").value="0";
+    id("svc_charging_profile").value="";
+    id("svc_status_field").value="ACTIVE";
+    flowsEl.innerHTML="";
+    toggleGbrBox();
+  }
+
+  function fillForm(it){
+    clearForm();
+    id("svc_name").value=it.name||"";
+    id("svc_5qi").value=it.fiveqi||"";
+    id("svc_res_type").value=it.resource_type||"NonGBR";
+    id("svc_arp_prio").value=it.arp_priority??8;
+    id("svc_arp_pcap").value=it.arp_pcap??1;
+    id("svc_arp_pvuln").value=it.arp_pvuln??0;
+    id("svc_gbr_ul").value=it.gbr_ul_kbps||"";
+    id("svc_gbr_dl").value=it.gbr_dl_kbps||"";
+    id("svc_mbr_ul").value=it.mbr_ul_kbps||"";
+    id("svc_mbr_dl").value=it.mbr_dl_kbps||"";
+    id("svc_charging_profile").value=it.charging_profile||"";
+    id("svc_status_field").value=it.status||"ACTIVE";
+    (it.flow_rules||[]).forEach(r=>{
+      const line=`${r.action||"permit"} ${r.direction||"bidirectional"} ${r.protocol||"any"} from ${r.src_cidr||"0.0.0.0/0"} ${r.src_ports||"*"} to ${r.dst_cidr||"0.0.0.0/0"} ${r.dst_ports||"*"}`;
+      flowsEl.appendChild(makeFlowRow(line));
+    });
+    toggleGbrBox();
+  }
+
+  id("btnSvcSave").addEventListener("click",async()=>{
+    try{
+      const p=formPayload();
+      if(!p.name) return note("Service name required","warning");
+      const r=await fetch("/api/services",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||r.statusText);
+      note("Saved","success");await refreshTable();
+    }catch(e){note("Save failed: "+e.message,"danger");}
+  });
+
+  id("btnSvcDelete").addEventListener("click",async()=>{
+    const n=id("svc_name").value.trim();
+    if(!n) return note("Enter name to delete","warning");
+    if(!confirm(`Delete "${n}"?`)) return;
+    try{
+      const r=await fetch(`/api/services/${encodeURIComponent(n)}`,{method:"DELETE"});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||r.statusText);
+      note("Deleted","success");clearForm();refreshTable();
+    }catch(e){note("Delete failed: "+e.message,"danger");}
+  });
+
+  id("btnSvcClone").addEventListener("click",async()=>{
+    const base=(id("svc_name").value||"").trim();
+    if(!base) return note("Enter service name to clone","warning");
+    const newName=prompt("Clone as new service:",base+"_copy");
+    if(!newName) return;
+    try{
+      const p=formPayload();p.name=newName;
+      const r=await fetch("/api/services",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||r.statusText);
+      note(`Cloned to "${p.name}"`,"success");await refreshTable();
+    }catch(e){note("Clone failed: "+e.message,"danger");}
+  });
+
+  id("svc_select_all").addEventListener("change",()=>{
+    const c=id("svc_select_all").checked;
+    document.querySelectorAll(".svc_row_select").forEach(cb=>cb.checked=c);
+  });
+
+  id("btnBulkDelete").addEventListener("click",async()=>{
+    const names=[...document.querySelectorAll(".svc_row_select:checked")].map(x=>x.dataset.name);
+    if(!names.length) return note("Select at least one","warning");
+    if(!confirm(`Delete ${names.length} services?`)) return;
+    await Promise.all(names.map(n=>fetch(`/api/services/${encodeURIComponent(n)}`,{method:"DELETE"})));
+    note("Bulk delete done","success");refreshTable();
+  });
+
+  async function loadChargingProfileNames(){
+    try{
+      const r=await fetch("/api/charging-profiles");
+      const j=await r.json();
+      if(!r.ok) return;
+      const sel=id("svc_charging_profile");
+      const cur=sel.value;
+      sel.innerHTML='<option value="">(none)</option>';
+      (j.items||[]).forEach(p=>{
+        const o=document.createElement("option");
+        o.value=p.name; o.textContent=p.name;
+        sel.appendChild(o);
+      });
+      sel.value=cur;
+    }catch(e){}
+  }
+
+  id("btnAddNew").addEventListener("click",()=>{
+    clearForm();
+    id("svc_name").focus();
+    note("Fill in the form and click Save to create a new service","info");
+  });
+
+  id("btnLoadAll").addEventListener("click", ()=>{ refreshTable(); loadChargingProfileNames(); });
+
+  // When opened: scroll + refresh
+  collapseEl.addEventListener('shown.bs.collapse', () => {
+    collapseEl.scrollIntoView({behavior: 'smooth', block: 'start'});
+    refreshTable();
+    loadChargingProfileNames();
+  });
+
+  refreshTable();
+  loadChargingProfileNames();
+  syncBtnUI();
+
+})();
+</script>
+
+</body>
+</html>

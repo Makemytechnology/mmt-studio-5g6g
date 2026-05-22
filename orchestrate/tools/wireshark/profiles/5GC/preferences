@@ -1,0 +1,36 @@
+# Wireshark profile: 5GC
+# Loaded by `./run_studio.sh wireshark` via `wireshark -C 5GC`.
+#
+# Adds two custom columns to the default layout:
+#   * AMF-UE-ID — ngap.AMF_UE_NGAP_ID  (TS 38.413 §9.3.3.1)
+#   * SEID      — pfcp.seid             (TS 29.244  §7.2.2)
+#
+# These two are what's *not* obvious from Source/Destination/Protocol;
+# everything else (TEID, IMSI, QFI, FAR-ID, ...) stays one click away
+# in the packet detail pane, but adding them to the column header is
+# enough to differentiate one UE / one PFCP session at a glance while
+# scrolling the packet list.
+#
+# %Cus:<filter>:<occurrence>:<resolved>
+#   occurrence 0 = first match in the packet
+#   trailing  R  = use the dissector's resolved/display form
+#
+# %m = packet number, %t = time, %s = src, %d = dst,
+# %p = protocol, %L = length, %i = info column.
+
+gui.column.format: "No.","%m","Time","%t","Source","%s","Destination","%d","Protocol","%p","Length","%L","AMF-UE-ID","%Cus:ngap.AMF_UE_NGAP_ID:0:R","SEID","%Cus:pfcp.seid:0:R","Info","%i"
+
+# NAS-5GS dissector: tester runs with EIA2/EEA0 (TS 33.501 §6.7.2 —
+# null ciphering is spec-legal during early phases / interop). With
+# this default the dissector won't crack open a NAS PDU whose Security
+# Header indicates ciphered, even though EA0 means "no transformation"
+# and the inner is plaintext on the wire. Flipping the preference
+# tells the dissector to try decoding when EA0 is in effect, which
+# makes Registration Request / Authentication Response / SMC bodies
+# readable in the detail pane instead of an opaque blob.
+#
+# TS 33.501 §6.7.2 — 5G NAS security algorithm identifiers
+#   5G-EA0 = NEA0 (null ciphering — bypass)
+#   5G-EA1 = 128-NEA1 (Snow3G), 5G-EA2 = 128-NEA2 (AES), 5G-EA3 = 128-NEA3 (ZUC)
+nas-5gs.null_decipher: TRUE
+

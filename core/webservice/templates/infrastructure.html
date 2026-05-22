@@ -1,0 +1,885 @@
+<!-- templates/infrastructure.html — Infrastructure Configuration -->
+
+<style>
+.inf-card { border-radius: 8px; padding: 10px 14px; text-align: center; color: #fff; min-height: 70px; display: flex; flex-direction: column; justify-content: center; }
+.inf-card .f-val { font-size: 1.3rem; font-weight: 700; }
+.inf-card .f-lbl { font-size: 0.75rem; opacity: 0.9; }
+.fc-gray { background: #6c757d; }
+.inf-section { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px 14px; margin-bottom: 10px; background: #f8f9fa; }
+.inf-section h6 { margin-bottom: 8px; font-size: 0.88rem; }
+.inf-row { display: flex; gap: 8px; align-items: end; margin-bottom: 6px; flex-wrap: wrap; }
+.inf-row label { font-size: 0.76rem; margin-bottom: 1px; display: block; }
+.inf-row input, .inf-row select { font-size: 0.82rem; }
+.inf-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+.restart-banner { background: #fff3cd; border: 1px solid #ffc107; padding: 6px 14px; border-radius: 6px; font-size: 0.84rem; display: none; margin-bottom: 10px; }
+.chk { font-size: 0.78rem; margin-right: 14px; white-space: nowrap; }
+</style>
+
+<div class="restart-banner" id="infraRestartBanner">Configuration saved. <strong>Restart required</strong> for changes to take effect.</div>
+
+<!-- Summary -->
+<div class="row g-2 mb-3">
+  <div class="col"><div class="inf-card fc-gray"><div class="f-val" id="infraDb">--</div><div class="f-lbl">Database</div></div></div>
+  <div class="col"><div class="inf-card fc-gray"><div class="f-val" id="infraKv">--</div><div class="f-lbl">Context Store</div></div></div>
+  <div class="col"><div class="inf-card fc-gray"><div class="f-val" id="infraUpfIface">PFCP</div><div class="f-lbl">UPF Interface</div></div></div>
+  <div class="col"><div class="inf-card fc-gray"><div class="f-val" id="infraWorkers">--</div><div class="f-lbl">Workers</div></div></div>
+  <div class="col"><div class="inf-card fc-gray"><div class="f-val" id="infraUpfCount">--</div><div class="f-lbl">UPF Instances</div></div></div>
+</div>
+
+<!-- ── Detected environment + presets (top-of-tab — operators usually
+     start here: see what was detected, pick a preset, then drill into
+     the per-section forms below) ── -->
+<div class="inf-section" style="background:#eef5ff">
+  <h6 class="fw-bold">Detected Environment
+    <small class="text-muted fw-normal">auto-detected; powers tuning recommendations</small>
+  </h6>
+  <div id="icPlatformPanel" class="small">
+    <em class="text-muted">Loading…</em>
+  </div>
+  <div class="inf-row mt-2" style="align-items:flex-end">
+    <div style="flex:2"><label>Preset</label>
+      <select class="form-select form-select-sm" id="icPresetSel">
+        <option value="">— Custom / none —</option>
+      </select>
+    </div>
+    <div><button class="btn btn-sm btn-outline-primary" id="icApplyPresetBtn">Apply preset to form</button></div>
+    <div><button class="btn btn-sm btn-outline-secondary" id="icValidateBtn">Validate</button></div>
+    <div><button class="btn btn-sm btn-outline-secondary" id="icExportBtn">Export JSON</button></div>
+    <div><button class="btn btn-sm btn-outline-secondary" id="icImportBtn">Import JSON…</button></div>
+    <div><button class="btn btn-sm btn-outline-secondary" id="icHistoryBtn">History / Revert</button></div>
+    <input type="file" id="icImportFile" accept=".json,application/json" style="display:none">
+  </div>
+  <div id="icValidateResult" class="mt-2 small"></div>
+</div>
+
+<!-- ── Database + Context Store ── -->
+<div class="inf-section">
+  <h6 class="fw-bold">Database + Context Store</h6>
+  <div class="inf-row">
+    <div style="flex:1"><label>Database</label>
+      <select class="form-select form-select-sm" id="icDbType" onchange="icFieldsChanged()">
+        <option value="sqlite">SQLite</option><option value="postgresql">PostgreSQL</option>
+      </select></div>
+    <div style="flex:2" id="icDsnDiv"><label>DSN</label><input type="text" class="form-control form-control-sm" id="icDbDsn" placeholder="postgresql://sacore:pass@localhost:5432/sacore"></div>
+    <div style="width:70px" id="icPoolMinDiv"><label>Pool Min</label><input type="number" class="form-control form-control-sm" id="icDbPoolMin" value="2"></div>
+    <div style="width:70px" id="icPoolMaxDiv"><label>Pool Max</label><input type="number" class="form-control form-control-sm" id="icDbPoolMax" value="20"></div>
+    <div style="flex:1"><label>UE Context Store</label>
+      <select class="form-select form-select-sm" id="icKvType" onchange="icFieldsChanged()">
+        <option value="dict">In-Memory Dict</option><option value="redis">Redis</option>
+      </select></div>
+    <div style="flex:2" id="icRedisDiv"><label>Redis URL</label><input type="text" class="form-control form-control-sm" id="icRedisUrl" value="redis://localhost:6379/0"></div>
+  </div>
+</div>
+
+<!-- ── Web Server + AMF ── -->
+<div class="inf-section">
+  <h6 class="fw-bold">Web Server + AMF</h6>
+  <div class="inf-row">
+    <div style="width:130px"><label>Host</label><input type="text" class="form-control form-control-sm" id="icWebHost" value="0.0.0.0"></div>
+    <div style="width:80px"><label>Port</label><input type="number" class="form-control form-control-sm" id="icWebPort" value="5000"></div>
+    <div style="width:80px"><label>Workers</label><input type="number" class="form-control form-control-sm" id="icWebWorkers" value="1"></div>
+    <div style="width:100px"><label>AMF Instance</label><input type="number" class="form-control form-control-sm" id="icAmfId" value="1"></div>
+    <div><label class="chk" style="margin-top:18px"><input type="checkbox" class="form-check-input" id="icAmfSep"> Separate AMF</label></div>
+    <div style="width:110px"><label>Log Level</label>
+      <select class="form-select form-select-sm" id="icLogLevel">
+        <option value="DEBUG">DEBUG</option><option value="INFO" selected>INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option>
+      </select></div>
+  </div>
+</div>
+
+<!-- ── Logging pipeline ── -->
+<div class="inf-section">
+  <h6 class="fw-bold">Logging Pipeline
+    <small class="text-muted fw-normal">applied after DB ready · persisted to disk log takes effect immediately, sink changes on restart</small>
+  </h6>
+  <div class="inf-row">
+    <div style="width:170px"><label>Sink</label>
+      <select class="form-select form-select-sm" id="icLogSink">
+        <option value="disk">disk (/var/log)</option>
+        <option value="tmpfs">tmpfs (/run/log)</option>
+        <option value="ram_only">RAM only (no file)</option>
+        <option value="journald">systemd-journald</option>
+        <option value="syslog">syslog (/dev/log)</option>
+      </select></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icLogAsync"> Async (QueueHandler)</label></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icLogFlushEach"> Flush per record</label></div>
+    <div style="width:190px"><label>In-memory buffer size</label>
+      <input type="number" class="form-control form-control-sm" id="icLogBuffer" value="5000" min="500" max="1000000" step="500"></div>
+  </div>
+  <small class="text-muted">
+    Async keeps the hot path off disk I/O; leave on in production. Flush-per-record
+    is only useful with a live <code>tail -F</code> — doubles I/O cost otherwise.
+  </small>
+</div>
+
+<!-- ── Scheduling ── -->
+<div class="inf-section">
+  <h6 class="fw-bold">Thread Scheduling
+    <small class="text-muted fw-normal">applied at thread startup (root required for negative nice)</small>
+  </h6>
+  <div class="inf-row">
+    <div style="width:120px"><label>UPF nice</label>
+      <input type="number" class="form-control form-control-sm" id="icNiceUpf" value="-10" min="-20" max="19"></div>
+    <div style="width:120px"><label>AMF nice</label>
+      <input type="number" class="form-control form-control-sm" id="icNiceAmf" value="-5" min="-20" max="19"></div>
+    <div style="width:120px"><label>Web nice</label>
+      <input type="number" class="form-control form-control-sm" id="icNiceWeb" value="10" min="-20" max="19"></div>
+    <div style="width:120px"><label>Worker nice</label>
+      <input type="number" class="form-control form-control-sm" id="icNiceWorker" value="0" min="-20" max="19"></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icUpfRt"> UPF SCHED_FIFO (real-time — risky)</label></div>
+  </div>
+  <small class="text-muted">
+    Lower nice = higher priority. Default policy puts UPF highest, GUI lowest.
+    SCHED_FIFO on UPF disables preemption on that core — only for validated builds.
+  </small>
+</div>
+
+<!-- ── CPU Pinning ── -->
+<div class="inf-section" id="icPinningSection">
+  <h6 class="fw-bold">CPU Pinning
+    <small class="text-muted fw-normal">runtime-applied at startup · changes take effect on next <code>./run.sh</code></small>
+  </h6>
+  <div class="inf-row">
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icPinEnabled"> Enable pinning</label></div>
+    <div><button class="btn btn-sm btn-outline-primary" id="icSuggestPinBtn">Suggest layout</button></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icGovPerf"> Set CPU governor = performance</label></div>
+  </div>
+  <div class="inf-row mt-2">
+    <div style="width:140px"><label>UPF core</label>
+      <input type="number" class="form-control form-control-sm" id="icUpfCore" value="-1" min="-1"></div>
+    <div style="width:140px"><label>AMF core</label>
+      <input type="number" class="form-control form-control-sm" id="icAmfCore" value="-1" min="-1"></div>
+    <div style="width:140px"><label>Web / uvicorn core</label>
+      <input type="number" class="form-control form-control-sm" id="icWebCore" value="-1" min="-1"></div>
+    <div style="width:140px"><label>NIC IRQ core</label>
+      <input type="number" class="form-control form-control-sm" id="icIrqCore" value="-1" min="-1"></div>
+    <div style="width:160px"><label>IRQ NIC</label>
+      <input type="text" class="form-control form-control-sm" id="icIrqNic" placeholder="e.g. wlo1"></div>
+    <div style="flex:1"><label>Worker core pool</label>
+      <input type="text" class="form-control form-control-sm" id="icWorkerCores" placeholder="5,6,7"></div>
+  </div>
+  <small class="text-muted">
+    <strong>-1</strong> means "unset / use kernel default". Core 0 is reserved for the OS.
+    For production UPF isolation add
+    <code>isolcpus=&lt;upf&gt; nohz_full=&lt;upf&gt; rcu_nocbs=&lt;upf&gt;</code> to GRUB.
+  </small>
+</div>
+
+<!-- UPF Data Plane / DPDK Tuning / Socket-TUN Tuning / PMD Tuning /
+     UPF Instances were moved to network_config.html (under the new
+     "UPF" group inside the Network Config accordion). The corresponding
+     form-input IDs (icUpfMode, icUpfPfcpPort, icUpfMaxSess, …, upfAdd*)
+     are global, so the icSave / icLoad / upfLoadInstances JS in this
+     file still drives them. -->
+
+<!-- ── Load Balancer + Multi-homing ── -->
+<div class="inf-section" id="icLbSection">
+  <h6 class="fw-bold">Load Balancer + SCTP Multi-homing</h6>
+  <div class="inf-row">
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icMultiHome" onchange="icFieldsChanged()"> SCTP Multi-home</label></div>
+    <div style="flex:1" id="icSecondaryIpDiv"><label>Secondary AMF IP</label><input type="text" class="form-control form-control-sm" id="icSecondaryIp" placeholder="10.0.1.2"></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icLbEnabled" onchange="icFieldsChanged()"> HTTP Load Balancer</label></div>
+    <div style="flex:2" id="icLbInstancesDiv"><label>Backend Instances</label><input type="text" class="form-control form-control-sm" id="icLbInstances" placeholder="host1:5001,host2:5002,host3:5003"></div>
+    <div style="width:110px" id="icLbStrategyDiv"><label>Strategy</label>
+      <select class="form-select form-select-sm" id="icLbStrategy"><option value="least_conn">Least Conn</option><option value="round_robin">Round Robin</option></select></div>
+    <div style="width:100px" id="icLbHealthDiv"><label>Health (s)</label><input type="number" class="form-control form-control-sm" id="icLbHealth" value="10"></div>
+  </div>
+  <div id="lbStatusPanel" style="display:none" class="mt-2">
+    <div id="lbInstanceStatus"><small class="text-muted">No status</small></div>
+    <h6 class="fw-bold mt-2" style="font-size:0.85rem">SCTP Assignments</h6>
+    <div id="lbSctpAssignments"><small class="text-muted">No gNBs connected</small></div>
+  </div>
+</div>
+
+<!-- ── OpenTelemetry ── -->
+<div class="inf-section">
+  <h6 class="fw-bold">OpenTelemetry</h6>
+  <div class="inf-row">
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icOtelEnabled" onchange="icFieldsChanged()"> Enable</label></div>
+    <div style="width:130px" id="icOtelExporterDiv"><label>Exporter</label>
+      <select class="form-select form-select-sm" id="icOtelExporter" onchange="icFieldsChanged()">
+        <option value="prometheus">Prometheus</option><option value="otlp">OTLP</option><option value="console">Console</option>
+      </select></div>
+    <div style="width:80px" id="icOtelPromPortDiv"><label>Port</label><input type="number" class="form-control form-control-sm" id="icOtelPromPort" value="9464"></div>
+    <div style="flex:1" id="icOtelEndpointDiv"><label>OTLP Endpoint</label><input type="text" class="form-control form-control-sm" id="icOtelEndpoint" placeholder="http://collector:4317"></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icOtelMetrics" checked> Metrics</label></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icOtelTraces" checked> Traces</label></div>
+    <div><label class="chk"><input type="checkbox" class="form-check-input" id="icOtelLogs" checked> Logs</label></div>
+  </div>
+</div>
+
+<!-- ── NWDAF + Security + AI ── -->
+<div class="inf-section">
+  <h6 class="fw-bold">Analytics, Security + AI</h6>
+  <div class="inf-row">
+    <div style="width:130px"><label>NWDAF Interval (s)</label><input type="number" class="form-control form-control-sm" id="icNwdafInterval" value="30"></div>
+    <div style="width:130px"><label>NWDAF Retention (h)</label><input type="number" class="form-control form-control-sm" id="icNwdafRetention" value="24"></div>
+    <div style="width:140px"><label>Audit Retention (days)</label><input type="number" class="form-control form-control-sm" id="icAuditDays" value="90"></div>
+  </div>
+  <div class="inf-row">
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icIdsEnabled" checked> IDS</span>
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icRateLimiter" checked> Rate Limiter</span>
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icAuditLog" checked> Audit Log</span>
+    <span class="chk" style="margin-left:20px"><input type="checkbox" class="form-check-input" id="icAiAuto"> AI Autonomous</span>
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icAiEnergy"> Energy Saving</span>
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icAiQos"> Predictive QoS</span>
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icAiHeal"> Self-Healing</span>
+    <span class="chk"><input type="checkbox" class="form-check-input" id="icAiPsm"> PSM Optimizer</span>
+  </div>
+</div>
+
+<!-- ── Save ── -->
+<div class="d-flex gap-2">
+  <button class="btn btn-sm btn-primary" onclick="icSave()">Save Configuration</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="icLoad()">Reset</button>
+</div>
+
+<script>
+function icLoad() {
+  fetch('/api/admin/infra-config').then(r=>r.json()).then(d => {
+    if (!d.ok) return; const c = d.config;
+    document.getElementById('icLogLevel').value = c.log_level || 'INFO';
+    document.getElementById('icDbType').value = c.db_type || 'sqlite';
+    document.getElementById('icDbDsn').value = c.db_dsn || '';
+    document.getElementById('icDbPoolMin').value = c.db_pool_min || 2;
+    document.getElementById('icDbPoolMax').value = c.db_pool_max || 20;
+    document.getElementById('icKvType').value = c.kv_store_type || 'dict';
+    document.getElementById('icRedisUrl').value = c.redis_url || 'redis://localhost:6379/0';
+    document.getElementById('icWebHost').value = c.web_host || '0.0.0.0';
+    document.getElementById('icWebPort').value = c.web_port || 5000;
+    document.getElementById('icWebWorkers').value = c.web_workers || 1;
+    document.getElementById('icAmfId').value = c.amf_instance_id || 1;
+    document.getElementById('icAmfSep').checked = !!c.amf_separate_process;
+    document.getElementById('icUpfMode').value = c.upf_mode || 'socket';
+    document.getElementById('icUpfPfcpPort').value = c.upf_pfcp_port || 8805;
+    // UPF / DPDK tuning
+    document.getElementById('icUpfMaxSess').value = c.upf_max_sessions || 4096;
+    document.getElementById('icDpdkMemMb').value  = c.upf_dpdk_mem_mb   || 64;
+    document.getElementById('icMbufPool').value   = c.upf_mbuf_pool_size|| 8192;
+    document.getElementById('icRxRing').value     = c.upf_rx_ring_size  || 1024;
+    document.getElementById('icTxRing').value     = c.upf_tx_ring_size  || 1024;
+    document.getElementById('icHpSize').value     = c.hugepage_size     || '2M';
+    document.getElementById('icHpCount').value    = c.hugepage_count    || 256;
+    document.getElementById('icDpdkLogLvl').value = c.dpdk_log_level    || 'INFO';
+    document.getElementById('icTunQlen').value       = c.tun_txqueuelen        || 1000;
+    document.getElementById('icRcvbufMb').value      = c.gtpu_rcvbuf_mb        || 4;
+    document.getElementById('icSndbufMb').value      = c.gtpu_sndbuf_mb        || 4;
+    document.getElementById('icNetdevBacklog').value = c.sysctl_netdev_backlog || 1000;
+    document.getElementById('icPmdN3').value         = c.pmd_n3_device         || 'net_tap0';
+    document.getElementById('icPmdN6').value         = c.pmd_n6_device         || 'net_tap1';
+    // CPU pinning
+    document.getElementById('icPinEnabled').checked  = !!c.cpu_pinning_enabled;
+    document.getElementById('icGovPerf').checked     = !!c.cpu_governor_perf;
+    document.getElementById('icUpfCore').value       = (c.cpu_upf_core ?? -1);
+    document.getElementById('icAmfCore').value       = (c.cpu_amf_core ?? -1);
+    document.getElementById('icWebCore').value       = (c.cpu_web_core ?? -1);
+    document.getElementById('icIrqCore').value       = (c.cpu_irq_core ?? -1);
+    document.getElementById('icIrqNic').value        = c.cpu_irq_nic || '';
+    document.getElementById('icWorkerCores').value   = c.cpu_worker_cores || '';
+    // Scheduling + logging pipeline
+    document.getElementById('icNiceUpf').value    = (c.sched_upf_nice    ?? -10);
+    document.getElementById('icNiceAmf').value    = (c.sched_amf_nice    ?? -5);
+    document.getElementById('icNiceWeb').value    = (c.sched_web_nice    ?? 10);
+    document.getElementById('icNiceWorker').value = (c.sched_worker_nice ?? 0);
+    document.getElementById('icUpfRt').checked    = !!c.sched_upf_rt;
+    document.getElementById('icLogSink').value      = c.log_sink || 'disk';
+    document.getElementById('icLogAsync').checked   = (c.log_async ?? 1) ? true : false;
+    document.getElementById('icLogFlushEach').checked = !!c.log_flush_each;
+    document.getElementById('icLogBuffer').value    = c.log_buffer_size || 5000;
+    icUpdateHpTotal();
+    icUpdateModePanels();
+    document.getElementById('icNwdafInterval').value = c.nwdaf_collect_interval || 30;
+    document.getElementById('icNwdafRetention').value = c.nwdaf_retention_hours || 24;
+    document.getElementById('icIdsEnabled').checked = c.ids_enabled !== 0;
+    document.getElementById('icRateLimiter').checked = c.rate_limiter_enabled !== 0;
+    document.getElementById('icAuditLog').checked = c.audit_log_enabled !== 0;
+    document.getElementById('icAuditDays').value = c.audit_retention_days || 90;
+    document.getElementById('icAiAuto').checked = !!c.ai_autonomous_enabled;
+    document.getElementById('icAiEnergy').checked = !!c.ai_energy_saving;
+    document.getElementById('icAiQos').checked = !!c.ai_predictive_qos;
+    document.getElementById('icAiHeal').checked = !!c.ai_self_healing;
+    document.getElementById('icAiPsm').checked = !!c.ai_psm_optimizer;
+    document.getElementById('icOtelEnabled').checked = !!c.otel_enabled;
+    document.getElementById('icOtelExporter').value = c.otel_exporter || 'prometheus';
+    document.getElementById('icOtelPromPort').value = c.otel_prometheus_port || 9464;
+    document.getElementById('icOtelEndpoint').value = c.otel_endpoint || '';
+    document.getElementById('icOtelMetrics').checked = c.otel_metrics_enabled !== 0;
+    document.getElementById('icOtelTraces').checked = c.otel_traces_enabled !== 0;
+    document.getElementById('icOtelLogs').checked = c.otel_logs_enabled !== 0;
+    document.getElementById('icMultiHome').checked = !!c.sctp_multi_home;
+    document.getElementById('icSecondaryIp').value = c.sctp_secondary_ip || '';
+    document.getElementById('icLbEnabled').checked = !!c.lb_enabled;
+    document.getElementById('icLbInstances').value = c.lb_instances || '';
+    document.getElementById('icLbStrategy').value = c.lb_strategy || 'least_conn';
+    document.getElementById('icLbHealth').value = c.lb_health_interval || 10;
+    icFieldsChanged();
+    document.getElementById('infraDb').textContent = (c.db_type||'sqlite')==='sqlite'?'SQLite':'PostgreSQL';
+    document.getElementById('infraKv').textContent = (c.kv_store_type||'dict')==='redis'?'Redis':'In-Memory';
+    document.getElementById('infraUpfIface').textContent = 'PFCP';
+    document.getElementById('infraWorkers').textContent = c.web_workers||1;
+  }).catch(()=>{});
+}
+
+function icUpdateHpTotal() {
+  const size = document.getElementById('icHpSize').value === '1G' ? 1024 : 2;
+  const count = +document.getElementById('icHpCount').value || 0;
+  const mb = size * count;
+  const txt = mb >= 1024 ? (mb/1024).toFixed(1) + ' GB' : mb + ' MB';
+  document.getElementById('icHpTotal').textContent = 'Total reserved: ' + txt;
+}
+// Show the panel matching the currently-selected UPF I/O Mode, dim the
+// other so operators don't tune fields that won't take effect.
+function icUpdateModePanels() {
+  const mode = document.getElementById('icUpfMode').value;
+  const sock = document.getElementById('icSocketTuneSection');
+  const pmd  = document.getElementById('icPmdTuneSection');
+  if (sock) sock.style.opacity = (mode === 'socket') ? '1' : '0.45';
+  if (pmd)  pmd.style.opacity  = (mode === 'pmd')    ? '1' : '0.45';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  ['icHpSize','icHpCount'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', icUpdateHpTotal);
+    if (el) el.addEventListener('input',  icUpdateHpTotal);
+  });
+  const modeEl = document.getElementById('icUpfMode');
+  if (modeEl) modeEl.addEventListener('change', icUpdateModePanels);
+
+  // Platform info + presets + validation/export/import/history wiring.
+  icLoadPlatformInfo();
+  const byId = id => document.getElementById(id);
+  byId('icApplyPresetBtn').addEventListener('click', icApplyPreset);
+  byId('icValidateBtn').addEventListener('click', icValidateConfig);
+  byId('icExportBtn').addEventListener('click', () => {
+    window.location.href = '/api/admin/infra-config/export';
+  });
+  byId('icImportBtn').addEventListener('click', () => byId('icImportFile').click());
+  byId('icImportFile').addEventListener('change', icImportFile);
+  byId('icHistoryBtn').addEventListener('click', icShowHistory);
+  byId('icSuggestPinBtn').addEventListener('click', icSuggestPinning);
+});
+
+async function icSuggestPinning() {
+  try {
+    const r = await fetch('/api/admin/infra-config/suggest-pinning');
+    const d = await r.json();
+    if (!d.ok) { alert('Suggest failed'); return; }
+    const L = d.layout || {};
+    document.getElementById('icPinEnabled').checked = !!L.cpu_pinning_enabled;
+    document.getElementById('icGovPerf').checked    = !!L.cpu_governor_perf;
+    document.getElementById('icUpfCore').value      = L.cpu_upf_core ?? -1;
+    document.getElementById('icAmfCore').value      = L.cpu_amf_core ?? -1;
+    document.getElementById('icWebCore').value      = L.cpu_web_core ?? -1;
+    document.getElementById('icIrqCore').value      = L.cpu_irq_core ?? -1;
+    document.getElementById('icIrqNic').value       = L.cpu_irq_nic || '';
+    document.getElementById('icWorkerCores').value  = L.cpu_worker_cores || '';
+    document.getElementById('icValidateResult').innerHTML =
+      `<span class="text-info">Pinning layout suggested for ${d.cpu_cores} cores. Review, then Save.</span>`;
+  } catch (e) {
+    alert('Suggest error: ' + e.message);
+  }
+}
+
+// Cache of presets keyed by id, populated by icLoadPlatformInfo.
+let __icPresets = {};
+
+async function icLoadPlatformInfo() {
+  try {
+    const r = await fetch('/api/admin/platform-info');
+    const d = await r.json();
+    const p = d.platform || {};
+    const presets = d.presets || [];
+    const hp2 = (p.hugepages||{})['2M_reserved'] || 0;
+    const hp2f = (p.hugepages||{})['2M_free'] || 0;
+    const hp1s = (p.hugepages||{})['1G_supported'];
+    const hp1 = (p.hugepages||{})['1G_reserved'] || 0;
+    const nics = (p.nics||[]).map(n =>
+      `${n.name} (${n.speed_mbps>=0?n.speed_mbps+' Mb/s':'link?'}, ${n.operstate})`
+    ).join(', ');
+    const warn = (cond, txt) => cond ? `<span class="text-danger">⚠ ${txt}</span>` : '';
+
+    const html = `
+      <div><strong>Host:</strong> ${p.virt === 'none' ? 'bare metal' : p.virt.toUpperCase()} ·
+           <strong>Arch:</strong> ${p.arch} ${p.has_avx2?'(AVX2)':'(no AVX2 — v2 bundle)'} ${p.has_avx512?'· AVX512':''}</div>
+      <div><strong>CPU:</strong> ${p.cpu_model || 'unknown'} — ${p.cpu_cores} cores (${p.cpu_online} online) · ${p.numa_node_count} NUMA node(s) · governor: <code>${p.cpu_governor}</code></div>
+      <div><strong>NUMA:</strong> ${(p.numa_nodes||[]).map(n => `node${n.id}: ${n.cpus}`).join(' · ') || 'n/a'}</div>
+      <div><strong>isolcpus:</strong> ${p.isolcpus || '<span class="text-muted">not set</span>'} · <strong>nohz_full:</strong> ${p.nohz_full || '<span class="text-muted">not set</span>'}</div>
+      <div><strong>Log dir:</strong> <code>${p.log_dir || '-'}</code> on <code>${p.log_fs_type || '?'}</code>${p.log_fs_type === 'tmpfs' ? ' <span class="text-success">(RAM — fast)</span>' : ''}</div>
+      <div><strong>RAM:</strong> ${p.ram_gb} GB</div>
+      <div><strong>Hugepages:</strong> 2 MB: ${hp2} reserved / ${hp2f} free · 1 GB: ${hp1s?(hp1+' reserved'):'not available'}</div>
+      <div><strong>NICs:</strong> ${nics || '(none)'}</div>
+      <div><strong>THP:</strong> ${p.thp_mode} ${warn(p.thp_mode !== 'never', 'DPDK recommends never — run.sh auto-disables on start')}</div>
+      <div><strong>vfio-pci:</strong> ${p.vfio_loaded?'loaded':'<span class="text-muted">not loaded (needed for PMD)</span>'}</div>
+      ${p.isolcpus ? `<div><strong>isolcpus:</strong> ${p.isolcpus}</div>` : ''}
+    `;
+    document.getElementById('icPlatformPanel').innerHTML = html;
+
+    // Fill preset dropdown.
+    const sel = document.getElementById('icPresetSel');
+    __icPresets = {};
+    presets.forEach(pr => {
+      __icPresets[pr.id] = pr;
+      const opt = document.createElement('option');
+      opt.value = pr.id;
+      opt.textContent = pr.label + (pr.id === d.recommended_preset ? '  ★ recommended' : '');
+      sel.appendChild(opt);
+    });
+    if (d.recommended_preset) sel.value = d.recommended_preset;
+  } catch (e) {
+    document.getElementById('icPlatformPanel').innerHTML =
+      `<span class="text-danger">Platform info error: ${e.message}</span>`;
+  }
+}
+
+function icApplyPreset() {
+  const sel = document.getElementById('icPresetSel');
+  const pr = __icPresets[sel.value];
+  if (!pr) { alert('Select a preset first'); return; }
+  const v = pr.values;
+  const map = {
+    'upf_mode':'icUpfMode', 'upf_max_sessions':'icUpfMaxSess',
+    'upf_dpdk_mem_mb':'icDpdkMemMb', 'upf_mbuf_pool_size':'icMbufPool',
+    'upf_rx_ring_size':'icRxRing', 'upf_tx_ring_size':'icTxRing',
+    'hugepage_size':'icHpSize', 'hugepage_count':'icHpCount',
+    'dpdk_log_level':'icDpdkLogLvl',
+    'tun_txqueuelen':'icTunQlen', 'gtpu_rcvbuf_mb':'icRcvbufMb',
+    'gtpu_sndbuf_mb':'icSndbufMb',
+    'sysctl_netdev_backlog':'icNetdevBacklog',
+    'sched_upf_nice':'icNiceUpf', 'sched_amf_nice':'icNiceAmf',
+    'sched_web_nice':'icNiceWeb', 'sched_worker_nice':'icNiceWorker',
+    'log_sink':'icLogSink', 'log_buffer_size':'icLogBuffer',
+  };
+  Object.entries(map).forEach(([k, elId]) => {
+    if (v[k] === undefined) return;
+    const el = document.getElementById(elId); if (!el) return;
+    el.value = v[k];
+  });
+  // Checkboxes
+  if (v.log_async !== undefined)      document.getElementById('icLogAsync').checked      = !!v.log_async;
+  if (v.log_flush_each !== undefined) document.getElementById('icLogFlushEach').checked  = !!v.log_flush_each;
+  if (v.sched_upf_rt !== undefined)   document.getElementById('icUpfRt').checked          = !!v.sched_upf_rt;
+  icUpdateHpTotal(); icUpdateModePanels();
+  document.getElementById('icValidateResult').innerHTML =
+    `<span class="text-info">Preset <strong>${pr.label}</strong> applied to form. Click Save to persist, then <code>./run.sh</code>.</span>`;
+}
+
+async function icValidateConfig() {
+  // Build the same payload the Save button would send, then dry-run.
+  const payload = icCollectPayload();
+  const out = document.getElementById('icValidateResult');
+  out.innerHTML = '<em class="text-muted">Validating…</em>';
+  try {
+    const r = await fetch('/api/admin/infra-config/validate', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    const errs = (d.errors||[]).map(e => `<li class="text-danger">✗ ${e}</li>`).join('');
+    const warns = (d.warnings||[]).map(w => `<li class="text-warning">⚠ ${w}</li>`).join('');
+    if (!errs && !warns) {
+      out.innerHTML = '<span class="text-success">✓ Configuration looks valid for this host.</span>';
+    } else {
+      out.innerHTML = `<ul class="mb-0" style="padding-left:1.2em">${errs}${warns}</ul>`;
+    }
+  } catch (e) {
+    out.innerHTML = `<span class="text-danger">Validate failed: ${e.message}</span>`;
+  }
+}
+
+function icCollectPayload() {
+  // Mirror the shape posted by Save. Keep in sync with the inline
+  // payload builder used there — duplication is cheap; an abstraction
+  // would be heavier than the code it saves.
+  return {
+    upf_mode: document.getElementById('icUpfMode').value,
+    upf_max_sessions:   +document.getElementById('icUpfMaxSess').value,
+    upf_dpdk_mem_mb:    +document.getElementById('icDpdkMemMb').value,
+    upf_mbuf_pool_size: +document.getElementById('icMbufPool').value,
+    upf_rx_ring_size:   +document.getElementById('icRxRing').value,
+    upf_tx_ring_size:   +document.getElementById('icTxRing').value,
+    hugepage_size:      document.getElementById('icHpSize').value,
+    hugepage_count:     +document.getElementById('icHpCount').value,
+    dpdk_log_level:     document.getElementById('icDpdkLogLvl').value,
+    tun_txqueuelen:        +document.getElementById('icTunQlen').value,
+    gtpu_rcvbuf_mb:        +document.getElementById('icRcvbufMb').value,
+    gtpu_sndbuf_mb:        +document.getElementById('icSndbufMb').value,
+    sysctl_netdev_backlog: +document.getElementById('icNetdevBacklog').value,
+    pmd_n3_device:      document.getElementById('icPmdN3').value.trim() || 'net_tap0',
+    pmd_n6_device:      document.getElementById('icPmdN6').value.trim() || 'net_tap1',
+    cpu_pinning_enabled: document.getElementById('icPinEnabled').checked ? 1 : 0,
+    cpu_governor_perf:   document.getElementById('icGovPerf').checked ? 1 : 0,
+    cpu_upf_core:   +document.getElementById('icUpfCore').value,
+    cpu_amf_core:   +document.getElementById('icAmfCore').value,
+    cpu_web_core:   +document.getElementById('icWebCore').value,
+    cpu_irq_core:   +document.getElementById('icIrqCore').value,
+    cpu_irq_nic:    document.getElementById('icIrqNic').value.trim(),
+    cpu_worker_cores: document.getElementById('icWorkerCores').value.trim(),
+    sched_upf_nice:    +document.getElementById('icNiceUpf').value,
+    sched_amf_nice:    +document.getElementById('icNiceAmf').value,
+    sched_web_nice:    +document.getElementById('icNiceWeb').value,
+    sched_worker_nice: +document.getElementById('icNiceWorker').value,
+    sched_upf_rt:      document.getElementById('icUpfRt').checked ? 1 : 0,
+    log_sink:          document.getElementById('icLogSink').value,
+    log_async:         document.getElementById('icLogAsync').checked ? 1 : 0,
+    log_flush_each:    document.getElementById('icLogFlushEach').checked ? 1 : 0,
+    log_buffer_size:   +document.getElementById('icLogBuffer').value,
+  };
+}
+
+async function icImportFile(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const obj = JSON.parse(text);
+    const r = await fetch('/api/admin/infra-config/import', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(obj)
+    });
+    const d = await r.json();
+    if (d.ok) {
+      alert(`Imported ${d.fields_applied} fields. Reload the page to see the new values.`);
+      location.reload();
+    } else {
+      alert('Import failed: ' + (d.detail || 'unknown'));
+    }
+  } catch (e) {
+    alert('Import error: ' + e.message);
+  } finally {
+    ev.target.value = '';
+  }
+}
+
+async function icShowHistory() {
+  try {
+    const r = await fetch('/api/admin/infra-config/history');
+    const d = await r.json();
+    const hist = d.history || [];
+    if (!hist.length) { alert('No history snapshots yet. One is stamped on each clean boot.'); return; }
+    const lines = hist.map(h => {
+      const dt = new Date(h.ts * 1000).toLocaleString();
+      return `  [${h.id}]  ${dt}  ${h.note || ''}`;
+    }).join('\n');
+    const pick = prompt(
+      'Last-known-good infra_config snapshots (newest first):\n\n' +
+      lines + '\n\nEnter snapshot id to revert to (or cancel):'
+    );
+    if (!pick) return;
+    const snapId = parseInt(pick, 10);
+    if (!snapId) { alert('Invalid id'); return; }
+    if (!confirm(`Revert to snapshot ${snapId}? Takes effect on next ./run.sh.`)) return;
+    const r2 = await fetch('/api/admin/infra-config/revert/' + snapId, {method:'POST'});
+    const d2 = await r2.json();
+    if (d2.ok) {
+      alert(`Reverted ${d2.fields_applied} fields. Reload the page to see new values.`);
+      location.reload();
+    } else {
+      alert('Revert failed: ' + (d2.detail || 'unknown'));
+    }
+  } catch (e) {
+    alert('History error: ' + e.message);
+  }
+}
+
+function icFieldsChanged() {
+  const pg = document.getElementById('icDbType').value === 'postgresql';
+  const redis = document.getElementById('icKvType').value === 'redis';
+  document.getElementById('icDsnDiv').style.display = pg ? '' : 'none';
+  document.getElementById('icPoolMinDiv').style.display = pg ? '' : 'none';
+  document.getElementById('icPoolMaxDiv').style.display = pg ? '' : 'none';
+  document.getElementById('icRedisDiv').style.display = redis ? '' : 'none';
+  const otel = document.getElementById('icOtelEnabled').checked;
+  const otelExp = document.getElementById('icOtelExporter').value;
+  document.getElementById('icOtelExporterDiv').style.display = otel ? '' : 'none';
+  document.getElementById('icOtelPromPortDiv').style.display = otel && otelExp === 'prometheus' ? '' : 'none';
+  document.getElementById('icOtelEndpointDiv').style.display = otel && otelExp === 'otlp' ? '' : 'none';
+  const mh = document.getElementById('icMultiHome').checked;
+  document.getElementById('icSecondaryIpDiv').style.display = mh ? '' : 'none';
+  const lb = document.getElementById('icLbEnabled').checked;
+  document.getElementById('icLbInstancesDiv').style.display = lb ? '' : 'none';
+  document.getElementById('icLbStrategyDiv').style.display = lb ? '' : 'none';
+  document.getElementById('icLbHealthDiv').style.display = lb ? '' : 'none';
+  document.getElementById('lbStatusPanel').style.display = lb ? '' : 'none';
+  if (lb) lbLoadStatus();
+}
+
+function icSave() {
+  const d = {
+    log_level: document.getElementById('icLogLevel').value,
+    db_type: document.getElementById('icDbType').value,
+    db_dsn: document.getElementById('icDbDsn').value,
+    db_pool_min: +document.getElementById('icDbPoolMin').value,
+    db_pool_max: +document.getElementById('icDbPoolMax').value,
+    kv_store_type: document.getElementById('icKvType').value,
+    redis_url: document.getElementById('icRedisUrl').value,
+    web_host: document.getElementById('icWebHost').value,
+    web_port: +document.getElementById('icWebPort').value,
+    web_workers: +document.getElementById('icWebWorkers').value,
+    amf_instance_id: +document.getElementById('icAmfId').value,
+    amf_separate_process: document.getElementById('icAmfSep').checked?1:0,
+    upf_mode: document.getElementById('icUpfMode').value,
+    upf_pfcp_port: +document.getElementById('icUpfPfcpPort').value,
+    upf_max_sessions:   +document.getElementById('icUpfMaxSess').value,
+    upf_dpdk_mem_mb:    +document.getElementById('icDpdkMemMb').value,
+    upf_mbuf_pool_size: +document.getElementById('icMbufPool').value,
+    upf_rx_ring_size:   +document.getElementById('icRxRing').value,
+    upf_tx_ring_size:   +document.getElementById('icTxRing').value,
+    hugepage_size:      document.getElementById('icHpSize').value,
+    hugepage_count:     +document.getElementById('icHpCount').value,
+    dpdk_log_level:     document.getElementById('icDpdkLogLvl').value,
+    tun_txqueuelen:        +document.getElementById('icTunQlen').value,
+    gtpu_rcvbuf_mb:        +document.getElementById('icRcvbufMb').value,
+    gtpu_sndbuf_mb:        +document.getElementById('icSndbufMb').value,
+    sysctl_netdev_backlog: +document.getElementById('icNetdevBacklog').value,
+    pmd_n3_device:      document.getElementById('icPmdN3').value.trim() || 'net_tap0',
+    pmd_n6_device:      document.getElementById('icPmdN6').value.trim() || 'net_tap1',
+    cpu_pinning_enabled: document.getElementById('icPinEnabled').checked ? 1 : 0,
+    cpu_governor_perf:   document.getElementById('icGovPerf').checked ? 1 : 0,
+    cpu_upf_core:   +document.getElementById('icUpfCore').value,
+    cpu_amf_core:   +document.getElementById('icAmfCore').value,
+    cpu_web_core:   +document.getElementById('icWebCore').value,
+    cpu_irq_core:   +document.getElementById('icIrqCore').value,
+    cpu_irq_nic:    document.getElementById('icIrqNic').value.trim(),
+    cpu_worker_cores: document.getElementById('icWorkerCores').value.trim(),
+    sched_upf_nice:    +document.getElementById('icNiceUpf').value,
+    sched_amf_nice:    +document.getElementById('icNiceAmf').value,
+    sched_web_nice:    +document.getElementById('icNiceWeb').value,
+    sched_worker_nice: +document.getElementById('icNiceWorker').value,
+    sched_upf_rt:      document.getElementById('icUpfRt').checked ? 1 : 0,
+    log_sink:          document.getElementById('icLogSink').value,
+    log_async:         document.getElementById('icLogAsync').checked ? 1 : 0,
+    log_flush_each:    document.getElementById('icLogFlushEach').checked ? 1 : 0,
+    log_buffer_size:   +document.getElementById('icLogBuffer').value,
+    nwdaf_collect_interval: +document.getElementById('icNwdafInterval').value,
+    nwdaf_retention_hours: +document.getElementById('icNwdafRetention').value,
+    ids_enabled: document.getElementById('icIdsEnabled').checked?1:0,
+    rate_limiter_enabled: document.getElementById('icRateLimiter').checked?1:0,
+    audit_log_enabled: document.getElementById('icAuditLog').checked?1:0,
+    audit_retention_days: +document.getElementById('icAuditDays').value,
+    ai_autonomous_enabled: document.getElementById('icAiAuto').checked?1:0,
+    ai_energy_saving: document.getElementById('icAiEnergy').checked?1:0,
+    ai_predictive_qos: document.getElementById('icAiQos').checked?1:0,
+    ai_self_healing: document.getElementById('icAiHeal').checked?1:0,
+    ai_psm_optimizer: document.getElementById('icAiPsm').checked?1:0,
+    otel_enabled: document.getElementById('icOtelEnabled').checked?1:0,
+    otel_exporter: document.getElementById('icOtelExporter').value,
+    otel_prometheus_port: +document.getElementById('icOtelPromPort').value,
+    otel_endpoint: document.getElementById('icOtelEndpoint').value,
+    otel_metrics_enabled: document.getElementById('icOtelMetrics').checked?1:0,
+    otel_traces_enabled: document.getElementById('icOtelTraces').checked?1:0,
+    otel_logs_enabled: document.getElementById('icOtelLogs').checked?1:0,
+    sctp_multi_home: document.getElementById('icMultiHome').checked?1:0,
+    sctp_secondary_ip: document.getElementById('icSecondaryIp').value.trim(),
+    lb_enabled: document.getElementById('icLbEnabled').checked?1:0,
+    lb_instances: document.getElementById('icLbInstances').value,
+    lb_strategy: document.getElementById('icLbStrategy').value,
+    lb_health_interval: +document.getElementById('icLbHealth').value,
+  };
+  fetch('/api/admin/infra-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+    .then(r=>r.json()).then(r=>{if(r.ok){document.getElementById('infraRestartBanner').style.display='';icLoad();}else alert(r.error||'Failed');});
+}
+
+function lbLoadStatus() {
+  fetch('/api/admin/lb-status').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    // Instance status table
+    const inst = d.instances || {};
+    const div = document.getElementById('lbInstanceStatus');
+    const addrs = Object.keys(inst);
+    if (!addrs.length) { div.innerHTML = '<small class="text-muted">No backend instances configured</small>'; return; }
+    div.innerHTML = '<table class="table table-sm table-striped mb-0" style="font-size:0.78rem"><thead><tr><th>Instance</th><th>Status</th><th>Latency</th><th>Conns</th><th>Last Check</th></tr></thead><tbody>' +
+      addrs.map(a => {
+        const i = inst[a];
+        const st = i.healthy ? '<span class="badge bg-success">healthy</span>' : '<span class="badge bg-danger">down</span>';
+        const ts = i.last_check ? new Date(i.last_check*1000).toLocaleTimeString() : '--';
+        return `<tr><td>${a}</td><td>${st}</td><td>${i.latency_ms}ms</td><td>${i.active_conns}</td><td>${ts}</td></tr>`;
+      }).join('') + '</tbody></table>';
+    // SCTP assignments
+    const sctp = d.sctp_assignments || [];
+    const sDiv = document.getElementById('lbSctpAssignments');
+    if (!sctp.length) { sDiv.innerHTML = '<small class="text-muted">No gNBs connected</small>'; return; }
+    sDiv.innerHTML = '<table class="table table-sm table-striped mb-0" style="font-size:0.78rem"><thead><tr><th>gNB</th><th>AMF Instance</th><th>Status</th></tr></thead><tbody>' +
+      sctp.map(s => `<tr><td>${s.gnb_name||s.gnb_ip}</td><td>Instance ${s.amf_instance}</td><td><span class="badge bg-success">${s.status}</span></td></tr>`).join('') + '</tbody></table>';
+  }).catch(()=>{});
+}
+
+// In-memory copy of the most recent /api/admin/upf-instances response
+// so upfEdit() can pre-fill the form without an extra round-trip.
+let _upfList = [];
+
+function upfLoadInstances() {
+  fetch('/api/admin/upf-instances').then(r=>r.json()).then(d => {
+    const div = document.getElementById('upfInstanceList');
+    _upfList = d.instances || [];
+    document.getElementById('infraUpfCount').textContent = _upfList.length;
+    if(!_upfList.length){div.innerHTML='<small class="text-muted">No UPF instances registered.</small>';return;}
+    // Schema removed `interface_type` (SMF↔UPF is always PFCP/N4 now,
+    // see db/engine/schema.go and registry.go). Listing shows the three
+    // wire IPs explicitly so it's obvious which one each gNB / DN uses.
+    /* Per-anchor runtime (TS 23.501 §6.3.5 UPF Status) is published
+     * every 5 s by upfloop's runRouterHeartbeat — surface it inline
+     * so an operator running multi-anchor PFCP (upf-embb / upf-miot)
+     * can see at a glance which anchor carries each session. */
+    const statusBadge = (s) => {
+      const map = {up: 'background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;',
+                   down: 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
+                   degraded: 'background:#fef3c7;color:#92400e;border:1px solid #fcd34d;',
+                   unknown: 'background:#e5e7eb;color:#374151;border:1px solid #d1d5db;'};
+      const css = map[s] || map.unknown;
+      return `<span class="badge" style="${css}">${s||'unknown'}</span>`;
+    };
+    div.innerHTML='<table class="table table-sm table-striped mb-0" style="font-size:0.78rem">'
+      +'<thead><tr><th>ID</th><th>N4 IP</th><th>N3 IP</th><th>N6 IP</th><th>PFCP</th><th>DNNs</th><th>SST</th><th>Max Sess</th><th>Status</th><th>Active</th><th>Load</th><th></th></tr></thead><tbody>'
+      +_upfList.map(u=>{
+        const dnns=(u.supported_dnns||[]).join(',');
+        const ssts=(u.supported_sst||[]).join(',');
+        const rt=u.runtime||{};
+        const active=(rt.active_sessions!=null)?rt.active_sessions:'-';
+        const loadPct=(rt.load_percent!=null)?rt.load_percent+'%':'-';
+        return`<tr><td><strong>${u.upf_id}</strong></td><td>${u.upf_ip||''}</td><td>${u.n3_ip||''}</td><td>${u.n6_ip||''}</td><td>${u.pfcp_port||8805}</td><td>${dnns}</td><td>${ssts}</td><td>${u.max_sessions||''}</td><td>${statusBadge(rt.status)}</td><td>${active}</td><td>${loadPct}</td><td><button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="upfEdit('${u.upf_id}')">edit</button><button class="btn btn-sm btn-outline-secondary py-0 px-1 me-1" onclick="upfClone('${u.upf_id}')">clone</button><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="upfRemove('${u.upf_id}')">delete</button></td></tr>`;
+      }).join('')+'</tbody></table>';
+  }).catch(()=>{});
+}
+
+// Slice catalog cache for the UPF "Slices" multi-select. Populated
+// once per page load via /api/catalog/nssai (TS 23.501 §5.15.2.1 —
+// nssai_catalog is the global registry).
+let _upfSliceCat = [];
+function upfLoadSliceCatalog() {
+  return fetch('/api/catalog/nssai').then(r=>r.json()).then(d => {
+    _upfSliceCat = d.items || [];
+    const sel = document.getElementById('upfAddSlices');
+    if (!sel) return;
+    sel.innerHTML = '';
+    for (const s of _upfSliceCat) {
+      const sd = s.sd || '';
+      const opt = document.createElement('option');
+      opt.value = String(s.id);
+      opt.textContent = (s.name ? s.name + ' — ' : '') + 'SST=' + s.sst + (sd ? ' SD=' + sd : '');
+      sel.appendChild(opt);
+    }
+  }).catch(()=>{});
+}
+
+function upfFormClear(){
+  ['upfAddId','upfAddIp','upfAddN3','upfAddN6'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('upfAddDnns').value='internet';
+  document.getElementById('upfAddMaxSess').value='8192';
+  const sel = document.getElementById('upfAddSlices');
+  if (sel) [...sel.options].forEach(o => o.selected = false);
+}
+
+function upfEdit(id){
+  const u=_upfList.find(x=>x.upf_id===id);
+  if(!u){alert('row not found — refresh');return;}
+  document.getElementById('upfAddId').value=u.upf_id;
+  document.getElementById('upfAddIp').value=u.upf_ip||'';
+  document.getElementById('upfAddN3').value=u.n3_ip||'';
+  document.getElementById('upfAddN6').value=u.n6_ip||'';
+  document.getElementById('upfAddDnns').value=(u.supported_dnns||[]).join(',');
+  document.getElementById('upfAddMaxSess').value=u.max_sessions||8192;
+  // Pre-select catalog rows by matching SST. The CSV doesn't carry
+  // SD so we match on SST alone — if multiple catalog rows share an
+  // SST (different SDs), they'll all light up; the operator can
+  // uncheck the ones that don't apply.
+  const sel = document.getElementById('upfAddSlices');
+  if (sel) {
+    const csvSst = (u.supported_sst||[]).map(x => parseInt(String(x), 10).toString());
+    [...sel.options].forEach(o => {
+      const cat = _upfSliceCat.find(c => String(c.id) === o.value);
+      o.selected = !!cat && csvSst.includes(String(cat.sst));
+    });
+  }
+  // After the upsert, refresh the join binding so the form's
+  // multi-select wins over any backfill-derived state.
+  fetch('/api/admin/upf-instance/' + encodeURIComponent(id) + '/nssai')
+    .then(r=>r.json()).then(d => {
+      if (!d || !d.nssai_ids) return;
+      const set = new Set(d.nssai_ids.map(String));
+      [...sel.options].forEach(o => { o.selected = set.has(o.value); });
+    }).catch(()=>{});
+  document.getElementById('upfAddId').focus();
+}
+
+// Clone an existing UPF instance. Pre-fills the form from the source
+// row but blanks the ID so the operator types a new unique upf_id —
+// otherwise the upsert at /api/admin/upf-instance would silently
+// overwrite the source row (TS 29.244 §6.3.3 nf-instance is keyed
+// by id). All other fields, including the join-table NSSAI bindings,
+// are pre-loaded so the operator only has to change what differs.
+function upfClone(id){
+  const u=_upfList.find(x=>x.upf_id===id);
+  if(!u){alert('row not found — refresh');return;}
+  document.getElementById('upfAddId').value='';  // operator picks the new id
+  document.getElementById('upfAddIp').value=u.upf_ip||'';
+  document.getElementById('upfAddN3').value=u.n3_ip||'';
+  document.getElementById('upfAddN6').value=u.n6_ip||'';
+  document.getElementById('upfAddDnns').value=(u.supported_dnns||[]).join(',');
+  document.getElementById('upfAddMaxSess').value=u.max_sessions||8192;
+  const sel = document.getElementById('upfAddSlices');
+  if (sel) {
+    const csvSst = (u.supported_sst||[]).map(x => parseInt(String(x), 10).toString());
+    [...sel.options].forEach(o => {
+      const cat = _upfSliceCat.find(c => String(c.id) === o.value);
+      o.selected = !!cat && csvSst.includes(String(cat.sst));
+    });
+  }
+  // Mirror upfEdit(): refresh the join binding so the form's
+  // multi-select reflects the source's authoritative S-NSSAI set.
+  fetch('/api/admin/upf-instance/' + encodeURIComponent(id) + '/nssai')
+    .then(r=>r.json()).then(d => {
+      if (!d || !d.nssai_ids) return;
+      const set = new Set(d.nssai_ids.map(String));
+      [...sel.options].forEach(o => { o.selected = set.has(o.value); });
+    }).catch(()=>{});
+  document.getElementById('upfAddId').focus();
+}
+
+function upfAdd(){
+  const d={
+    upf_id:document.getElementById('upfAddId').value.trim(),
+    upf_ip:document.getElementById('upfAddIp').value.trim(),
+    n3_ip:document.getElementById('upfAddN3').value.trim(),
+    n6_ip:document.getElementById('upfAddN6').value.trim(),
+    supported_dnns:document.getElementById('upfAddDnns').value.trim(),
+    // CSV is regenerated from the multi-select so the legacy column
+    // stays in sync; runtime selection prefers the join table but
+    // falls back to this CSV for un-migrated rows.
+    supported_sst:[...document.getElementById('upfAddSlices').selectedOptions]
+      .map(o => {
+        const c = _upfSliceCat.find(s => String(s.id) === o.value);
+        return c ? String(c.sst).padStart(2,'0') : '';
+      })
+      .filter(Boolean)
+      .join(','),
+    max_sessions:parseInt(document.getElementById('upfAddMaxSess').value,10)||0
+  };
+  if(!d.upf_id||!d.upf_ip){alert('ID and N4 IP required');return;}
+  fetch('/api/admin/upf-instance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(r=>{
+    if(!r.ok) { alert(r.error||'Failed'); return; }
+    // Persist the normalised join bindings — runtime UPF selection
+    // (TS 23.501 §6.3.3) prefers this over the CSV.
+    const ids = [...document.getElementById('upfAddSlices').selectedOptions]
+      .map(o => parseInt(o.value, 10)).filter(n => !isNaN(n));
+    fetch('/api/admin/upf-instance/' + encodeURIComponent(d.upf_id) + '/nssai', {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nssai_ids: ids})
+    }).then(()=>{ upfLoadInstances(); upfFormClear(); });
+  });
+}
+
+function upfRemove(id){if(!confirm('Remove '+id+'?'))return;fetch('/api/admin/upf-instance/'+id+'/remove',{method:'POST'}).then(r=>r.json()).then(r=>{if(r.ok)upfLoadInstances();});}
+
+document.querySelector('a[href="#infra-tab"]')?.addEventListener('shown.bs.tab',()=>{icLoad();upfLoadInstances();upfLoadSliceCatalog();});
+// UPF group moved to Network Config → UPF tab. Re-fire the same loaders
+// when that tab is shown so the instance list and ic* fields populate.
+document.querySelector('a[href="#upf-config-tab"]')?.addEventListener('shown.bs.tab',()=>{icLoad();upfLoadInstances();upfLoadSliceCatalog();});
+// Also fire on first load — when the page lands directly on the
+// Network Config → UPF tab (or the user just navigated back to it
+// without it being the active hash), the show event has already
+// happened or won't fire until the next tab change.
+document.addEventListener('DOMContentLoaded',()=>{
+  if (document.getElementById('upfInstanceList')) upfLoadInstances();
+  if (document.getElementById('upfAddSlices'))   upfLoadSliceCatalog();
+});
+</script>

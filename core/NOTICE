@@ -1,0 +1,125 @@
+MMT Studio Core (Go)
+Copyright (c) 2026 MakeMyTechnology
+
+This product is licensed under the GNU Affero General Public License v3.0
+or later (AGPL-3.0-or-later) — see LICENSE for the full text. It includes
+software developed by third parties under the terms below.
+
+If you redistribute MMT Studio Core, or run a modified version as a network
+service, AGPL-3.0 §13 requires that you make the corresponding source of
+your modifications available to users interacting with the service. Please
+also preserve this NOTICE file unmodified when bundling or forking.
+
+================================================================================
+THIRD-PARTY GO MODULES (declared in nf/go.mod, webservice/go.mod, etc.)
+================================================================================
+
+Each module below is fetched at build time via Go's module proxy. Where the
+upstream provides a LICENSE file, that file is preserved in the resulting
+module cache.
+
+  github.com/go-chi/chi/v5
+    License: MIT
+    Source:  https://github.com/go-chi/chi
+    Use:     HTTP router for the webservice REST API.
+
+  github.com/flosch/pongo2/v6
+    License: MIT
+    Source:  https://github.com/flosch/pongo2
+    Use:     Django-style HTML templating for the webservice GUI.
+
+  github.com/google/uuid
+    License: BSD-3-Clause
+    Source:  https://github.com/google/uuid
+    Use:     UUID generation across NFs.
+
+  github.com/hashicorp/golang-lru/v2
+    License: MPL-2.0
+    Source:  https://github.com/hashicorp/golang-lru
+    Use:     LRU caches in oam/infra layers.
+
+  github.com/dustin/go-humanize
+    License: MIT
+    Source:  https://github.com/dustin/go-humanize
+    Use:     Human-readable byte/duration formatting in logs and the GUI.
+
+  github.com/mattn/go-isatty
+    License: MIT
+    Source:  https://github.com/mattn/go-isatty
+    Use:     TTY detection for log colour output.
+
+  github.com/ncruces/go-strftime
+    License: MIT
+    Source:  https://github.com/ncruces/go-strftime
+    Use:     strftime-style timestamp formatting in logger.
+
+  modernc.org/sqlite
+    License: BSD-3-Clause
+    Source:  https://gitlab.com/cznic/sqlite
+    Use:     Pure-Go SQLite driver for db/ — no cgo dependency.
+
+  modernc.org/libc, mathutil, memory, gc, token, strutil
+    License: BSD-3-Clause
+    Source:  https://gitlab.com/cznic/* (transitive deps of modernc.org/sqlite)
+
+  github.com/remyoudompheng/bigfft
+    License: BSD-3-Clause
+    Source:  https://github.com/remyoudompheng/bigfft
+    Use:     Big-int multiplication used by modernc.org/sqlite.
+
+  golang.org/x/sys, golang.org/x/text, golang.org/x/crypto, etc.
+    License: BSD-3-Clause
+    Source:  https://golang.org/x/...
+    Use:     Go standard-library extensions (syscalls, encoding, crypto).
+
+================================================================================
+THIRD-PARTY NATIVE COMPONENTS (vendored under libs/ and built at install time)
+================================================================================
+
+  DPDK 25.11
+    License: BSD-3-Clause (with some lib components under other permissive
+             OSS licenses — see libs/dpdk-25.11/license/)
+    Source:  https://www.dpdk.org/
+    Use:     User-plane fast-path in nf/upf/dataplane (libupf_dp.so).
+             Vendored at libs/dpdk-25.11/ for reproducible builds.
+
+================================================================================
+3GPP / IETF SPECIFICATIONS (referenced under specs/)
+================================================================================
+
+The repository ships PDF / text copies of 3GPP Technical Specifications and
+IETF RFCs that this implementation cites or extracts ASN.1 / TLV schemas
+from. These documents are NOT part of the licensed source code; they are
+included for build-time reference and operator convenience.
+
+  3GPP Technical Specifications (specs/3gpp/)
+    Copyright: © 3GPP. All rights reserved.
+    Terms:     The 3GPP Project permits redistribution of unmodified
+               specifications for academic, research, and reference use.
+               See https://www.3gpp.org/contact/3gpp-faqs for full terms.
+    Source:    https://www.3gpp.org/ftp/Specs/
+
+  IETF RFCs (specs/ietf/)
+    Copyright: © IETF Trust and the persons identified as the document
+               authors.
+    Terms:     IETF Trust Legal Provisions
+               (https://trustee.ietf.org/license-info). Plain-text
+               RFCs are freely redistributable.
+    Source:    https://www.rfc-editor.org/
+
+================================================================================
+NOTES ON GENERATED CODE
+================================================================================
+
+Several directories under codecs/ contain Go source code generated from
+3GPP TLV / ASN.1 schemas:
+
+  codecs/asn1-go/generated/
+  codecs/asn1-go/protocols/{ngap,s1ap}/generated/
+  codecs/tlv-3gpp-nas/nasgen/generated/
+  codecs/tlv-3gpp-pfcp/pfcpgen/generated/
+
+These files are derived works under the same AGPL-3.0-or-later license as
+the generators. The schemas they were generated from are 3GPP-authored
+(see "3GPP Technical Specifications" above) — the generator output is
+mechanical and does not introduce additional copyright.

@@ -1,0 +1,396 @@
+<!-- templates/smsf.html — SMS Function (SMSF) GUI -->
+
+<h5 class="mb-3">SMS over NAS (SMSF)</h5>
+
+<!-- Stats Summary -->
+<div class="accordion mb-3" id="smsfStatsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="smsfStatsToggle" class="accordion-button bg-dark text-white fw-bold" type="button">
+        <div class="w-100">SMS Statistics</div>
+      </button>
+    </h2>
+    <div id="smsfStatsBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="smsfStatsGrid" class="small">
+          <div class="text-muted">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Send SMS -->
+<div class="accordion mb-3" id="smsfSendAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="smsfSendToggle" class="accordion-button bg-primary text-white fw-bold" type="button">
+        <div class="w-100">Send SMS</div>
+      </button>
+    </h2>
+    <div id="smsfSendBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <form id="smsfSendForm" class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">Sender IMSI</label>
+            <input type="text" id="smsSenderImsi" class="form-control form-control-sm"
+                   placeholder="001010000000001" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">Recipient MSISDN</label>
+            <input type="text" id="smsRecipientMsisdn" class="form-control form-control-sm"
+                   placeholder="+1234567002" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Message</label>
+            <textarea id="smsText" class="form-control form-control-sm" rows="2"
+                      placeholder="Hello from SA Core" required></textarea>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Send</button>
+            <div id="smsCharCount" class="text-muted mt-1" style="font-size:11px">0 / 160</div>
+          </div>
+        </form>
+        <div id="smsSendResult" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Messages -->
+<div class="accordion mb-3" id="smsfMsgAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="smsfMsgToggle" class="accordion-button bg-success text-white fw-bold" type="button">
+        <div class="w-100">Messages <span id="smsfMsgCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="smsfMsgBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="d-flex gap-2 mb-2">
+          <input type="text" id="smsfMsgSearch" class="form-control form-control-sm"
+                 placeholder="Search by IMSI or MSISDN..." style="max-width:300px">
+          <select id="smsfMsgFilter" class="form-select form-select-sm" style="max-width:150px">
+            <option value="">All</option>
+            <option value="MO">MO only</option>
+            <option value="MT">MT only</option>
+          </select>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle" style="font-size:12px;">
+            <thead>
+              <tr>
+                <th>ID</th><th>Dir</th><th>Sender</th><th>Recipient</th>
+                <th>Text</th><th>Enc</th><th>Seg</th><th>Status</th>
+                <th>Created</th><th>Delivered</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="smsfMsgTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Routing Rules -->
+<div class="accordion mb-3" id="smsfRoutingAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="smsfRoutingToggle" class="accordion-button bg-warning text-dark fw-bold" type="button">
+        <div class="w-100">Routing Rules <span id="smsfRoutingCount" class="badge bg-dark text-white ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="smsfRoutingBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <form id="smsfRoutingForm" class="row g-2 align-items-end mb-2">
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">MSISDN Pattern</label>
+            <input type="text" id="routePattern" class="form-control form-control-sm"
+                   placeholder="123456%" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-bold">Route Type</label>
+            <select id="routeType" class="form-select form-select-sm">
+              <option value="local">Local</option>
+              <option value="smsc">SMSC</option>
+              <option value="forward">Forward</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">Destination</label>
+            <input type="text" id="routeDest" class="form-control form-control-sm"
+                   placeholder="(optional)">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-bold">Priority</label>
+            <input type="number" id="routePriority" class="form-control form-control-sm"
+                   value="0" min="0" max="100">
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-warning btn-sm w-100">Add Rule</button>
+          </div>
+        </form>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle" style="font-size:12px;">
+            <thead>
+              <tr><th>ID</th><th>Pattern</th><th>Type</th><th>Destination</th><th>Priority</th><th></th></tr>
+            </thead>
+            <tbody id="smsfRoutingTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Refresh -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex gap-2">
+    <button id="btnSmsfRefresh" type="button" class="btn btn-primary btn-sm">Refresh All</button>
+  </div>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" id="smsfAutoRefresh">
+    <label class="form-check-label small" for="smsfAutoRefresh">Auto-refresh (5s)</label>
+  </div>
+  <small id="smsfLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .smsf-stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:6px 16px; font-size:13px; }
+  .smsf-stat-item { display:flex; justify-content:space-between; padding:3px 8px; background:#f8f9fa; border-radius:4px; }
+  .smsf-stat-label { font-weight:600; color:#555; }
+  .smsf-stat-value { font-family:'Consolas','Courier New',monospace; color:#222; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+    /* ── Accordion toggles ── */
+    for (const [b,c] of [
+      ['smsfStatsToggle','smsfStatsBody'],['smsfSendToggle','smsfSendBody'],
+      ['smsfMsgToggle','smsfMsgBody'],['smsfRoutingToggle','smsfRoutingBody'],
+    ]) {
+      const btn=document.getElementById(b), col=document.getElementById(c);
+      if(btn&&!btn.dataset.bound){btn.dataset.bound='1';
+        const inst=window.bootstrap.Collapse.getOrCreateInstance(col,{toggle:false});
+        btn.addEventListener('click',()=>inst.toggle());}
+    }
+
+    const esc=s=>{if(s==null)return'-';const d=document.createElement('span');d.textContent=String(s);return d.outerHTML;};
+    const fmtTime=t=>{if(!t)return'-';return new Date(t*1000).toLocaleString();};
+
+    /* ── Stats ── */
+    const loadStats = async () => {
+      try {
+        const r = await fetch('/api/smsf/stats');
+        const d = await r.json();
+        const s = d.stats || {};
+        let html = '<div class="smsf-stat-grid">';
+        html += `<div class="smsf-stat-item"><span class="smsf-stat-label">Total</span><span class="smsf-stat-value">${s.total||0}</span></div>`;
+        html += `<div class="smsf-stat-item"><span class="smsf-stat-label">Delivered</span><span class="smsf-stat-value text-success">${s.delivered||0}</span></div>`;
+        html += `<div class="smsf-stat-item"><span class="smsf-stat-label">Pending</span><span class="smsf-stat-value text-warning">${s.pending||0}</span></div>`;
+        html += `<div class="smsf-stat-item"><span class="smsf-stat-label">Failed</span><span class="smsf-stat-value text-danger">${s.failed||0}</span></div>`;
+        html += `<div class="smsf-stat-item"><span class="smsf-stat-label">Expired</span><span class="smsf-stat-value">${s.expired||0}</span></div>`;
+        html += `<div class="smsf-stat-item"><span class="smsf-stat-label">Sessions</span><span class="smsf-stat-value">${s.active_sessions||0}</span></div>`;
+        html += '</div>';
+        document.getElementById('smsfStatsGrid').innerHTML = html;
+      } catch(e) {
+        document.getElementById('smsfStatsGrid').innerHTML = '<div class="text-danger small">Failed to load</div>';
+      }
+    };
+
+    /* ── Character counter ── */
+    const textEl = document.getElementById('smsText');
+    const countEl = document.getElementById('smsCharCount');
+    textEl.addEventListener('input', () => {
+      const len = textEl.value.length;
+      const limit = len <= 160 ? 160 : (Math.ceil(len / 153) * 153);
+      const segs = len <= 160 ? 1 : Math.ceil(len / 153);
+      countEl.textContent = `${len} / ${limit} (${segs} segment${segs>1?'s':''})`;
+    });
+
+    /* ── Messages ── */
+    let allMessages = [];
+    const loadMessages = async () => {
+      try {
+        const r = await fetch('/api/smsf/messages?limit=200');
+        const d = await r.json();
+        allMessages = d.items || [];
+        document.getElementById('smsfMsgCount').textContent = allMessages.length;
+        renderMessages();
+      } catch(e) {
+        document.getElementById('smsfMsgTable').innerHTML =
+          '<tr><td colspan="11" class="text-danger">Failed to load</td></tr>';
+      }
+    };
+
+    const renderMessages = () => {
+      const search = (document.getElementById('smsfMsgSearch').value || '').toLowerCase();
+      const dirFilter = document.getElementById('smsfMsgFilter').value;
+      let filtered = allMessages;
+      if (search) {
+        filtered = filtered.filter(m =>
+          (m.sender_imsi||'').toLowerCase().includes(search) ||
+          (m.sender_msisdn||'').toLowerCase().includes(search) ||
+          (m.recipient_msisdn||'').toLowerCase().includes(search) ||
+          (m.tp_ud||'').toLowerCase().includes(search)
+        );
+      }
+      if (dirFilter) {
+        filtered = filtered.filter(m => m.direction === dirFilter);
+      }
+
+      const tb = document.getElementById('smsfMsgTable');
+      if (!filtered.length) {
+        tb.innerHTML = '<tr><td colspan="11" class="text-muted">No messages</td></tr>';
+        return;
+      }
+      let html = '';
+      for (const m of filtered) {
+        const stColor = m.status==='delivered'?'success': m.status==='pending'?'warning': m.status==='failed'?'danger':'secondary';
+        const dirBadge = m.direction==='MO'?'bg-info':'bg-primary';
+        html += '<tr>';
+        html += `<td>${m.id}</td>`;
+        html += `<td><span class="badge ${dirBadge}">${esc(m.direction)}</span></td>`;
+        html += `<td><code style="font-size:11px">${esc(m.sender_msisdn||m.sender_imsi)}</code></td>`;
+        html += `<td><code style="font-size:11px">${esc(m.recipient_msisdn)}</code></td>`;
+        html += `<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.tp_ud)}">${esc(m.tp_ud)}</td>`;
+        html += `<td>${esc(m.encoding)}</td>`;
+        html += `<td>${m.segments||1}</td>`;
+        html += `<td><span class="badge bg-${stColor}">${esc(m.status)}</span></td>`;
+        html += `<td style="font-size:11px">${fmtTime(m.created_at)}</td>`;
+        html += `<td style="font-size:11px">${fmtTime(m.delivered_at)}</td>`;
+        html += `<td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="smsfDeleteMsg(${m.id})">X</button></td>`;
+        html += '</tr>';
+      }
+      tb.innerHTML = html;
+    };
+
+    document.getElementById('smsfMsgSearch').addEventListener('input', renderMessages);
+    document.getElementById('smsfMsgFilter').addEventListener('change', renderMessages);
+
+    /* ── Send SMS ── */
+    document.getElementById('smsfSendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        sender_imsi: document.getElementById('smsSenderImsi').value.trim(),
+        recipient_msisdn: document.getElementById('smsRecipientMsisdn').value.trim(),
+        text: document.getElementById('smsText').value,
+      };
+      const resultEl = document.getElementById('smsSendResult');
+      try {
+        const r = await fetch('/api/smsf/send', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (d.ok) {
+          resultEl.innerHTML = `<span class="text-success">Sent: ${d.segments} segment(s), status=${d.status}</span>`;
+          document.getElementById('smsText').value = '';
+          countEl.textContent = '0 / 160';
+          refreshAll();
+        } else {
+          resultEl.innerHTML = `<span class="text-danger">Error: ${esc(d.error)}</span>`;
+        }
+      } catch(err) {
+        resultEl.innerHTML = `<span class="text-danger">Failed: ${esc(err.message)}</span>`;
+      }
+    });
+
+    /* ── Delete message ── */
+    window.smsfDeleteMsg = async (id) => {
+      if (!confirm('Delete message #' + id + '?')) return;
+      try {
+        await fetch('/api/smsf/messages/' + id, {method:'DELETE'});
+        refreshAll();
+      } catch(e) { alert('Failed'); }
+    };
+
+    /* ── Routing Rules ── */
+    const loadRouting = async () => {
+      try {
+        const r = await fetch('/api/smsf/routing');
+        const d = await r.json();
+        const items = d.items || [];
+        document.getElementById('smsfRoutingCount').textContent = items.length;
+        const tb = document.getElementById('smsfRoutingTable');
+        if (!items.length) {
+          tb.innerHTML = '<tr><td colspan="6" class="text-muted">No routing rules</td></tr>';
+          return;
+        }
+        let html = '';
+        for (const r of items) {
+          html += '<tr>';
+          html += `<td>${r.id}</td>`;
+          html += `<td><code>${esc(r.msisdn_pattern)}</code></td>`;
+          html += `<td><span class="badge bg-secondary">${esc(r.route_type)}</span></td>`;
+          html += `<td>${esc(r.destination||'-')}</td>`;
+          html += `<td>${r.priority}</td>`;
+          html += `<td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="smsfDeleteRoute(${r.id})">X</button></td>`;
+          html += '</tr>';
+        }
+        tb.innerHTML = html;
+      } catch(e) {
+        document.getElementById('smsfRoutingTable').innerHTML =
+          '<tr><td colspan="6" class="text-danger">Failed</td></tr>';
+      }
+    };
+
+    document.getElementById('smsfRoutingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        msisdn_pattern: document.getElementById('routePattern').value.trim(),
+        route_type: document.getElementById('routeType').value,
+        destination: document.getElementById('routeDest').value.trim(),
+        priority: parseInt(document.getElementById('routePriority').value) || 0,
+      };
+      try {
+        const r = await fetch('/api/smsf/routing', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (d.ok) {
+          document.getElementById('routePattern').value = '';
+          document.getElementById('routeDest').value = '';
+          refreshAll();
+        } else {
+          alert(d.error || 'Failed');
+        }
+      } catch(err) { alert('Failed: ' + err.message); }
+    });
+
+    window.smsfDeleteRoute = async (id) => {
+      if (!confirm('Delete routing rule #' + id + '?')) return;
+      try {
+        await fetch('/api/smsf/routing/' + id, {method:'DELETE'});
+        refreshAll();
+      } catch(e) { alert('Failed'); }
+    };
+
+    /* ── Refresh ── */
+    const refreshAll = async () => {
+      await Promise.all([loadStats(), loadMessages(), loadRouting()]);
+      document.getElementById('smsfLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+    document.getElementById('btnSmsfRefresh').addEventListener('click', refreshAll);
+
+    let autoTimer = null;
+    document.getElementById('smsfAutoRefresh').addEventListener('change', function() {
+      if (this.checked) { autoTimer = setInterval(refreshAll, 5000); }
+      else { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+    });
+
+    /* ── Tab activation ── */
+    const tabPane = document.getElementById('smsf-tab');
+    if (tabPane) {
+      const obs = new MutationObserver(() => { if (tabPane.classList.contains('active')) refreshAll(); });
+      obs.observe(tabPane, {attributes: true, attributeFilter: ['class']});
+    }
+    refreshAll();
+  };
+
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>

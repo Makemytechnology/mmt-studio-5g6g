@@ -1,0 +1,252 @@
+.. SPDX-License-Identifier: BSD-3-Clause
+   Copyright 2021 HiSilicon Limited
+
+Direct Memory Access (DMA) Device Library
+=========================================
+
+The DMA library provides a DMA device framework for management and provisioning
+of hardware and software DMA poll mode drivers, defining generic API which
+support a number of different DMA operations.
+
+
+Design Principles
+-----------------
+
+The DMA framework provides a generic DMA device framework which supports both
+physical (hardware) and virtual (software) DMA devices, as well as a generic DMA
+API which allows DMA devices to be managed and configured, and supports DMA
+operations to be provisioned on DMA poll mode driver.
+
+.. _figure_dmadev:
+
+.. figure:: img/dmadev.*
+
+The above figure shows the model on which the DMA framework is built on:
+
+ * The DMA controller could have multiple hardware DMA channels (aka. hardware
+   DMA queues), each hardware DMA channel should be represented by a dmadev.
+ * The dmadev could create multiple virtual DMA channels, each virtual DMA
+   channel represents a different transfer context.
+ * The DMA operation request must be submitted to the virtual DMA channel.
+
+
+Device Management
+-----------------
+
+Device Creation
+~~~~~~~~~~~~~~~
+
+Physical DMA controllers are discovered during the PCI probe/enumeration of the
+EAL function which is executed at DPDK initialization, this is based on their
+PCI BDF (bus/bridge, device, function). Specific physical DMA controllers, like
+other physical devices in DPDK can be listed using the EAL command line options.
+
+The dmadevs are dynamically allocated by using the function
+``rte_dma_pmd_allocate`` based on the number of hardware DMA channels.
+
+
+Device Identification
+~~~~~~~~~~~~~~~~~~~~~
+
+Each DMA device, whether physical or virtual is uniquely designated by two
+identifiers:
+
+- A unique device index used to designate the DMA device in all functions
+  exported by the DMA API.
+
+- A device name used to designate the DMA device in console messages, for
+  administration or debugging purposes.
+
+
+Device Features and Capabilities
+--------------------------------
+
+DMA devices may support different feature sets. The ``rte_dma_info_get`` API
+can be used to get the device info and supported features.
+
+Silent mode is a special device capability which does not require the
+application to invoke dequeue APIs.
+
+.. _dmadev_enqueue_dequeue:
+
+
+Enqueue / Dequeue APIs
+~~~~~~~~~~~~~~~~~~~~~~
+
+Enqueue APIs such as ``rte_dma_copy`` and ``rte_dma_fill`` can be used to
+enqueue operations to hardware. If an enqueue is successful, a ``ring_idx`` is
+returned. This ``ring_idx`` can be used by applications to track per operation
+metadata in an application-defined circular ring.
+
+The ``rte_dma_submit`` API is used to issue doorbell to hardware.
+Alternatively the ``RTE_DMA_OP_FLAG_SUBMIT`` flag can be passed to the enqueue
+APIs to also issue the doorbell to hardware.
+
+The following code demonstrates how to enqueue a burst of copies to the
+device and start the hardware processing of them:
+
+.. code-block:: C
+
+   struct rte_mbuf *srcs[DMA_BURST_SZ], *dsts[DMA_BURST_SZ];
+   unsigned int i;
+
+   for (i = 0; i < RTE_DIM(srcs); i++) {
+      if (rte_dma_copy(dev_id, vchan, rte_pktmbuf_iova(srcs[i]),
+            rte_pktmbuf_iova(dsts[i]), COPY_LEN, 0) < 0) {
+         PRINT_ERR("Error with rte_dma_copy for buffer %u\n", i);
+         return -1;
+      }
+   }
+   rte_dma_submit(dev_id, vchan);
+
+There are two dequeue APIs ``rte_dma_completed`` and
+``rte_dma_completed_status``, these are used to obtain the results of the
+enqueue requests. ``rte_dma_completed`` will return the number of successfully
+completed operations. ``rte_dma_completed_status`` will return the number of
+completed operations along with the status of each operation (filled into the
+``status`` array passed by user). These two APIs can also return the last
+completed operation's ``ring_idx`` which could help user track operations within
+their own application-defined rings.
+
+Alternatively, if the DMA device supports enqueue and dequeue operations,
+as indicated by ``RTE_DMA_CAPA_OPS_ENQ_DEQ`` capability in ``rte_dma_info::dev_capa``,
+the application can utilize the ``rte_dma_enqueue_ops`` and ``rte_dma_dequeue_ops`` API.
+To enable this, the DMA device must be configured in operations mode
+by setting ``RTE_DMA_CFG_FLAG_ENQ_DEQ`` flag in ``rte_dma_config::flags``.
+
+The following example demonstrates the usage of enqueue and dequeue operations:
+
+.. code-block:: C
+
+   struct rte_dma_op *op;
+
+   op = rte_zmalloc(sizeof(struct rte_dma_op) + (sizeof(struct rte_dma_sge) * 2), 0);
+
+   op->src_dst_seg[0].addr = src_addr;
+   op->src_dst_seg[0].length = src_len;
+   op->src_dst_seg[1].addr = dst_addr;
+   op->src_dst_seg[1].length = dst_len;
+
+   ret = rte_dma_enqueue_ops(dev_id, &op, 1);
+   if (ret < 0) {
+       PRINT_ERR("Failed to enqueue DMA op\n");
+       return -1;
+   }
+
+   op = NULL;
+   ret = rte_dma_dequeue_ops(dev_id, &op, 1);
+   if (ret < 0) {
+       PRINT_ERR("Failed to dequeue DMA op\n");
+       return -1;
+   }
+
+
+Querying Device Statistics
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The statistics from a dmadev device can be got via the statistics functions,
+i.e. ``rte_dma_stats_get()``. The statistics returned for each device instance are:
+
+* ``submitted``: The number of operations submitted to the device.
+* ``completed``: The number of operations which have completed (successful and failed).
+* ``errors``: The number of operations that completed with error.
+
+The dmadev library has support for displaying DMA device information
+through the Telemetry interface. Telemetry commands that can be used
+are shown below.
+
+#. Get the list of available DMA devices by ID::
+
+     --> /dmadev/list
+     {"/dmadev/list": [0, 1]}
+
+#. Get general information from a DMA device by passing the device id as a parameter::
+
+     --> /dmadev/info,0
+     {"/dmadev/info": {"name": "0000:00:01.0", "nb_vchans": 1, "numa_node": 0, "max_vchans": 1, "max_desc": 4096,
+     "min_desc": 32, "max_sges": 0, "capabilities": {"mem2mem": 1, "mem2dev": 0, "dev2mem": 0, ...}}}
+
+#. Get the statistics for a particular DMA device and virtual DMA channel by passing the device id and vchan id as parameters
+   (if a DMA device only has one virtual DMA channel you only need to pass the device id)::
+
+     --> /dmadev/stats,0,0
+     {"/dmadev/stats": {"submitted": 0, "completed": 0, "errors": 0}}
+
+For more information on how to use the Telemetry interface, see
+the :doc:`../howto/telemetry`.
+
+
+Inter-domain DMA Transfers
+--------------------------
+
+The inter-domain DMA feature enables DMA devices to perform data transfers
+across different processes and OS domains.
+This is achieved by configuring virtual channels (vchans)
+using ``src_handler`` and ``dst_handler`` fields,
+which represent the source and destination endpoints for inter-domain DMA operations.
+Handler information is exchanged between devices based on their DMA class type.
+
+DMA devices used for inter-domain data transfer can be categorized as follows:
+
+- Class A: Both endpoints require a DMA device for data transfer (e.g., Marvell DMA devices).
+- Class B: Only one endpoint requires a DMA device; the other does not.
+- Class C: Other device types not currently classified.
+
+Currently the necessary API for Class A DMA devices are available
+for exchanging the handler details.
+Devices can create or join access groups using token-based authentication,
+ensuring that only authorized devices within the same group
+can perform DMA transfers across processes or OS domains.
+
+Below is the API usage flow
+for setting up the access pair group for DMA between process#1 and process#2.
+
+Each process must generate a unique ``domain_id`` to represent its identity
+(e.g., a process-specific or OS-specific domain identifier).
+
+
+Process#1 (Group Creator)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Generates a unique ``token`` that will be used to secure the access pair group.
+
+* Calls ``rte_dma_access_pair_group_create`` to establish a new access pair group.
+
+* Shares the ``group_id``, ``token`` and its ``domain_id`` details with Process#2
+  via IPC or sideband communication channel.
+
+
+Process#2 (Group Joiner)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Receives the ``group_id``, ``token`` and Process#1's ``domain_id``.
+
+* Passes ``group_id``, ``token`` and its own ``domain_id``
+  to ``rte_dma_access_pair_group_join`` to join the access group.
+
+* Shares its ``domain_id`` details with Process#1
+  via IPC or sideband communication channel.
+
+
+Both Processes
+~~~~~~~~~~~~~~
+
+* Each process retrieves the ``handler`` information
+  associated with its own or the peer's ``domain_id``
+  using ``rte_dma_access_pair_group_handler_get``.
+
+* Use these ``handler`` details to setup the virtual channel configuration.
+
+* Perform the inter-domain DMA transfers as required.
+
+
+Process#2 (when finished)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Calls ``rte_dma_access_pair_group_leave`` to exit the group.
+
+
+Process#1 (final cleanup)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Calls ``rte_dma_access_pair_group_destroy`` to destroy the group.

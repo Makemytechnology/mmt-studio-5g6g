@@ -1,0 +1,1357 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# PFCP IE type definitions — TS 29.244 §8.1.2, §8.2.
+# Type codes from Table 8.1.2-1.
+#
+# Shape conventions:
+#   * go_type override — runtime type handles encoding (FSEID, NodeID, FTEID).
+#   * Grouped IE — `grouped: true` + `members: [...]` listing sub-IE entries.
+#   * Byte-container (default) — no `fields`, no `grouped`. Round-trips as raw
+#     bytes via `Value []byte`. min/max_length enforced on decode.
+#
+# Primitive IEs are kept as byte-containers; accessor-level decomposition is
+# a non-breaking YAML refinement.
+
+ie_types:
+
+  # ===================================================================
+  # Runtime-typed aliases
+  # ===================================================================
+
+  - name: FSEID
+    type_code: 57
+    description: "F-SEID — session endpoint identifier + IP"
+    min_length: 13
+    max_length: 25
+    go_type: FSEID
+
+  - name: NodeID
+    type_code: 60
+    description: "Node ID (IPv4/IPv6/FQDN)"
+    min_length: 2
+    max_length: 256
+    go_type: NodeID
+
+  - name: FTEID
+    type_code: 21
+    description: "F-TEID (TEID + UP IP address)"
+    min_length: 1
+    max_length: 25
+    go_type: FTEID
+
+  # ===================================================================
+  # Primitive IEs (byte-containers)
+  # ===================================================================
+
+  - name: Cause
+    type_code: 19
+    description: "Cause — TS 29.244 §8.2.1"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+        values:
+          1: "request_accepted"
+          64: "request_rejected"
+          65: "session_context_not_found"
+          66: "mandatory_ie_missing"
+          67: "conditional_ie_missing"
+          68: "invalid_length"
+          69: "mandatory_ie_incorrect"
+          70: "invalid_forwarding_policy"
+          71: "invalid_ftied_allocation_option"
+          72: "no_established_pfcp_association"
+          73: "rule_creation_modification_failure"
+          74: "pfcp_entity_in_congestion"
+          75: "no_resources_available"
+          76: "service_not_supported"
+          77: "system_failure"
+          78: "redirection_requested"
+
+  - name: SourceInterface
+    type_code: 20
+    description: "Source Interface — TS 29.244 §8.2.2"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+        values:
+          0: "access"
+          1: "core"
+          2: "sgi_lan_n6_lan"
+          3: "cp_function"
+          4: "five_g_vn_internal"
+  - {name: NetworkInstance, type_code: 22, description: "Network Instance", min_length: 1, max_length: 255}
+  - name: SDFFilter
+    type_code: 23
+    description: "SDF Filter — TS 29.244 §8.2.5"
+    # Octet 5 flags + octet 6 spare = 2-byte minimum when all flag
+    # bits are clear. Sub-fields per Figure 8.2.5-1 — emitted by the
+    # generator via kind: flag_conditional.
+    min_length: 2
+    max_length: 65535
+    kind: flag_conditional
+    spare_octet_after_flags: true
+    fields:
+      - {name: FlowDescription,        bit: 0, type: utf8,        length_prefix: u16}
+      - {name: ToSTrafficClass,        bit: 1, type: uint16}
+      - {name: SecurityParameterIndex, bit: 2, type: uint32}
+      - {name: FlowLabel,              bit: 3, type: uint24}
+      - {name: SDFFilterID,            bit: 4, type: uint32}
+      - {name: SMMII,                  bit: 5, type: smmii_list}
+  - {name: ApplicationID, type_code: 24, description: "Application ID", min_length: 1, max_length: 255}
+  - name: GateStatus
+    type_code: 25
+    description: "Gate Status — TS 29.244 §8.2.7"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: DLGate
+        bits: 2
+        offset: 2
+        values:
+          0: "dl_open"
+          1: "dl_closed"
+      - name: ULGate
+        bits: 2
+        offset: 0
+        values:
+          0: "ul_open"
+          1: "ul_closed"
+
+  - name: MBR
+    type_code: 26
+    description: "MBR — 40-bit UL + 40-bit DL kbps (TS 29.244 §8.2.8)"
+    # Hand-modeled in runtime so consumers see uint64 UL/DL fields
+    # in kbps directly (§8.2.8 line 21380 verbatim: "encoded as
+    # kilobits per second"). 5-byte big-endian on the wire.
+    min_length: 10
+    max_length: 10
+    go_type: MBR
+
+  - name: GBR
+    type_code: 27
+    description: "GBR — 40-bit UL + 40-bit DL kbps (TS 29.244 §8.2.9)"
+    # Same shape + unit as MBR — runtime exposes
+    # `type GBR = MBR` so callers can use either name.
+    min_length: 10
+    max_length: 10
+    go_type: GBR
+
+  - name: QERCorrelationID
+    type_code: 28
+    description: "QER Correlation ID — TS 29.244 §8.2.10"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+
+  - name: Precedence
+    type_code: 29
+    description: "Precedence (32-bit) — TS 29.244 §8.2.11"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+  - {name: TransportLevelMarking, type_code: 30, description: "Transport Level Marking (2-byte DSCP)", min_length: 2, max_length: 2}
+  - name: VolumeThreshold
+    type_code: 31
+    description: "Volume Threshold — TS 29.244 §8.2.13"
+    # Octet 5 flags (TOVOL=bit 0, ULVOL=bit 1, DLVOL=bit 2);
+    # at least one shall be set. Each set flag appends an
+    # Unsigned64 (8-byte big-endian) volume in octets.
+    min_length: 1
+    max_length: 25
+    kind: flag_conditional
+    fields:
+      - {name: TotalVolume,    bit: 0, type: uint64}
+      - {name: UplinkVolume,   bit: 1, type: uint64}
+      - {name: DownlinkVolume, bit: 2, type: uint64}
+  - name: TimeThreshold
+    type_code: 32
+    description: "Time Threshold — TS 29.244 §8.2.14 (uint32 seconds)"
+    min_length: 4
+    max_length: 4
+    fields:
+      - {name: Seconds, bytes: 4}
+  - {name: MonitoringTime, type_code: 33, description: "Monitoring Time", min_length: 4, max_length: 4}
+  - name: SubsequentVolumeThreshold
+    type_code: 34
+    description: "Subsequent Volume Threshold — TS 29.244 §8.2.16 (same shape as Volume Threshold)"
+    min_length: 1
+    max_length: 25
+    kind: flag_conditional
+    fields:
+      - {name: TotalVolume,    bit: 0, type: uint64}
+      - {name: UplinkVolume,   bit: 1, type: uint64}
+      - {name: DownlinkVolume, bit: 2, type: uint64}
+  - name: SubsequentTimeThreshold
+    type_code: 35
+    description: "Subsequent Time Threshold — TS 29.244 §8.2.17 (uint32 seconds)"
+    min_length: 4
+    max_length: 4
+    fields:
+      - {name: Seconds, bytes: 4}
+  - {name: InactivityDetectionTime, type_code: 36, description: "Inactivity Detection Time", min_length: 4, max_length: 4}
+  - name: ReportingTriggers
+    type_code: 37
+    description: "Reporting Triggers — TS 29.244 §8.2.19"
+    min_length: 2
+    max_length: 3
+    fields:
+      - name: Flags
+        bytes: 2
+  - {name: RedirectInformation, type_code: 38, description: "Redirect Information", min_length: 1, max_length: 65535}
+  - name: ReportType
+    type_code: 39
+    description: "Report Type — TS 29.244 §8.2.21"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: UISR
+        bits: 1
+        offset: 6
+      - name: SESR
+        bits: 1
+        offset: 5
+      - name: TMIR
+        bits: 1
+        offset: 4
+      - name: UPIR
+        bits: 1
+        offset: 3
+      - name: ERIR
+        bits: 1
+        offset: 2
+      - name: USAR
+        bits: 1
+        offset: 1
+      - name: DLDR
+        bits: 1
+        offset: 0
+
+  - name: OffendingIE
+    type_code: 40
+    description: "Offending IE (type code) — TS 29.244 §8.2.22"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: Value
+        bytes: 2
+  - {name: ForwardingPolicy, type_code: 41, description: "Forwarding Policy", min_length: 1, max_length: 255}
+  - name: DestinationInterface
+    type_code: 42
+    description: "Destination Interface — TS 29.244 §8.2.24"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+        values:
+          0: "access"
+          1: "core"
+          2: "sgi_lan_n6_lan"
+          3: "cp_function"
+          4: "li_function"
+          5: "five_g_vn_internal"
+  - {name: UPFunctionFeatures, type_code: 43, description: "UP Function Features", min_length: 2, max_length: 32}
+  - name: ApplyAction
+    type_code: 44
+    description: "Apply Action — TS 29.244 §8.2.26"
+    min_length: 1
+    max_length: 2
+    fields:
+      - name: DUPL
+        bits: 1
+        offset: 4
+      - name: NOCP
+        bits: 1
+        offset: 3
+      - name: BUFF
+        bits: 1
+        offset: 2
+      - name: FORW
+        bits: 1
+        offset: 1
+      - name: DROP
+        bits: 1
+        offset: 0
+  - {name: DownlinkDataServiceInformation, type_code: 45, description: "Downlink Data Service Information", min_length: 1, max_length: 3}
+  - {name: DownlinkDataNotificationDelay, type_code: 46, description: "Downlink Data Notification Delay", min_length: 1, max_length: 1}
+  - {name: DLBufferingDuration, type_code: 47, description: "DL Buffering Duration", min_length: 1, max_length: 1}
+  - {name: DLBufferingSuggestedPacketCount, type_code: 48, description: "DL Buffering Suggested Packet Count", min_length: 1, max_length: 2}
+  - {name: PFCPSMReqFlags, type_code: 49, description: "PFCPSMReq-Flags", min_length: 1, max_length: 1}
+  - {name: PFCPSRRspFlags, type_code: 50, description: "PFCPSRRsp-Flags", min_length: 1, max_length: 1}
+  - {name: SequenceNumber, type_code: 52, description: "Sequence Number (report)", min_length: 4, max_length: 4}
+  - {name: Metric, type_code: 53, description: "Metric", min_length: 1, max_length: 1}
+  - {name: Timer, type_code: 55, description: "Timer (unit+value)", min_length: 1, max_length: 1}
+  - name: PacketDetectionRuleID
+    type_code: 56
+    description: "PDR ID (16-bit) — TS 29.244 §8.2.36"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: Value
+        bytes: 2
+  - {name: PFDContents, type_code: 61, description: "PFD Contents", min_length: 1, max_length: 65535}
+  - name: MeasurementMethod
+    type_code: 62
+    description: "Measurement Method — TS 29.244 §8.2.40"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: EVENT
+        bits: 1
+        offset: 2
+      - name: VOLUM
+        bits: 1
+        offset: 1
+      - name: DURAT
+        bits: 1
+        offset: 0
+
+  - name: UsageReportTrigger
+    type_code: 63
+    description: "Usage Report Trigger — TS 29.244 §8.2.41"
+    min_length: 2
+    max_length: 3
+    fields:
+      - name: Flags
+        bytes: 2
+  - name: MeasurementPeriod
+    type_code: 64
+    description: "Measurement Period (seconds, 32-bit) — TS 29.244 §8.2.42"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+  - {name: FQCSID, type_code: 65, description: "FQ-CSID", min_length: 1, max_length: 65535}
+  - {name: VolumeMeasurement, type_code: 66, description: "Volume Measurement", min_length: 1, max_length: 49}
+  - name: DurationMeasurement
+    type_code: 67
+    description: "Duration Measurement (seconds, 32-bit) — TS 29.244 §8.2.45"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+  - {name: TimeOfFirstPacket, type_code: 69, description: "Time of First Packet", min_length: 4, max_length: 4}
+  - {name: TimeOfLastPacket, type_code: 70, description: "Time of Last Packet", min_length: 4, max_length: 4}
+  - {name: QuotaHoldingTime, type_code: 71, description: "Quota Holding Time", min_length: 4, max_length: 4}
+  - {name: DroppedDLTrafficThreshold, type_code: 72, description: "Dropped DL Traffic Threshold", min_length: 1, max_length: 17}
+  - {name: VolumeQuota, type_code: 73, description: "Volume Quota", min_length: 1, max_length: 25}
+  - {name: TimeQuota, type_code: 74, description: "Time Quota", min_length: 4, max_length: 4}
+  - {name: StartTime, type_code: 75, description: "Start Time", min_length: 4, max_length: 4}
+  - {name: EndTime, type_code: 76, description: "End Time", min_length: 4, max_length: 4}
+  - name: URRID
+    type_code: 81
+    description: "URR ID (32-bit) — TS 29.244 §8.2.54"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+
+  - name: LinkedURRID
+    type_code: 82
+    description: "Linked URR ID — TS 29.244 §8.2.55"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+  - name: OuterHeaderCreation
+    type_code: 84
+    description: "Outer Header Creation — TS 29.244 §8.2.56"
+    # Description bitmap (16 bits) + presence-driven sub-fields per
+    # Table 8.2.56-1. Hand-modeled in runtime.OuterHeaderCreation
+    # because field presence depends on COMBINATIONS of Description
+    # bits — beyond the current generator schema.
+    min_length: 1
+    max_length: 25
+    go_type: OuterHeaderCreation
+  - name: BARID
+    type_code: 88
+    description: "BAR ID (8-bit) — TS 29.244 §8.2.59"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+  - {name: CPFunctionFeatures, type_code: 89, description: "CP Function Features", min_length: 1, max_length: 4}
+  - {name: UsageInformation, type_code: 90, description: "Usage Information", min_length: 1, max_length: 1}
+  - {name: ApplicationInstanceID, type_code: 91, description: "Application Instance ID", min_length: 1, max_length: 65535}
+  - {name: FlowInformation, type_code: 92, description: "Flow Information", min_length: 3, max_length: 65535}
+  - name: UEIPAddress
+    type_code: 93
+    description: "UE IP Address — TS 29.244 §8.2.62"
+    # Flag-conditional with V4/V6/CHV4/CHV6/IPv6D/IP6PL/S-D bits.
+    # Hand-modeled in runtime.UEIPAddress because the V4-vs-CHV4 and
+    # IPv6D-vs-IP6PL interactions exceed the current generator's
+    # flag_conditional schema.
+    min_length: 1
+    max_length: 21
+    go_type: UEIPAddress
+  - {name: PacketRate, type_code: 94, description: "Packet Rate", min_length: 1, max_length: 8}
+  - {name: OuterHeaderRemoval, type_code: 95, description: "Outer Header Removal", min_length: 1, max_length: 2}
+  - name: RecoveryTimeStamp
+    type_code: 96
+    description: "Recovery Time Stamp (NTP epoch seconds, 32-bit) — TS 29.244 §8.2.65"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+  - {name: DLFlowLevelMarking, type_code: 97, description: "DL Flow Level Marking", min_length: 1, max_length: 5}
+  - {name: HeaderEnrichment, type_code: 98, description: "Header Enrichment", min_length: 1, max_length: 255}
+  - {name: MeasurementInformation, type_code: 100, description: "Measurement Information", min_length: 1, max_length: 1}
+  - {name: NodeReportType, type_code: 101, description: "Node Report Type", min_length: 1, max_length: 1}
+  - {name: RemoteGTPUPeer, type_code: 103, description: "Remote GTP-U Peer", min_length: 1, max_length: 65535}
+  - {name: URSEQN, type_code: 104, description: "UR-SEQN", min_length: 4, max_length: 4}
+  - {name: ActivatePredefinedRules, type_code: 106, description: "Activate Predefined Rules", min_length: 1, max_length: 255}
+  - {name: DeactivatePredefinedRules, type_code: 107, description: "Deactivate Predefined Rules", min_length: 1, max_length: 255}
+  - name: FARID
+    type_code: 108
+    description: "FAR ID (32-bit) — TS 29.244 §8.2.74"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+
+  - name: QERID
+    type_code: 109
+    description: "QER ID (32-bit) — TS 29.244 §8.2.75"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+  - {name: OCIFlags, type_code: 110, description: "OCI Flags", min_length: 1, max_length: 1}
+  - {name: PFCPAssociationReleaseRequest, type_code: 111, description: "PFCP Association Release Request", min_length: 1, max_length: 1}
+  - {name: GracefulReleasePeriod, type_code: 112, description: "Graceful Release Period", min_length: 1, max_length: 1}
+  - name: PDNType
+    type_code: 113
+    description: "PDN Type — TS 29.244 §8.2.79"
+    # Octet 5 low 3 bits per Table 8.2.79-1: 1=IPv4, 2=IPv6,
+    # 3=IPv4v6, 4=Non-IP, 5=Ethernet. Generator emits Value uint8
+    # + named consts (PDNTypeIpv4 etc.) from the values map.
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: Ipv4
+          2: Ipv6
+          3: Ipv4v6
+          4: NonIp
+          5: Ethernet
+  - {name: FailedRuleID, type_code: 114, description: "Failed Rule ID", min_length: 5, max_length: 5}
+  - {name: TimeQuotaMechanism, type_code: 115, description: "Time Quota Mechanism", min_length: 5, max_length: 5}
+  - {name: UserPlaneIPResourceInformation, type_code: 116, description: "UP IP Resource Information", min_length: 1, max_length: 255}
+  - {name: UserPlaneInactivityTimer, type_code: 117, description: "UP Inactivity Timer", min_length: 4, max_length: 4}
+  - {name: Multiplier, type_code: 119, description: "Multiplier", min_length: 9, max_length: 9}
+  - {name: AggregatedURRID, type_code: 120, description: "Aggregated URR ID", min_length: 4, max_length: 4}
+  - {name: SubsequentVolumeQuota, type_code: 121, description: "Subsequent Volume Quota", min_length: 1, max_length: 25}
+  - {name: SubsequentTimeQuota, type_code: 122, description: "Subsequent Time Quota", min_length: 4, max_length: 4}
+  - {name: RQI, type_code: 123, description: "RQI", min_length: 1, max_length: 1}
+  - name: QFI
+    type_code: 124
+    description: "QFI — TS 29.244 §8.2.89"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bits: 6
+        offset: 0
+  - {name: QueryURRReference, type_code: 125, description: "Query URR Reference", min_length: 4, max_length: 4}
+  - {name: AdditionalUsageReportsInformation, type_code: 126, description: "Additional Usage Reports Information", min_length: 2, max_length: 2}
+  - name: TrafficEndpointID
+    type_code: 131
+    description: "Traffic Endpoint ID — TS 29.244 §8.2.92"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+  - {name: MACAddress, type_code: 133, description: "MAC Address", min_length: 1, max_length: 25}
+  - {name: CTAG, type_code: 134, description: "C-TAG", min_length: 3, max_length: 3}
+  - {name: STAG, type_code: 135, description: "S-TAG", min_length: 3, max_length: 3}
+  - {name: Ethertype, type_code: 136, description: "Ethertype", min_length: 2, max_length: 2}
+  - {name: Proxying, type_code: 137, description: "Proxying", min_length: 1, max_length: 1}
+  - {name: EthernetFilterID, type_code: 138, description: "Ethernet Filter ID", min_length: 4, max_length: 4}
+  - {name: EthernetFilterProperties, type_code: 139, description: "Ethernet Filter Properties", min_length: 1, max_length: 1}
+  - {name: SuggestedBufferingPacketsCount, type_code: 140, description: "Suggested Buffering Packets Count", min_length: 1, max_length: 1}
+  - name: UserID
+    type_code: 141
+    description: "User ID — TS 29.244 §8.2.101"
+    # Octet 5 flags (IMSIF/IMEIF/MSISDNF/NAIF/SUPIF/GPSIF/PEIF) —
+    # bit 0..6. Each set flag appends a length-prefixed sub-field
+    # of the spec-typed primitive listed below. IMSI/IMEI/MSISDN are
+    # digit strings TBCD-encoded on the wire per TS 29.274 §8.3 / §8.10.
+    min_length: 1
+    max_length: 65535
+    kind: flag_conditional
+    fields:
+      - {name: IMSI,   bit: 0, type: tbcd_digits, length_prefix: u8}
+      - {name: IMEI,   bit: 1, type: tbcd_digits, length_prefix: u8}
+      - {name: MSISDN, bit: 2, type: tbcd_digits, length_prefix: u8}
+      - {name: NAI,    bit: 3, type: utf8,        length_prefix: u8}
+      - {name: SUPI,   bit: 4, type: utf8,        length_prefix: u8}
+      - {name: GPSI,   bit: 5, type: utf8,        length_prefix: u8}
+      - {name: PEI,    bit: 6, type: utf8,        length_prefix: u8}
+  - {name: EthernetPDUSessionInformation, type_code: 142, description: "Ethernet PDU Session Information", min_length: 1, max_length: 1}
+  - {name: MACAddressesDetected, type_code: 144, description: "MAC Addresses Detected", min_length: 1, max_length: 65535}
+  - {name: MACAddressesRemoved, type_code: 145, description: "MAC Addresses Removed", min_length: 1, max_length: 65535}
+  - {name: EthernetInactivityTimer, type_code: 146, description: "Ethernet Inactivity Timer", min_length: 4, max_length: 4}
+  - {name: EventQuota, type_code: 148, description: "Event Quota", min_length: 4, max_length: 4}
+  - {name: EventThreshold, type_code: 149, description: "Event Threshold", min_length: 4, max_length: 4}
+  - {name: SubsequentEventQuota, type_code: 150, description: "Subsequent Event Quota", min_length: 4, max_length: 4}
+  - {name: SubsequentEventThreshold, type_code: 151, description: "Subsequent Event Threshold", min_length: 4, max_length: 4}
+  - {name: TraceInformation, type_code: 152, description: "Trace Information", min_length: 1, max_length: 65535}
+  - {name: FramedRoute, type_code: 153, description: "Framed-Route", min_length: 1, max_length: 65535}
+  - {name: FramedRouting, type_code: 154, description: "Framed-Routing", min_length: 4, max_length: 4}
+  - {name: FramedIPv6Route, type_code: 155, description: "Framed-IPv6-Route", min_length: 1, max_length: 65535}
+  - {name: EventTimeStamp, type_code: 156, description: "Event Time Stamp", min_length: 4, max_length: 4}
+  - {name: AveragingWindow, type_code: 157, description: "Averaging Window", min_length: 4, max_length: 4}
+  - {name: PagingPolicyIndicator, type_code: 158, description: "Paging Policy Indicator", min_length: 1, max_length: 1}
+  - name: APNDNN
+    type_code: 159
+    description: "APN/DNN — TS 29.244 §8.2.117"
+    # APN/DNN per TS 23.003 §9.1: dotted labels, each label
+    # length-prefixed on the wire (DNS-style). Same encoding the
+    # NAS DNN IE (TS 24.501 §9.11.2.1B) uses; runtime owns it.
+    min_length: 1
+    max_length: 255
+    go_type: APNDNN
+  - {name: ThreeGPPInterfaceType, type_code: 160, description: "3GPP Interface Type", min_length: 1, max_length: 1}
+  - {name: PFCPSRReqFlags, type_code: 161, description: "PFCPSRReq-Flags", min_length: 1, max_length: 1}
+  - {name: PFCPAUReqFlags, type_code: 162, description: "PFCPAUReq-Flags", min_length: 1, max_length: 1}
+  - {name: ActivationTime, type_code: 163, description: "Activation Time", min_length: 4, max_length: 4}
+  - {name: DeactivationTime, type_code: 164, description: "Deactivation Time", min_length: 4, max_length: 4}
+  - name: MARID
+    type_code: 170
+    description: "MAR ID (16-bit) — TS 29.244 §8.2.130"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: Value
+        bytes: 2
+  - {name: SteeringFunctionality, type_code: 171, description: "Steering Functionality", min_length: 1, max_length: 1}
+  - {name: SteeringMode, type_code: 172, description: "Steering Mode", min_length: 1, max_length: 1}
+  - {name: Weight, type_code: 173, description: "Weight", min_length: 1, max_length: 1}
+  - {name: PriorityIE, type_code: 174, description: "Priority", min_length: 1, max_length: 1}
+  - {name: UEIPAddressPoolIdentity, type_code: 177, description: "UE IP address Pool Identity", min_length: 1, max_length: 255}
+  - {name: AlternativeSMFIPAddress, type_code: 178, description: "Alternative SMF IP Address", min_length: 1, max_length: 21}
+  - {name: PacketReplicationAndDetectionCarryOnInformation, type_code: 179, description: "Packet Replication and Detection Carry-On Information", min_length: 1, max_length: 1}
+  - {name: SMFSetID, type_code: 180, description: "SMF Set ID", min_length: 1, max_length: 255}
+  - {name: QuotaValidityTime, type_code: 181, description: "Quota Validity Time", min_length: 4, max_length: 4}
+  - {name: NumberOfReports, type_code: 182, description: "Number of Reports", min_length: 2, max_length: 2}
+  - {name: PFCPASRspFlags, type_code: 184, description: "PFCPASRsp-Flags", min_length: 1, max_length: 1}
+  - {name: CPPFCPEntityIPAddress, type_code: 185, description: "CP PFCP Entity IP Address", min_length: 1, max_length: 21}
+  - {name: PFCPSEReqFlags, type_code: 186, description: "PFCPSEReq-Flags", min_length: 1, max_length: 1}
+  - {name: IPMulticastAddress, type_code: 191, description: "IP Multicast Address", min_length: 1, max_length: 65}
+  - {name: SourceIPAddress, type_code: 192, description: "Source IP Address", min_length: 1, max_length: 21}
+  - {name: PacketRateStatus, type_code: 193, description: "Packet Rate Status", min_length: 1, max_length: 17}
+  - {name: CreateBridgeInfoForTSC, type_code: 194, description: "Create Bridge Info for TSC", min_length: 1, max_length: 1}
+  - {name: DSTTPortNumber, type_code: 196, description: "DS-TT Port Number", min_length: 4, max_length: 4}
+  - {name: NWTTPortNumber, type_code: 197, description: "NW-TT Port Number", min_length: 4, max_length: 4}
+  - {name: FiveGSUserPlaneNode, type_code: 198, description: "5GS User Plane Node", min_length: 1, max_length: 255}
+  - {name: RequestedClockDriftInformation, type_code: 200, description: "Requested Clock Drift Information", min_length: 1, max_length: 1}
+  - {name: TSNTimeDomainNumber, type_code: 202, description: "TSN Time Domain Number", min_length: 1, max_length: 2}
+  - {name: TimeOffsetThreshold, type_code: 203, description: "Time Offset Threshold", min_length: 8, max_length: 8}
+  - {name: CumulativeRateRatioThreshold, type_code: 204, description: "Cumulative rateRatio Threshold", min_length: 4, max_length: 4}
+  - {name: TimeOffsetMeasurement, type_code: 205, description: "Time Offset Measurement", min_length: 8, max_length: 8}
+  - {name: CumulativeRateRatioMeasurement, type_code: 206, description: "Cumulative rateRatio Measurement", min_length: 4, max_length: 4}
+  - {name: RemoveSRR, type_code: 207, description: "Remove SRR", min_length: 4, max_length: 65535}
+  - {name: SRRID, type_code: 211, description: "SRR ID", min_length: 1, max_length: 1}
+  - {name: RequestedAccessAvailabilityInformation, type_code: 213, description: "Requested Access Availability Information", min_length: 1, max_length: 1}
+  - {name: AccessAvailabilityInformation, type_code: 215, description: "Access Availability Information", min_length: 1, max_length: 1}
+  - {name: MPTCPControlInformation, type_code: 218, description: "MPTCP Control Information", min_length: 1, max_length: 1}
+  - {name: ATSSSLLControlInformation, type_code: 219, description: "ATSSS-LL Control Information", min_length: 1, max_length: 1}
+  - {name: PMFControlInformation, type_code: 220, description: "PMF Control Information", min_length: 1, max_length: 1}
+  - {name: MPTCPAddressInformation, type_code: 224, description: "MPTCP Address Information", min_length: 1, max_length: 25}
+  - {name: UELinkSpecificIPAddress, type_code: 225, description: "UE Link-Specific IP Address", min_length: 1, max_length: 41}
+  - {name: PMFAddressInformation, type_code: 226, description: "PMF Address Information", min_length: 1, max_length: 65}
+  - {name: ATSSSLLInformation, type_code: 227, description: "ATSSS-LL Information", min_length: 1, max_length: 1}
+  - {name: DataNetworkAccessIdentifier, type_code: 228, description: "Data Network Access Identifier", min_length: 1, max_length: 255}
+  - {name: AveragePacketRate, type_code: 230, description: "Average Packet Rate", min_length: 2, max_length: 2}
+  - {name: SNSSAI, type_code: 231, description: "S-NSSAI", min_length: 4, max_length: 4}
+  - {name: TransportDelay, type_code: 232, description: "Transport Delay", min_length: 12, max_length: 12}
+  - {name: AccessType, type_code: 233, description: "Access Type", min_length: 1, max_length: 1}
+
+  # --- Additional IEs present in TS 29.244 v19.5.0 but not yet enumerated above ---
+
+  - {name: PortManagementInformationForTSCWithinCreateBridgeInfoForTSC, type_code: 195, description: "Created Bridge Info for TSC", min_length: 1, max_length: 255}
+  - {name: UEIPAddressUsageInformation, type_code: 234, description: "UE IP address Usage Information (grouped wrapper)", min_length: 4, max_length: 65535}
+  - {name: NumberOfUEIPAddresses, type_code: 235, description: "Number of UE IP Addresses", min_length: 1, max_length: 5}
+  - {name: ValidityTimer, type_code: 236, description: "Validity Timer", min_length: 2, max_length: 2}
+  - {name: OffendingIEInformation, type_code: 237, description: "Offending IE Information", min_length: 2, max_length: 65535}
+  - {name: RDSConfigurationInformation, type_code: 238, description: "RDS Configuration Information", min_length: 1, max_length: 1}
+  - {name: L2TPTunnelIndication, type_code: 239, description: "L2TP Tunnel Indication", min_length: 1, max_length: 1}
+  - {name: PFCPASRspFlagsV2, type_code: 240, description: "PFCPASRsp-Flags (v2 placeholder)", min_length: 1, max_length: 1}
+  - {name: CPIPAddress, type_code: 241, description: "CP IP Address", min_length: 1, max_length: 21}
+  - {name: IPVersion, type_code: 242, description: "IP Version", min_length: 1, max_length: 1}
+  - {name: PFCPASReqFlags, type_code: 243, description: "PFCPASReq-Flags", min_length: 1, max_length: 1}
+  - {name: DataStatus, type_code: 244, description: "Data Status", min_length: 1, max_length: 1}
+  - {name: RTTLMeasurement, type_code: 249, description: "RTT-L1/L2 Control Information", min_length: 1, max_length: 65535}
+  - {name: NodeType, type_code: 252, description: "Node Type", min_length: 1, max_length: 1}
+  - {name: MinimumWaitTime, type_code: 254, description: "Minimum Wait Time", min_length: 4, max_length: 4}
+  - {name: PortManagementInformationContainer, type_code: 255, description: "Port Management Information Container", min_length: 1, max_length: 65535}
+  - {name: PortManagementInformationForTSC, type_code: 258, description: "Port Management Information for TSC", min_length: 1, max_length: 65535}
+  - {name: UserIDType, type_code: 260, description: "User ID Type Placeholder", min_length: 1, max_length: 1}
+
+  # --- Recovery-related grouped IE used by Update BAR in Session Report Response ---
+  - name: UpdatedPDR
+    type_code: 256
+    description: "Updated PDR (grouped)"
+    grouped: true
+    members:
+      - {name: PDRID, presence: M, type_ref: PacketDetectionRuleID}
+      - {name: FTEID, presence: C, type_ref: FTEID}
+
+  - name: PortManagementInformationForTSCIE
+    type_code: 257
+    description: "Port Management Information for TSC IE (grouped)"
+    grouped: true
+    members:
+      - {name: PortManagementInformationContainer, presence: M, type_ref: PortManagementInformationContainer}
+
+  # ===================================================================
+  # Grouped IEs — composite rules. Members from TS 29.244 §7.5.2-7.5.11.
+  # ===================================================================
+
+  - name: CreatePDR
+    type_code: 1
+    description: "Create PDR (grouped)"
+    grouped: true
+    members:
+      - {name: PDRID,                   presence: M, type_ref: PacketDetectionRuleID}
+      - {name: Precedence,              presence: M, type_ref: Precedence}
+      - {name: PDI,                     presence: M, type_ref: PDI}
+      - {name: OuterHeaderRemoval,      presence: C, type_ref: OuterHeaderRemoval}
+      - {name: FARID,                   presence: C, type_ref: FARID}
+      - {name: URRID,                   presence: C, type_ref: URRID, multiple: true}
+      - {name: QERID,                   presence: C, type_ref: QERID, multiple: true}
+      - {name: ActivatePredefinedRules, presence: C, type_ref: ActivatePredefinedRules, multiple: true}
+      - {name: ActivationTime,          presence: C, type_ref: ActivationTime}
+      - {name: DeactivationTime,        presence: C, type_ref: DeactivationTime}
+      - {name: MARID,                   presence: C, type_ref: MARID}
+      - {name: PacketReplicationAndDetectionCarryOnInformation, presence: C, type_ref: PacketReplicationAndDetectionCarryOnInformation}
+
+  - name: PDI
+    type_code: 2
+    description: "Packet Detection Information (grouped)"
+    grouped: true
+    members:
+      - {name: SourceInterface,  presence: M, type_ref: SourceInterface}
+      - {name: FTEID,            presence: C, type_ref: FTEID}
+      - {name: NetworkInstance,  presence: C, type_ref: NetworkInstance}
+      - {name: UEIPAddress,      presence: C, type_ref: UEIPAddress, multiple: true}
+      - {name: TrafficEndpointID, presence: C, type_ref: TrafficEndpointID, multiple: true}
+      - {name: SDFFilter,        presence: C, type_ref: SDFFilter, multiple: true}
+      - {name: ApplicationID,    presence: C, type_ref: ApplicationID}
+      - {name: EthernetPDUSessionInformation, presence: C, type_ref: EthernetPDUSessionInformation}
+      - {name: EthernetPacketFilter, presence: C, type_ref: EthernetPacketFilter, multiple: true}
+      - {name: QFI,              presence: C, type_ref: QFI, multiple: true}
+      - {name: FramedRoute,      presence: C, type_ref: FramedRoute, multiple: true}
+      - {name: FramedRouting,    presence: C, type_ref: FramedRouting}
+      - {name: FramedIPv6Route,  presence: C, type_ref: FramedIPv6Route, multiple: true}
+      - {name: ThreeGPPInterfaceType, presence: C, type_ref: ThreeGPPInterfaceType}
+
+  - name: CreateFAR
+    type_code: 3
+    description: "Create FAR (grouped)"
+    grouped: true
+    members:
+      - {name: FARID,                 presence: M, type_ref: FARID}
+      - {name: ApplyAction,           presence: M, type_ref: ApplyAction}
+      - {name: ForwardingParameters,  presence: C, type_ref: ForwardingParameters}
+      - {name: DuplicatingParameters, presence: C, type_ref: DuplicatingParameters, multiple: true}
+      - {name: BARID,                 presence: C, type_ref: BARID}
+
+  - name: ForwardingParameters
+    type_code: 4
+    description: "Forwarding Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: DestinationInterface,  presence: M, type_ref: DestinationInterface}
+      - {name: NetworkInstance,       presence: C, type_ref: NetworkInstance}
+      - {name: RedirectInformation,   presence: C, type_ref: RedirectInformation}
+      - {name: OuterHeaderCreation,   presence: C, type_ref: OuterHeaderCreation}
+      - {name: TransportLevelMarking, presence: C, type_ref: TransportLevelMarking}
+      - {name: ForwardingPolicy,      presence: C, type_ref: ForwardingPolicy}
+      - {name: HeaderEnrichment,      presence: C, type_ref: HeaderEnrichment}
+      - {name: TrafficEndpointID,     presence: C, type_ref: TrafficEndpointID}
+      - {name: Proxying,              presence: C, type_ref: Proxying}
+      - {name: ThreeGPPInterfaceType, presence: C, type_ref: ThreeGPPInterfaceType}
+      - {name: DataNetworkAccessIdentifier, presence: C, type_ref: DataNetworkAccessIdentifier}
+
+  - name: DuplicatingParameters
+    type_code: 5
+    description: "Duplicating Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: DestinationInterface,  presence: M, type_ref: DestinationInterface}
+      - {name: OuterHeaderCreation,   presence: C, type_ref: OuterHeaderCreation}
+      - {name: TransportLevelMarking, presence: C, type_ref: TransportLevelMarking}
+      - {name: ForwardingPolicy,      presence: C, type_ref: ForwardingPolicy}
+
+  - name: CreateURR
+    type_code: 6
+    description: "Create URR (grouped)"
+    grouped: true
+    members:
+      - {name: URRID,                     presence: M, type_ref: URRID}
+      - {name: MeasurementMethod,         presence: M, type_ref: MeasurementMethod}
+      - {name: ReportingTriggers,         presence: M, type_ref: ReportingTriggers}
+      - {name: MeasurementPeriod,         presence: C, type_ref: MeasurementPeriod}
+      - {name: VolumeThreshold,           presence: C, type_ref: VolumeThreshold}
+      - {name: VolumeQuota,               presence: C, type_ref: VolumeQuota}
+      - {name: EventThreshold,            presence: C, type_ref: EventThreshold}
+      - {name: EventQuota,                presence: C, type_ref: EventQuota}
+      - {name: TimeThreshold,             presence: C, type_ref: TimeThreshold}
+      - {name: TimeQuota,                 presence: C, type_ref: TimeQuota}
+      - {name: QuotaHoldingTime,          presence: C, type_ref: QuotaHoldingTime}
+      - {name: DroppedDLTrafficThreshold, presence: C, type_ref: DroppedDLTrafficThreshold}
+      - {name: QuotaValidityTime,         presence: C, type_ref: QuotaValidityTime}
+      - {name: MonitoringTime,            presence: C, type_ref: MonitoringTime}
+      - {name: SubsequentVolumeThreshold, presence: C, type_ref: SubsequentVolumeThreshold}
+      - {name: SubsequentTimeThreshold,   presence: C, type_ref: SubsequentTimeThreshold}
+      - {name: SubsequentVolumeQuota,     presence: C, type_ref: SubsequentVolumeQuota}
+      - {name: SubsequentTimeQuota,       presence: C, type_ref: SubsequentTimeQuota}
+      - {name: SubsequentEventThreshold,  presence: C, type_ref: SubsequentEventThreshold}
+      - {name: SubsequentEventQuota,      presence: C, type_ref: SubsequentEventQuota}
+      - {name: InactivityDetectionTime,   presence: C, type_ref: InactivityDetectionTime}
+      - {name: LinkedURRID,               presence: C, type_ref: LinkedURRID, multiple: true}
+      - {name: MeasurementInformation,    presence: C, type_ref: MeasurementInformation}
+      - {name: TimeQuotaMechanism,        presence: C, type_ref: TimeQuotaMechanism}
+      - {name: AggregatedURRs,            presence: C, type_ref: AggregatedURRs, multiple: true}
+      - {name: FarIDForQuotaAction,       presence: C, type_ref: FARID}
+      - {name: EthernetInactivityTimer,   presence: C, type_ref: EthernetInactivityTimer}
+      - {name: AdditionalMonitoringTime,  presence: C, type_ref: AdditionalMonitoringTime, multiple: true}
+      - {name: NumberOfReports,           presence: C, type_ref: NumberOfReports}
+
+  - name: CreateQER
+    type_code: 7
+    description: "Create QER (grouped)"
+    grouped: true
+    members:
+      - {name: QERID,                 presence: M, type_ref: QERID}
+      - {name: QERCorrelationID,      presence: C, type_ref: QERCorrelationID}
+      - {name: GateStatus,            presence: M, type_ref: GateStatus}
+      - {name: MBR,                   presence: C, type_ref: MBR}
+      - {name: GBR,                   presence: C, type_ref: GBR}
+      - {name: PacketRate,            presence: C, type_ref: PacketRate}
+      - {name: PacketRateStatus,      presence: C, type_ref: PacketRateStatus}
+      - {name: DLFlowLevelMarking,    presence: C, type_ref: DLFlowLevelMarking}
+      - {name: QFI,                   presence: C, type_ref: QFI}
+      - {name: RQI,                   presence: C, type_ref: RQI}
+      - {name: PagingPolicyIndicator, presence: C, type_ref: PagingPolicyIndicator}
+      - {name: AveragingWindow,       presence: C, type_ref: AveragingWindow}
+
+  - name: CreatedPDR
+    type_code: 8
+    description: "Created PDR (grouped)"
+    grouped: true
+    members:
+      - {name: PDRID, presence: M, type_ref: PacketDetectionRuleID}
+      - {name: FTEID, presence: C, type_ref: FTEID}
+      - {name: UEIPAddress, presence: C, type_ref: UEIPAddress}
+
+  - name: UpdatePDR
+    type_code: 9
+    description: "Update PDR (grouped)"
+    grouped: true
+    members:
+      - {name: PDRID,              presence: M, type_ref: PacketDetectionRuleID}
+      - {name: OuterHeaderRemoval, presence: C, type_ref: OuterHeaderRemoval}
+      - {name: Precedence,         presence: C, type_ref: Precedence}
+      - {name: PDI,                presence: C, type_ref: PDI}
+      - {name: FARID,              presence: C, type_ref: FARID}
+      - {name: URRID,              presence: C, type_ref: URRID, multiple: true}
+      - {name: QERID,              presence: C, type_ref: QERID, multiple: true}
+      - {name: ActivatePredefinedRules,   presence: C, type_ref: ActivatePredefinedRules, multiple: true}
+      - {name: DeactivatePredefinedRules, presence: C, type_ref: DeactivatePredefinedRules, multiple: true}
+      - {name: ActivationTime,   presence: C, type_ref: ActivationTime}
+      - {name: DeactivationTime, presence: C, type_ref: DeactivationTime}
+
+  - name: UpdateFAR
+    type_code: 10
+    description: "Update FAR (grouped)"
+    grouped: true
+    members:
+      - {name: FARID,                      presence: M, type_ref: FARID}
+      - {name: ApplyAction,                presence: C, type_ref: ApplyAction}
+      - {name: UpdateForwardingParameters, presence: C, type_ref: UpdateForwardingParameters}
+      - {name: UpdateDuplicatingParameters, presence: C, type_ref: UpdateDuplicatingParameters, multiple: true}
+      - {name: BARID,                      presence: C, type_ref: BARID}
+
+  - name: UpdateForwardingParameters
+    type_code: 11
+    description: "Update Forwarding Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: DestinationInterface,  presence: C, type_ref: DestinationInterface}
+      - {name: NetworkInstance,       presence: C, type_ref: NetworkInstance}
+      - {name: RedirectInformation,   presence: C, type_ref: RedirectInformation}
+      - {name: OuterHeaderCreation,   presence: C, type_ref: OuterHeaderCreation}
+      - {name: TransportLevelMarking, presence: C, type_ref: TransportLevelMarking}
+      - {name: ForwardingPolicy,      presence: C, type_ref: ForwardingPolicy}
+      - {name: HeaderEnrichment,      presence: C, type_ref: HeaderEnrichment}
+      - {name: PFCPSMReqFlags,        presence: C, type_ref: PFCPSMReqFlags}
+      - {name: TrafficEndpointID,     presence: C, type_ref: TrafficEndpointID}
+
+  - name: UpdateBARSessionReportResponse
+    type_code: 12
+    description: "Update BAR (in Session Report Response) (grouped)"
+    grouped: true
+    members:
+      - {name: BARID, presence: M, type_ref: BARID}
+      - {name: DownlinkDataNotificationDelay, presence: C, type_ref: DownlinkDataNotificationDelay}
+      - {name: DLBufferingDuration, presence: C, type_ref: DLBufferingDuration}
+      - {name: DLBufferingSuggestedPacketCount, presence: C, type_ref: DLBufferingSuggestedPacketCount}
+      - {name: SuggestedBufferingPacketsCount, presence: C, type_ref: SuggestedBufferingPacketsCount}
+
+  - name: UpdateURR
+    type_code: 13
+    description: "Update URR (grouped)"
+    grouped: true
+    members:
+      - {name: URRID,                     presence: M, type_ref: URRID}
+      - {name: MeasurementMethod,         presence: C, type_ref: MeasurementMethod}
+      - {name: ReportingTriggers,         presence: C, type_ref: ReportingTriggers}
+      - {name: MeasurementPeriod,         presence: C, type_ref: MeasurementPeriod}
+      - {name: VolumeThreshold,           presence: C, type_ref: VolumeThreshold}
+      - {name: VolumeQuota,               presence: C, type_ref: VolumeQuota}
+      - {name: TimeThreshold,             presence: C, type_ref: TimeThreshold}
+      - {name: TimeQuota,                 presence: C, type_ref: TimeQuota}
+      - {name: EventThreshold,            presence: C, type_ref: EventThreshold}
+      - {name: EventQuota,                presence: C, type_ref: EventQuota}
+      - {name: QuotaHoldingTime,          presence: C, type_ref: QuotaHoldingTime}
+      - {name: DroppedDLTrafficThreshold, presence: C, type_ref: DroppedDLTrafficThreshold}
+      - {name: QuotaValidityTime,         presence: C, type_ref: QuotaValidityTime}
+      - {name: MonitoringTime,            presence: C, type_ref: MonitoringTime}
+      - {name: MeasurementInformation,    presence: C, type_ref: MeasurementInformation}
+      - {name: LinkedURRID,               presence: C, type_ref: LinkedURRID, multiple: true}
+
+  - name: UpdateQER
+    type_code: 14
+    description: "Update QER (grouped)"
+    grouped: true
+    members:
+      - {name: QERID,                 presence: M, type_ref: QERID}
+      - {name: QERCorrelationID,      presence: C, type_ref: QERCorrelationID}
+      - {name: GateStatus,            presence: C, type_ref: GateStatus}
+      - {name: MBR,                   presence: C, type_ref: MBR}
+      - {name: GBR,                   presence: C, type_ref: GBR}
+      - {name: PacketRate,            presence: C, type_ref: PacketRate}
+      - {name: DLFlowLevelMarking,    presence: C, type_ref: DLFlowLevelMarking}
+      - {name: QFI,                   presence: C, type_ref: QFI}
+      - {name: RQI,                   presence: C, type_ref: RQI}
+      - {name: PagingPolicyIndicator, presence: C, type_ref: PagingPolicyIndicator}
+      - {name: AveragingWindow,       presence: C, type_ref: AveragingWindow}
+
+  - name: RemovePDR
+    type_code: 15
+    description: "Remove PDR (grouped)"
+    grouped: true
+    members:
+      - {name: PDRID, presence: M, type_ref: PacketDetectionRuleID}
+
+  - name: RemoveFAR
+    type_code: 16
+    description: "Remove FAR (grouped)"
+    grouped: true
+    members:
+      - {name: FARID, presence: M, type_ref: FARID}
+
+  - name: RemoveURR
+    type_code: 17
+    description: "Remove URR (grouped)"
+    grouped: true
+    members:
+      - {name: URRID, presence: M, type_ref: URRID}
+
+  - name: RemoveQER
+    type_code: 18
+    description: "Remove QER (grouped)"
+    grouped: true
+    members:
+      - {name: QERID, presence: M, type_ref: QERID}
+
+  - name: LoadControlInformation
+    type_code: 51
+    description: "Load Control Information (grouped)"
+    grouped: true
+    members:
+      - {name: SequenceNumber, presence: M, type_ref: SequenceNumber}
+      - {name: Metric,         presence: M, type_ref: Metric}
+
+  - name: OverloadControlInformation
+    type_code: 54
+    description: "Overload Control Information (grouped)"
+    grouped: true
+    members:
+      - {name: SequenceNumber, presence: M, type_ref: SequenceNumber}
+      - {name: Metric,         presence: M, type_ref: Metric}
+      - {name: Timer,          presence: M, type_ref: Timer}
+      - {name: OCIFlags,       presence: C, type_ref: OCIFlags}
+
+  - name: ApplicationIDsPFDs
+    type_code: 58
+    description: "Application ID's PFDs (grouped)"
+    grouped: true
+    members:
+      - {name: ApplicationID, presence: M, type_ref: ApplicationID}
+      - {name: PFDContext,    presence: C, type_ref: PFDContext, multiple: true}
+
+  - name: PFDContext
+    type_code: 59
+    description: "PFD context (grouped)"
+    grouped: true
+    members:
+      - {name: PFDContents, presence: M, type_ref: PFDContents, multiple: true}
+
+  - name: ApplicationDetectionInformation
+    type_code: 68
+    description: "Application Detection Information (grouped)"
+    grouped: true
+    members:
+      - {name: ApplicationID,         presence: M, type_ref: ApplicationID}
+      - {name: ApplicationInstanceID, presence: C, type_ref: ApplicationInstanceID}
+      - {name: FlowInformation,       presence: C, type_ref: FlowInformation}
+      - {name: PDRID,                 presence: C, type_ref: PacketDetectionRuleID}
+
+  - name: QueryURR
+    type_code: 77
+    description: "Query URR (grouped)"
+    grouped: true
+    members:
+      - {name: URRID, presence: M, type_ref: URRID}
+
+  - name: UsageReportSessionModificationResponse
+    type_code: 78
+    description: "Usage Report (in Session Modification Response) (grouped)"
+    grouped: true
+    members:
+      - {name: URRID,               presence: M, type_ref: URRID}
+      - {name: URSEQN,              presence: M, type_ref: URSEQN}
+      - {name: UsageReportTrigger,  presence: M, type_ref: UsageReportTrigger}
+      - {name: StartTime,           presence: C, type_ref: StartTime}
+      - {name: EndTime,             presence: C, type_ref: EndTime}
+      - {name: VolumeMeasurement,   presence: C, type_ref: VolumeMeasurement}
+      - {name: DurationMeasurement, presence: C, type_ref: DurationMeasurement}
+      - {name: TimeOfFirstPacket,   presence: C, type_ref: TimeOfFirstPacket}
+      - {name: TimeOfLastPacket,    presence: C, type_ref: TimeOfLastPacket}
+      - {name: UsageInformation,    presence: C, type_ref: UsageInformation}
+      - {name: QueryURRReference,   presence: C, type_ref: QueryURRReference}
+      - {name: EthernetTrafficInformation, presence: C, type_ref: EthernetTrafficInformation}
+
+  - name: UsageReportSessionDeletionResponse
+    type_code: 79
+    description: "Usage Report (in Session Deletion Response) (grouped)"
+    grouped: true
+    members:
+      - {name: URRID,               presence: M, type_ref: URRID}
+      - {name: URSEQN,              presence: M, type_ref: URSEQN}
+      - {name: UsageReportTrigger,  presence: M, type_ref: UsageReportTrigger}
+      - {name: StartTime,           presence: C, type_ref: StartTime}
+      - {name: EndTime,             presence: C, type_ref: EndTime}
+      - {name: VolumeMeasurement,   presence: C, type_ref: VolumeMeasurement}
+      - {name: DurationMeasurement, presence: C, type_ref: DurationMeasurement}
+      - {name: TimeOfFirstPacket,   presence: C, type_ref: TimeOfFirstPacket}
+      - {name: TimeOfLastPacket,    presence: C, type_ref: TimeOfLastPacket}
+      - {name: UsageInformation,    presence: C, type_ref: UsageInformation}
+      - {name: EthernetTrafficInformation, presence: C, type_ref: EthernetTrafficInformation}
+
+  - name: UsageReportSessionReportRequest
+    type_code: 80
+    description: "Usage Report (in Session Report Request) (grouped)"
+    grouped: true
+    members:
+      - {name: URRID,               presence: M, type_ref: URRID}
+      - {name: URSEQN,              presence: M, type_ref: URSEQN}
+      - {name: UsageReportTrigger,  presence: M, type_ref: UsageReportTrigger}
+      - {name: StartTime,           presence: C, type_ref: StartTime}
+      - {name: EndTime,             presence: C, type_ref: EndTime}
+      - {name: VolumeMeasurement,   presence: C, type_ref: VolumeMeasurement}
+      - {name: DurationMeasurement, presence: C, type_ref: DurationMeasurement}
+      - {name: ApplicationDetectionInformation, presence: C, type_ref: ApplicationDetectionInformation, multiple: true}
+      - {name: UEIPAddress,         presence: C, type_ref: UEIPAddress}
+      - {name: NetworkInstance,     presence: C, type_ref: NetworkInstance}
+      - {name: TimeOfFirstPacket,   presence: C, type_ref: TimeOfFirstPacket}
+      - {name: TimeOfLastPacket,    presence: C, type_ref: TimeOfLastPacket}
+      - {name: UsageInformation,    presence: C, type_ref: UsageInformation}
+      - {name: QueryURRReference,   presence: C, type_ref: QueryURRReference}
+      - {name: EventTimeStamp,      presence: C, type_ref: EventTimeStamp, multiple: true}
+      - {name: EthernetTrafficInformation, presence: C, type_ref: EthernetTrafficInformation}
+
+  - name: DownlinkDataReport
+    type_code: 83
+    description: "Downlink Data Report (grouped)"
+    grouped: true
+    members:
+      - {name: PDRID, presence: M, type_ref: PacketDetectionRuleID, multiple: true}
+      - {name: DownlinkDataServiceInformation, presence: C, type_ref: DownlinkDataServiceInformation, multiple: true}
+
+  - name: CreateBAR
+    type_code: 85
+    description: "Create BAR (grouped)"
+    grouped: true
+    members:
+      - {name: BARID,                           presence: M, type_ref: BARID}
+      - {name: DownlinkDataNotificationDelay,   presence: C, type_ref: DownlinkDataNotificationDelay}
+      - {name: SuggestedBufferingPacketsCount,  presence: C, type_ref: SuggestedBufferingPacketsCount}
+
+  - name: UpdateBARSessionModificationRequest
+    type_code: 86
+    description: "Update BAR (in Session Modification Request) (grouped)"
+    grouped: true
+    members:
+      - {name: BARID,                           presence: M, type_ref: BARID}
+      - {name: DownlinkDataNotificationDelay,   presence: C, type_ref: DownlinkDataNotificationDelay}
+      - {name: SuggestedBufferingPacketsCount,  presence: C, type_ref: SuggestedBufferingPacketsCount}
+
+  - name: RemoveBAR
+    type_code: 87
+    description: "Remove BAR (grouped)"
+    grouped: true
+    members:
+      - {name: BARID, presence: M, type_ref: BARID}
+
+  - name: ErrorIndicationReport
+    type_code: 99
+    description: "Error Indication Report (grouped)"
+    grouped: true
+    members:
+      - {name: FTEID, presence: M, type_ref: FTEID, multiple: true}
+
+  - name: UserPlanePathFailureReport
+    type_code: 102
+    description: "User Plane Path Failure Report (grouped)"
+    grouped: true
+    members:
+      - {name: RemoteGTPUPeer, presence: M, type_ref: RemoteGTPUPeer, multiple: true}
+
+  - name: UpdateDuplicatingParameters
+    type_code: 105
+    description: "Update Duplicating Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: DestinationInterface,  presence: C, type_ref: DestinationInterface}
+      - {name: OuterHeaderCreation,   presence: C, type_ref: OuterHeaderCreation}
+      - {name: TransportLevelMarking, presence: C, type_ref: TransportLevelMarking}
+      - {name: ForwardingPolicy,      presence: C, type_ref: ForwardingPolicy}
+
+  - name: AggregatedURRs
+    type_code: 118
+    description: "Aggregated URRs (grouped)"
+    grouped: true
+    members:
+      - {name: AggregatedURRID, presence: M, type_ref: AggregatedURRID}
+      - {name: Multiplier,      presence: M, type_ref: Multiplier}
+
+  - name: CreateTrafficEndpoint
+    type_code: 127
+    description: "Create Traffic Endpoint (grouped)"
+    grouped: true
+    members:
+      - {name: TrafficEndpointID, presence: M, type_ref: TrafficEndpointID}
+      - {name: FTEID,             presence: C, type_ref: FTEID}
+      - {name: NetworkInstance,   presence: C, type_ref: NetworkInstance}
+      - {name: UEIPAddress,       presence: C, type_ref: UEIPAddress}
+      - {name: EthernetPDUSessionInformation, presence: C, type_ref: EthernetPDUSessionInformation}
+      - {name: FramedRoute,       presence: C, type_ref: FramedRoute, multiple: true}
+      - {name: FramedRouting,     presence: C, type_ref: FramedRouting}
+      - {name: FramedIPv6Route,   presence: C, type_ref: FramedIPv6Route, multiple: true}
+      - {name: QFI,               presence: C, type_ref: QFI, multiple: true}
+      - {name: ThreeGPPInterfaceType, presence: C, type_ref: ThreeGPPInterfaceType}
+
+  - name: CreatedTrafficEndpoint
+    type_code: 128
+    description: "Created Traffic Endpoint (grouped)"
+    grouped: true
+    members:
+      - {name: TrafficEndpointID, presence: M, type_ref: TrafficEndpointID}
+      - {name: FTEID,             presence: C, type_ref: FTEID}
+      - {name: UEIPAddress,       presence: C, type_ref: UEIPAddress}
+
+  - name: UpdateTrafficEndpoint
+    type_code: 129
+    description: "Update Traffic Endpoint (grouped)"
+    grouped: true
+    members:
+      - {name: TrafficEndpointID, presence: M, type_ref: TrafficEndpointID}
+      - {name: FTEID,             presence: C, type_ref: FTEID}
+      - {name: NetworkInstance,   presence: C, type_ref: NetworkInstance}
+      - {name: UEIPAddress,       presence: C, type_ref: UEIPAddress}
+      - {name: FramedRoute,       presence: C, type_ref: FramedRoute, multiple: true}
+      - {name: FramedRouting,     presence: C, type_ref: FramedRouting}
+      - {name: FramedIPv6Route,   presence: C, type_ref: FramedIPv6Route, multiple: true}
+      - {name: QFI,               presence: C, type_ref: QFI, multiple: true}
+
+  - name: RemoveTrafficEndpoint
+    type_code: 130
+    description: "Remove Traffic Endpoint (grouped)"
+    grouped: true
+    members:
+      - {name: TrafficEndpointID, presence: M, type_ref: TrafficEndpointID}
+
+  - name: EthernetPacketFilter
+    type_code: 132
+    description: "Ethernet Packet Filter (grouped)"
+    grouped: true
+    members:
+      - {name: EthernetFilterID,         presence: C, type_ref: EthernetFilterID}
+      - {name: EthernetFilterProperties, presence: C, type_ref: EthernetFilterProperties}
+      - {name: MACAddress,               presence: C, type_ref: MACAddress, multiple: true}
+      - {name: Ethertype,                presence: C, type_ref: Ethertype, multiple: true}
+      - {name: CTAG,                     presence: C, type_ref: CTAG, multiple: true}
+      - {name: STAG,                     presence: C, type_ref: STAG, multiple: true}
+      - {name: SDFFilter,                presence: C, type_ref: SDFFilter, multiple: true}
+
+  - name: EthernetTrafficInformation
+    type_code: 143
+    description: "Ethernet Traffic Information (grouped)"
+    grouped: true
+    members:
+      - {name: MACAddressesDetected, presence: C, type_ref: MACAddressesDetected, multiple: true}
+      - {name: MACAddressesRemoved,  presence: C, type_ref: MACAddressesRemoved, multiple: true}
+
+  - name: AdditionalMonitoringTime
+    type_code: 147
+    description: "Additional Monitoring Time (grouped)"
+    grouped: true
+    members:
+      - {name: MonitoringTime,            presence: M, type_ref: MonitoringTime}
+      - {name: SubsequentVolumeThreshold, presence: C, type_ref: SubsequentVolumeThreshold}
+      - {name: SubsequentTimeThreshold,   presence: C, type_ref: SubsequentTimeThreshold}
+      - {name: SubsequentVolumeQuota,     presence: C, type_ref: SubsequentVolumeQuota}
+      - {name: SubsequentTimeQuota,       presence: C, type_ref: SubsequentTimeQuota}
+      - {name: SubsequentEventThreshold,  presence: C, type_ref: SubsequentEventThreshold}
+      - {name: SubsequentEventQuota,      presence: C, type_ref: SubsequentEventQuota}
+
+  - name: CreateMAR
+    type_code: 165
+    description: "Create MAR (grouped)"
+    grouped: true
+    members:
+      - {name: MARID,                 presence: M, type_ref: MARID}
+      - {name: SteeringFunctionality, presence: M, type_ref: SteeringFunctionality}
+      - {name: SteeringMode,          presence: M, type_ref: SteeringMode}
+      - {name: AccessForwardingActionInformation,        presence: C, type_ref: AccessForwardingActionInformation}
+      - {name: NonThreeGPPAccessForwardingActionInformation, presence: C, type_ref: NonThreeGPPAccessForwardingActionInformation}
+
+  - name: AccessForwardingActionInformation
+    type_code: 166
+    description: "Access Forwarding Action Information (grouped)"
+    grouped: true
+    members:
+      - {name: FARID,    presence: M, type_ref: FARID}
+      - {name: Weight,   presence: C, type_ref: Weight}
+      - {name: PriorityIE, presence: C, type_ref: PriorityIE}
+      - {name: URRID,    presence: C, type_ref: URRID, multiple: true}
+
+  - name: NonThreeGPPAccessForwardingActionInformation
+    type_code: 167
+    description: "Non-3GPP Access Forwarding Action Information (grouped)"
+    grouped: true
+    members:
+      - {name: FARID,    presence: M, type_ref: FARID}
+      - {name: Weight,   presence: C, type_ref: Weight}
+      - {name: PriorityIE, presence: C, type_ref: PriorityIE}
+      - {name: URRID,    presence: C, type_ref: URRID, multiple: true}
+
+  - name: RemoveMAR
+    type_code: 168
+    description: "Remove MAR (grouped)"
+    grouped: true
+    members:
+      - {name: MARID, presence: M, type_ref: MARID}
+
+  - name: UpdateMAR
+    type_code: 169
+    description: "Update MAR (grouped)"
+    grouped: true
+    members:
+      - {name: MARID,                 presence: M, type_ref: MARID}
+      - {name: SteeringFunctionality, presence: C, type_ref: SteeringFunctionality}
+      - {name: SteeringMode,          presence: C, type_ref: SteeringMode}
+      - {name: UpdateAccessForwardingActionInformation1, presence: C, type_ref: UpdateAccessForwardingActionInformation1}
+      - {name: UpdateAccessForwardingActionInformation2, presence: C, type_ref: UpdateAccessForwardingActionInformation2}
+
+  - name: UpdateAccessForwardingActionInformation1
+    type_code: 175
+    description: "Update Access Forwarding Action Information 1 (grouped)"
+    grouped: true
+    members:
+      - {name: FARID,    presence: C, type_ref: FARID}
+      - {name: Weight,   presence: C, type_ref: Weight}
+      - {name: PriorityIE, presence: C, type_ref: PriorityIE}
+      - {name: URRID,    presence: C, type_ref: URRID, multiple: true}
+
+  - name: UpdateAccessForwardingActionInformation2
+    type_code: 176
+    description: "Update Access Forwarding Action Information 2 (grouped)"
+    grouped: true
+    members:
+      - {name: FARID,    presence: C, type_ref: FARID}
+      - {name: Weight,   presence: C, type_ref: Weight}
+      - {name: PriorityIE, presence: C, type_ref: PriorityIE}
+      - {name: URRID,    presence: C, type_ref: URRID, multiple: true}
+
+  - name: PFCPSessionRetentionInformation
+    type_code: 183
+    description: "PFCP Session Retention Information (grouped)"
+    grouped: true
+    members:
+      - {name: CPPFCPEntityIPAddress, presence: M, type_ref: CPPFCPEntityIPAddress}
+
+  - name: UserPlanePathRecoveryReport
+    type_code: 187
+    description: "User Plane Path Recovery Report (grouped)"
+    grouped: true
+    members:
+      - {name: RemoteGTPUPeer, presence: M, type_ref: RemoteGTPUPeer, multiple: true}
+
+  - name: IPMulticastAddressingInfo
+    type_code: 188
+    description: "IP Multicast Addressing Info (grouped)"
+    grouped: true
+    members:
+      - {name: IPMulticastAddress, presence: M, type_ref: IPMulticastAddress}
+      - {name: SourceIPAddress,    presence: C, type_ref: SourceIPAddress}
+
+  - name: JoinIPMulticastInformationUsageReport
+    type_code: 189
+    description: "Join IP Multicast Information IE within Usage Report (grouped)"
+    grouped: true
+    members:
+      - {name: IPMulticastAddress, presence: M, type_ref: IPMulticastAddress}
+      - {name: SourceIPAddress,    presence: C, type_ref: SourceIPAddress}
+
+  - name: LeaveIPMulticastInformationUsageReport
+    type_code: 190
+    description: "Leave IP Multicast Information IE within Usage Report (grouped)"
+    grouped: true
+    members:
+      - {name: IPMulticastAddress, presence: M, type_ref: IPMulticastAddress}
+      - {name: SourceIPAddress,    presence: C, type_ref: SourceIPAddress}
+
+  - name: ClockDriftControlInformation
+    type_code: 199
+    description: "Clock Drift Control Information (grouped)"
+    grouped: true
+    members:
+      - {name: RequestedClockDriftInformation, presence: M, type_ref: RequestedClockDriftInformation}
+      - {name: TSNTimeDomainNumber,            presence: C, type_ref: TSNTimeDomainNumber, multiple: true}
+      - {name: TimeOffsetThreshold,            presence: C, type_ref: TimeOffsetThreshold}
+      - {name: CumulativeRateRatioThreshold,   presence: C, type_ref: CumulativeRateRatioThreshold}
+
+  - name: ClockDriftReport
+    type_code: 201
+    description: "Clock Drift Report (grouped)"
+    grouped: true
+    members:
+      - {name: TSNTimeDomainNumber,            presence: M, type_ref: TSNTimeDomainNumber}
+      - {name: TimeOffsetMeasurement,          presence: C, type_ref: TimeOffsetMeasurement}
+      - {name: CumulativeRateRatioMeasurement, presence: C, type_ref: CumulativeRateRatioMeasurement}
+      - {name: EventTimeStamp,                 presence: C, type_ref: EventTimeStamp}
+
+  - name: CreateSRR
+    type_code: 208
+    description: "Create SRR (grouped)"
+    grouped: true
+    members:
+      - {name: SRRID, presence: M, type_ref: SRRID}
+      - {name: AccessAvailabilityControlInformation, presence: C, type_ref: AccessAvailabilityControlInformation}
+
+  - name: UpdateSRR
+    type_code: 209
+    description: "Update SRR (grouped)"
+    grouped: true
+    members:
+      - {name: SRRID, presence: M, type_ref: SRRID}
+      - {name: AccessAvailabilityControlInformation, presence: C, type_ref: AccessAvailabilityControlInformation}
+
+  - name: SessionReport
+    type_code: 210
+    description: "Session Report (grouped)"
+    grouped: true
+    members:
+      - {name: SRRID,                   presence: M, type_ref: SRRID}
+      - {name: AccessAvailabilityReport, presence: C, type_ref: AccessAvailabilityReport}
+
+  - name: AccessAvailabilityControlInformation
+    type_code: 212
+    description: "Access Availability Control Information (grouped)"
+    grouped: true
+    members:
+      - {name: RequestedAccessAvailabilityInformation, presence: M, type_ref: RequestedAccessAvailabilityInformation}
+
+  - name: AccessAvailabilityReport
+    type_code: 214
+    description: "Access Availability Report (grouped)"
+    grouped: true
+    members:
+      - {name: AccessAvailabilityInformation, presence: M, type_ref: AccessAvailabilityInformation}
+
+  - name: ProvideATSSSControlInformation
+    type_code: 216
+    description: "Provide ATSSS Control Information (grouped)"
+    grouped: true
+    members:
+      - {name: MPTCPControlInformation,     presence: C, type_ref: MPTCPControlInformation}
+      - {name: ATSSSLLControlInformation,   presence: C, type_ref: ATSSSLLControlInformation}
+      - {name: PMFControlInformation,       presence: C, type_ref: PMFControlInformation}
+
+  - name: ATSSSControlParameters
+    type_code: 217
+    description: "ATSSS Control Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: MPTCPParameters,   presence: C, type_ref: MPTCPParameters}
+      - {name: ATSSSLLParameters, presence: C, type_ref: ATSSSLLParameters}
+      - {name: PMFParameters,     presence: C, type_ref: PMFParameters}
+
+  - name: MPTCPParameters
+    type_code: 221
+    description: "MPTCP Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: MPTCPAddressInformation, presence: M, type_ref: MPTCPAddressInformation}
+      - {name: UELinkSpecificIPAddress, presence: M, type_ref: UELinkSpecificIPAddress}
+
+  - name: ATSSSLLParameters
+    type_code: 222
+    description: "ATSSS-LL Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: ATSSSLLInformation, presence: M, type_ref: ATSSSLLInformation}
+
+  - name: PMFParameters
+    type_code: 223
+    description: "PMF Parameters (grouped)"
+    grouped: true
+    members:
+      - {name: PMFAddressInformation, presence: M, type_ref: PMFAddressInformation}
+
+  - name: UEIPAddressPoolInformation
+    type_code: 229
+    description: "UE IP address Pool Information (grouped)"
+    grouped: true
+    members:
+      - {name: UEIPAddressPoolIdentity, presence: M, type_ref: UEIPAddressPoolIdentity}
+      - {name: NetworkInstance,         presence: C, type_ref: NetworkInstance, multiple: true}
+      - {name: SNSSAI,                  presence: C, type_ref: SNSSAI}
+      - {name: IPVersion,               presence: C, type_ref: PDNType}

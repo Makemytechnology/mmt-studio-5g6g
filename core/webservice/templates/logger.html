@@ -1,0 +1,564 @@
+<!-- templates/logger.html -->
+<div class="accordion mb-4" id="loggerSettingsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="loggerSettingsHeader">
+      <button id="loggerSettingsToggleBtn"
+        class="accordion-button bg-secondary text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="loggerSettingsCollapse">
+        <div class="w-100">Logger Settings</div>
+      </button>
+    </h2>
+    <div id="loggerSettingsCollapse" class="accordion-collapse collapse show"
+         aria-labelledby="loggerSettingsHeader">
+      <div class="accordion-body">
+
+        <!-- Row 1: IMSI Filter + Apply/Clear -->
+        <div class="row g-2 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label">IMSI Filter (comma-separated, empty = all)</label>
+            <input id="logImsiFilter" type="text" class="form-control"
+                   placeholder="001010000000001, 001010000000002"
+                   inputmode="latin" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="col-md-3 d-flex gap-2 align-items-end">
+            <button id="btnLogApply" type="button" class="btn btn-primary">Apply</button>
+            <button id="btnLogClear" type="button" class="btn btn-outline-danger">Clear</button>
+          </div>
+        </div>
+
+        <!-- Row 2: Log File -->
+        <div class="row g-2 align-items-end mt-2">
+          <div class="col-md-1">
+            <div class="form-check form-switch mt-3">
+              <input class="form-check-input" type="checkbox" id="logFileEnabled">
+              <label class="form-check-label small" for="logFileEnabled">File</label>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Log File Path</label>
+            <input id="logFilePath" type="text" class="form-control form-control-sm"
+                   placeholder="/var/log/sacore/sacore.log"
+                   inputmode="latin" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="col-md-3 d-flex gap-1">
+            <button id="btnLogFileSave" type="button" class="btn btn-outline-primary btn-sm">Save</button>
+            <button id="btnLogFileView" type="button" class="btn btn-outline-info btn-sm">View</button>
+            <button id="btnLogFileClear" type="button" class="btn btn-outline-danger btn-sm">Clear Log</button>
+          </div>
+          <div class="col-md-2">
+            <button id="btnLogDownload" type="button" class="btn btn-outline-secondary btn-sm">Download Buffer</button>
+          </div>
+          <div class="col-md-2 text-end">
+            <div class="form-check form-switch d-inline-block">
+              <input class="form-check-input" type="checkbox" id="logAutoScroll" checked>
+              <label class="form-check-label" for="logAutoScroll">Auto-scroll</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div id="loggerStatus" class="mt-2 small text-muted"></div>
+
+        <!-- Presets -->
+        <div class="mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="m-0">Presets</h6>
+            <div class="d-flex gap-1">
+              <button class="btn btn-outline-secondary btn-sm" onclick="modDiscover()">Auto-Discover</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="modResetCounts()">Reset Counts</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="modExport()">Export</button>
+            </div>
+          </div>
+          <div class="d-flex gap-1 flex-wrap mb-2" id="presetBar"></div>
+        </div>
+
+        <!-- Per-Module Logger Config (hierarchical, default closed) -->
+        <div class="card mt-2">
+          <div class="card-header bg-secondary text-white fw-bold py-2" style="cursor:pointer"
+               onclick="var b=document.getElementById('modLevelsBody'); b.style.display=b.style.display==='none'?'':'none'; this.querySelector('span').textContent=b.style.display==='none'?'►':'▼';">
+            <span>►</span> Per-Module Log Levels
+          </div>
+          <div id="modLevelsBody" style="display:none;">
+            <div class="card-body p-2">
+              <div id="modGroups" style="max-height:400px; overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log Viewer -->
+<div class="accordion mb-4" id="logViewerAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="logViewerHeader">
+      <button id="logViewerToggleBtn"
+        class="accordion-button bg-dark text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="logViewerCollapse">
+        <div class="w-100">
+          Live Logs
+          <span id="logCountBadge" class="badge bg-light text-dark ms-2">0</span>
+          <span id="logPausedBadge" class="badge bg-warning text-dark ms-2 d-none">PAUSED</span>
+        </div>
+      </button>
+    </h2>
+    <div id="logViewerCollapse" class="accordion-collapse collapse show"
+         aria-labelledby="logViewerHeader">
+      <div class="accordion-body p-0">
+
+        <!-- Column Headers -->
+        <div id="logHeader" class="d-flex"
+             style="background:#2d2d2d; border-bottom:2px solid #444; padding:6px 10px;
+                    font-family:'Cascadia Code','Fira Code','Consolas','Courier New',monospace;
+                    font-size:12px; font-weight:700; color:#aaa; letter-spacing:0.5px;">
+          <div style="width:180px; flex-shrink:0;">TIME</div>
+          <div style="width:70px; flex-shrink:0;">LEVEL</div>
+          <div style="width:200px; flex-shrink:0;">MODULE</div>
+          <div style="width:140px; flex-shrink:0;">IMSI</div>
+          <div style="flex:1; min-width:200px;">MESSAGE</div>
+        </div>
+
+        <!-- Log Rows -->
+        <div id="logContainer"
+             style="height:500px; overflow-y:auto; background:#1a1a1a;">
+          <div id="logTableBody">
+            <!-- log rows inserted here -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .log-row {
+    display: flex;
+    padding: 3px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    font-family: 'Cascadia Code','Fira Code','Consolas','Courier New', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.3px;
+  }
+  .log-row:hover { background: #252525; }
+  .log-row .log-ts    { width:180px; flex-shrink:0; color:#6a6a6a; white-space:nowrap; }
+  .log-row .log-level { width:70px;  flex-shrink:0; font-weight:700; text-transform:uppercase; }
+  .log-row .log-mod   { width:200px; flex-shrink:0; color:#5c9fd6; }
+  .log-row .log-imsi  { width:140px; flex-shrink:0; color:#c78352; font-weight:600; }
+  .log-row .log-msg   { flex:1; min-width:200px; color:#ccc; white-space:pre-wrap; word-break:break-word; }
+
+  /* Level colors */
+  .log-row .log-level.lv-DEBUG   { color:#4a90d9; }
+  .log-row .log-level.lv-INFO    { color:#3dbd7d; }
+  .log-row .log-level.lv-WARNING { color:#d9a825; }
+  .log-row .log-level.lv-ERROR   { color:#e74c3c; }
+
+  /* Row background tint for errors/warnings */
+  .log-row.row-ERROR   { background:#2a1515; }
+  .log-row.row-WARNING { background:#2a2515; }
+  .log-row.row-ERROR:hover   { background:#351a1a; }
+  .log-row.row-WARNING:hover { background:#352e1a; }
+
+  /* Bold message text for errors */
+  .log-row.row-ERROR .log-msg { color:#f08080; font-weight:600; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+    /* ── Elements ── */
+    const imsiInput    = document.getElementById('logImsiFilter');
+    const btnApply     = document.getElementById('btnLogApply');
+    const btnClear     = document.getElementById('btnLogClear');
+    const fileEnabled  = document.getElementById('logFileEnabled');
+    const fileInput    = document.getElementById('logFilePath');
+    const btnFileSave  = document.getElementById('btnLogFileSave');
+    const btnFileView  = document.getElementById('btnLogFileView');
+    const btnFileClear = document.getElementById('btnLogFileClear');
+    const btnDownload  = document.getElementById('btnLogDownload');
+    const autoScroll   = document.getElementById('logAutoScroll');
+    const statusDiv    = document.getElementById('loggerStatus');
+    const logBody      = document.getElementById('logTableBody');
+    const logContainer = document.getElementById('logContainer');
+    const countBadge   = document.getElementById('logCountBadge');
+    const pausedBadge  = document.getElementById('logPausedBadge');
+
+    /* ── Accordion toggles ── */
+    const settingsBtn = document.getElementById('loggerSettingsToggleBtn');
+    const settingsEl  = document.getElementById('loggerSettingsCollapse');
+    const viewerBtn   = document.getElementById('logViewerToggleBtn');
+    const viewerEl    = document.getElementById('logViewerCollapse');
+
+    try {
+      if (settingsBtn && !settingsBtn.dataset.bound && window.bootstrap) {
+        settingsBtn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(settingsEl, {toggle:false});
+        settingsBtn.addEventListener('click', () => inst.toggle());
+      }
+      if (viewerBtn && !viewerBtn.dataset.bound && window.bootstrap) {
+        viewerBtn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(viewerEl, {toggle:false});
+        viewerBtn.addEventListener('click', () => inst.toggle());
+      }
+    } catch(e) { console.warn('Logger accordion init:', e); }
+
+    /* ── State ── */
+    let lastSeq = 0;
+    let polling = true;
+    let pollTimer = null;
+    let viewLevelFilter = '';
+    let viewModuleFilter = '';
+
+    const status = (msg, ok=true) => {
+      statusDiv.textContent = msg;
+      statusDiv.className = 'mt-2 small ' + (ok ? 'text-success' : 'text-danger');
+      setTimeout(() => { statusDiv.textContent = ''; statusDiv.className = 'mt-2 small text-muted'; }, 4000);
+    };
+
+    /* ── Load current settings ── */
+    const loadSettings = async () => {
+      try {
+        const r = await fetch('/api/logger/settings');
+        const d = await r.json();
+        imsiInput.value = (d.imsi_filter || []).join(', ');
+        fileEnabled.checked = !!d.log_file_enabled;
+        fileInput.value = d.log_file_path || d.log_file || '';
+      } catch(e) { status('Failed to load settings', false); }
+    };
+
+    /* ── Apply settings ── */
+    btnApply.addEventListener('click', async () => {
+      const imsiList = imsiInput.value.split(',').map(s=>s.trim()).filter(Boolean);
+      try {
+        const r = await fetch('/api/logger/settings', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({imsi_filter: imsiList})
+        });
+        const d = await r.json();
+        if (d.ok) status('IMSI filter applied');
+        else status(d.error || 'Failed', false);
+      } catch(e) { status('Request failed', false); }
+    });
+
+    /* ── Clear buffer ── */
+    btnClear.addEventListener('click', async () => {
+      try {
+        await fetch('/api/logger/clear', {method:'POST'});
+        logBody.innerHTML = '';
+        lastSeq = 0;
+        countBadge.textContent = '0';
+        status('Log buffer cleared');
+      } catch(e) { status('Failed to clear', false); }
+    });
+
+    /* ── Save log file settings (persisted to DB) ── */
+    btnFileSave.addEventListener('click', async () => {
+      try {
+        const r = await fetch('/api/logger/settings', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            log_file_enabled: fileEnabled.checked ? 1 : 0,
+            log_file_path: fileInput.value.trim()
+          })
+        });
+        const d = await r.json();
+        if (d.ok) status(fileEnabled.checked ? 'Log file enabled: ' + fileInput.value : 'Log file disabled');
+        else status(d.error || 'Failed', false);
+      } catch(e) { status('Request failed', false); }
+    });
+
+    /* ── View log file ── */
+    btnFileView.addEventListener('click', async () => {
+      try {
+        const r = await fetch('/api/logger/view-log-file');
+        const d = await r.json();
+        if (!d.ok) { status(d.error || 'No log file', false); return; }
+        const w = window.open('', '_blank', 'width=1000,height=700,scrollbars=yes');
+        w.document.write('<html><head><title>SA Core Log — ' + d.path + '</title>');
+        w.document.write('<style>body{background:#1a1a1a;color:#d4d4d4;font-family:monospace;font-size:12px;white-space:pre-wrap;padding:10px;margin:0;}');
+        w.document.write('.line-err{color:#f44;} .line-warn{color:#fb0;} .line-info{color:#4c4;} .line-debug{color:#68f;}</style></head><body>');
+        const lines = d.content.split('\n');
+        lines.forEach(l => {
+          let cls = '';
+          if (l.includes(' ERROR ')) cls = 'line-err';
+          else if (l.includes(' WARNING ')) cls = 'line-warn';
+          else if (l.includes(' INFO ')) cls = 'line-info';
+          else if (l.includes(' DEBUG ')) cls = 'line-debug';
+          const safe = l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          w.document.write(cls ? '<span class="'+cls+'">'+safe+'</span>\n' : safe+'\n');
+        });
+        w.document.write('</body></html>');
+        w.document.close();
+        status('Log file opened (' + d.size_kb + ' KB, ' + d.lines + ' lines)');
+      } catch(e) { status('Failed to view log file', false); }
+    });
+
+    /* ── Clear log file ── */
+    btnFileClear.addEventListener('click', async () => {
+      if (!confirm('Clear all log file contents?')) return;
+      try {
+        const r = await fetch('/api/logger/clear-log-file', {method:'POST'});
+        const d = await r.json();
+        if (d.ok) status('Log file cleared: ' + d.cleared);
+        else status(d.error || 'Failed', false);
+      } catch(e) { status('Request failed', false); }
+    });
+
+    /* ── Download buffer ── */
+    btnDownload.addEventListener('click', async () => {
+      try {
+        const r = await fetch('/api/logger/download');
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sacore_logs_' + new Date().toISOString().replace(/[:.]/g,'-') + '.log';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(e) { status('Download failed', false); }
+    });
+
+    /* ── Render a log entry ── */
+    const renderEntry = (e) => {
+      const row = document.createElement('div');
+      const shortModule = e.module.replace('sacore.','');
+      row.className = 'log-row row-' + e.level;
+      row.innerHTML =
+        `<div class="log-ts">${esc(e.ts_fmt)}</div>` +
+        `<div class="log-level lv-${e.level}">${esc(e.level)}</div>` +
+        `<div class="log-mod">${esc(shortModule)}</div>` +
+        `<div class="log-imsi">${e.imsi ? esc(e.imsi) : '<span style="color:#444">\u2014</span>'}</div>` +
+        `<div class="log-msg">${esc(e.message)}</div>`;
+      return row;
+    };
+
+    const esc = (s) => {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    };
+
+    /* ── Poll for new log entries ── */
+    const poll = async () => {
+      if (!polling) return;
+      try {
+        const params = new URLSearchParams({after_seq: lastSeq, limit: 200});
+        // Apply viewer-side filters
+        // Level and module filters now controlled per-module in the table below
+
+        const r = await fetch('/api/logger/entries?' + params);
+        const d = await r.json();
+        if (d.entries && d.entries.length > 0) {
+          const frag = document.createDocumentFragment();
+          for (const e of d.entries) {
+            lastSeq = Math.max(lastSeq, e.seq);
+            frag.appendChild(renderEntry(e));
+          }
+          logBody.appendChild(frag);
+          countBadge.textContent = logBody.children.length;
+
+          // Trim DOM to 2000 rows max
+          while (logBody.children.length > 2000) {
+            logBody.removeChild(logBody.firstChild);
+          }
+
+          // Auto-scroll
+          if (autoScroll.checked) {
+            logContainer.scrollTop = logContainer.scrollHeight;
+          }
+        }
+      } catch(e) { /* silent */ }
+      pollTimer = setTimeout(poll, 1000);
+    };
+
+    /* ── Pause/resume on scroll ── */
+    let userScrolled = false;
+    logContainer.addEventListener('scroll', () => {
+      const atBottom = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 30;
+      if (!atBottom && autoScroll.checked) {
+        // User scrolled up — don't force scroll
+      }
+    });
+
+    /* ── Tab visibility — pause polling when tab not active ── */
+    const tabPane = document.getElementById('logger');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        const isActive = tabPane.classList.contains('active');
+        if (isActive && !polling) {
+          polling = true;
+          pausedBadge.classList.add('d-none');
+          poll();
+        } else if (!isActive && polling) {
+          polling = false;
+          pausedBadge.classList.remove('d-none');
+          if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+        }
+      });
+      observer.observe(tabPane, {attributes: true, attributeFilter: ['class']});
+    }
+
+    /* ── Presets ── */
+    const presetBar = document.getElementById('presetBar');
+
+    const loadPresets = async () => {
+      try {
+        const r = await fetch('/api/logger/presets');
+        const presets = await r.json();
+        presetBar.innerHTML = '';
+        presets.forEach(p => {
+          const cls = p.is_builtin ? 'btn-outline-primary' : 'btn-outline-success';
+          presetBar.innerHTML += `<button class="btn ${cls} btn-sm" onclick="modApplyPreset('${p.name}')"
+            title="${p.description}">${p.name}</button>`;
+        });
+        presetBar.innerHTML += `<button class="btn btn-outline-secondary btn-sm" onclick="modSavePreset()">Save Current</button>`;
+      } catch(e) {}
+    };
+
+    window.modApplyPreset = async (name) => {
+      await fetch('/api/logger/presets/apply/' + encodeURIComponent(name), {method:'POST'});
+      status('Preset "' + name + '" applied');
+      loadModules();
+    };
+
+    window.modSavePreset = async () => {
+      const name = prompt('Preset name:');
+      if (!name) return;
+      await fetch('/api/logger/presets/save', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name, description: 'Custom preset'})
+      });
+      status('Preset "' + name + '" saved');
+      loadPresets();
+    };
+
+    /* ── Per-module config (hierarchical) ── */
+    const modGroupsEl = document.getElementById('modGroups');
+
+    const loadModules = async () => {
+      try {
+        const r = await fetch('/api/logger/modules');
+        const groups = await r.json();
+        renderGroups(groups);
+      } catch(e) {}
+    };
+
+    const renderGroups = (groups) => {
+      if (!groups.length) { modGroupsEl.innerHTML = '<p class="text-muted small">No modules</p>'; return; }
+      let html = '';
+      groups.forEach((g, gi) => {
+        const enCount = g.enabled_count;
+        const total = g.total;
+        const allEnabled = enCount === total;
+        const badge = allEnabled ? 'bg-success' : enCount > 0 ? 'bg-warning' : 'bg-secondary';
+        html += `<div class="card mb-1">`;
+        html += `<div class="card-header py-1 px-2 d-flex justify-content-between align-items-center" style="cursor:pointer; font-size:13px;"
+          onclick="document.getElementById('grp-${gi}').classList.toggle('d-none')">`;
+        html += `<span><strong>${g.name}</strong> <span class="badge ${badge}">${enCount}/${total}</span></span>`;
+        html += `<span class="d-flex gap-1">`;
+        html += `<select class="form-select form-select-sm" style="width:85px;font-size:11px" onclick="event.stopPropagation()"
+          onchange="modGroupLevel('${g.name}',this.value)">
+          <option value="DEBUG">DEBUG</option><option value="INFO" selected>INFO</option>
+          <option value="WARNING">WARN</option><option value="ERROR">ERROR</option></select>`;
+        html += `<button class="btn btn-outline-success btn-sm py-0 px-1" style="font-size:10px" onclick="event.stopPropagation();modGroupEnable('${g.name}',true)">All On</button>`;
+        html += `<button class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:10px" onclick="event.stopPropagation();modGroupEnable('${g.name}',false)">All Off</button>`;
+        html += `</span></div>`;
+        html += `<div class="d-none" id="grp-${gi}">`;
+        html += `<table class="table table-sm mb-0" style="font-size:11px;">`;
+        html += `<thead class="table-light"><tr><th>Module</th><th>Enabled</th><th>Level</th><th>Count</th></tr></thead><tbody>`;
+        (g.modules || []).forEach(m => {
+          const cnt = m.log_count || 0;
+          const cntCls = cnt > 10000 ? 'text-danger fw-bold' : cnt > 1000 ? 'text-warning' : 'text-muted';
+          html += `<tr>`;
+          html += `<td><code>${m.module}</code><br><span class="text-muted" style="font-size:10px">${m.description||''}</span></td>`;
+          html += `<td><input type="checkbox" class="form-check-input" ${m.enabled?'checked':''}
+            onchange="modToggle('${m.module}',this.checked)"></td>`;
+          html += `<td><select class="form-select form-select-sm" style="width:80px;font-size:10px"
+            onchange="modSetLevel('${m.module}',this.value)">
+            <option ${m.level==='DEBUG'?'selected':''}>DEBUG</option>
+            <option ${m.level==='INFO'?'selected':''}>INFO</option>
+            <option ${m.level==='WARNING'?'selected':''}>WARNING</option>
+            <option ${m.level==='ERROR'?'selected':''}>ERROR</option></select></td>`;
+          html += `<td class="${cntCls}">${cnt.toLocaleString()}</td>`;
+          html += `</tr>`;
+        });
+        html += `</tbody></table></div></div>`;
+      });
+      modGroupsEl.innerHTML = html;
+    };
+
+    window.modToggle = async (module, enabled) => {
+      await fetch('/api/logger/modules/' + encodeURIComponent(module), {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({enabled: enabled ? 1 : 0})
+      });
+    };
+
+    window.modSetLevel = async (module, level) => {
+      await fetch('/api/logger/modules/' + encodeURIComponent(module), {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({level})
+      });
+    };
+
+    window.modGroupLevel = async (group, level) => {
+      await fetch('/api/logger/group/' + encodeURIComponent(group) + '/level', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({level})
+      });
+      status(group + ' → ' + level);
+      loadModules();
+    };
+
+    window.modGroupEnable = async (group, enabled) => {
+      await fetch('/api/logger/group/' + encodeURIComponent(group) + '/enable', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({enabled})
+      });
+      loadModules();
+    };
+
+    window.modDiscover = async () => {
+      const r = await fetch('/api/logger/discover', {method:'POST'});
+      const d = await r.json();
+      status('Discovered ' + (d.added||0) + ' new modules');
+      loadModules();
+    };
+
+    window.modResetCounts = async () => {
+      await fetch('/api/logger/reset-counts', {method:'POST'});
+      status('Log counts reset');
+      loadModules();
+    };
+
+    window.modExport = async () => {
+      const r = await fetch('/api/logger/export');
+      const d = await r.json();
+      const blob = new Blob([JSON.stringify(d, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'logger_config.json';
+      a.click();
+    };
+
+    /* ── Start ── */
+    loadSettings();
+    loadPresets();
+    loadModules();
+    poll();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

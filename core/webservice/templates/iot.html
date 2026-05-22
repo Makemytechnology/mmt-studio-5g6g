@@ -1,0 +1,146 @@
+<!-- templates/iot.html — IoT Dashboard (RedCap, NB-IoT, Ambient) -->
+
+<style>
+.iot-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.iot-card .i-val { font-size: 1.5rem; font-weight: 700; }
+.iot-card .i-lbl { font-size: 0.78rem; opacity: 0.9; }
+.ic-blue { background: #0d6efd; }
+.ic-green { background: #28a745; }
+.ic-orange { background: #fd7e14; }
+.ic-purple { background: #6f42c1; }
+.ic-gray { background: #6c757d; }
+.iot-section { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #f8f9fa; }
+.iot-section h6 { margin-bottom: 8px; font-size: 0.9rem; }
+.iot-kv { font-size: 0.82rem; color: #333; }
+.iot-kv span { margin-right: 14px; }
+.tag-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; margin-right: 4px; }
+.tag-A { background: #6c757d; }
+.tag-B { background: #0d6efd; }
+.tag-C { background: #28a745; }
+</style>
+
+<!-- Summary -->
+<div class="row g-2 mb-3" id="iotSummary">
+  <div class="col"><div class="iot-card ic-blue"><div class="i-val" id="iotTotal">--</div><div class="i-lbl">Total IoT Devices</div></div></div>
+  <div class="col"><div class="iot-card ic-green"><div class="i-val" id="iotNbiot">--</div><div class="i-lbl">NB-IoT</div></div></div>
+  <div class="col"><div class="iot-card ic-purple"><div class="i-val" id="iotTags">--</div><div class="i-lbl">Ambient Tags</div></div></div>
+  <div class="col"><div class="iot-card ic-orange"><div class="i-val" id="iotSleeping">--</div><div class="i-lbl">PSM Sleeping</div></div></div>
+  <div class="col"><div class="iot-card ic-gray"><div class="i-val" id="iotNidd">--</div><div class="i-lbl">NIDD Sessions</div></div></div>
+</div>
+
+<div class="row g-3">
+  <!-- NB-IoT Section -->
+  <div class="col-md-6">
+    <div class="iot-section">
+      <h6 class="fw-bold">NB-IoT / LTE-M</h6>
+      <div class="iot-kv" id="iotNbiotDetail">Loading...</div>
+    </div>
+    <div class="iot-section">
+      <h6 class="fw-bold">PSM Status</h6>
+      <div id="iotPsmList" style="max-height:200px;overflow-y:auto"><small class="text-muted">No PSM devices</small></div>
+    </div>
+    <div class="iot-section">
+      <h6 class="fw-bold">CP CIoT Data</h6>
+      <div class="iot-kv" id="iotCpData">Loading...</div>
+    </div>
+  </div>
+  <!-- Ambient IoT Section -->
+  <div class="col-md-6">
+    <div class="iot-section">
+      <h6 class="fw-bold">Ambient IoT Tags</h6>
+      <div class="iot-kv" id="iotTagStats">Loading...</div>
+      <div id="iotTagList" class="mt-2" style="max-height:200px;overflow-y:auto"></div>
+    </div>
+    <div class="iot-section">
+      <h6 class="fw-bold">IoT Readers</h6>
+      <div id="iotReaderList"><small class="text-muted">No readers</small></div>
+    </div>
+    <div class="iot-section">
+      <h6 class="fw-bold">NIDD Sessions</h6>
+      <div id="iotNiddList"><small class="text-muted">No sessions</small></div>
+    </div>
+  </div>
+</div>
+
+<div class="text-end mt-2">
+  <small class="text-muted" id="iotTs">Last updated: --</small>
+  <button class="btn btn-sm btn-outline-secondary ms-1" onclick="iotLoad()">Refresh</button>
+</div>
+
+<script>
+function iotLoad() {
+  // Dashboard stats
+  fetch('/api/iot/dashboard').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    document.getElementById('iotTotal').textContent = d.total_iot_devices || 0;
+    document.getElementById('iotNbiot').textContent = d.nbiot?.total || 0;
+    document.getElementById('iotTags').textContent = d.ambient?.total_tags || 0;
+    document.getElementById('iotSleeping').textContent = d.nbiot?.psm_sleeping || 0;
+    document.getElementById('iotNidd').textContent = d.nidd?.active_sessions || 0;
+
+    // NB-IoT detail
+    const nb = d.nbiot || {};
+    document.getElementById('iotNbiotDetail').innerHTML =
+      `<span>Devices: ${nb.total||0}</span><span>PSM Sleeping: ${nb.psm_sleeping||0}</span><span>CP Messages: ${nb.cp_messages||0}</span><span>DL Pending: ${nb.dl_pending||0}</span>`;
+
+    // Tag stats
+    const amb = d.ambient || {};
+    let tagHtml = `<span>Total: ${amb.total_tags||0}</span><span>Readers: ${amb.readers||0} (${amb.active_readers||0} active)</span>`;
+    for (const [cls, cnt] of Object.entries(amb.by_class||{})) {
+      tagHtml += `<span class="tag-badge tag-${cls}">Class ${cls}: ${cnt}</span>`;
+    }
+    document.getElementById('iotTagStats').innerHTML = tagHtml;
+  }).catch(()=>{});
+
+  // PSM list
+  fetch('/api/iot/nbiot/psm').then(r=>r.json()).then(d => {
+    const div = document.getElementById('iotPsmList');
+    if (!d.ok || !d.states.length) { div.innerHTML = '<small class="text-muted">No PSM devices</small>'; return; }
+    div.innerHTML = d.states.map(s => {
+      const badge = s.psm_state==='sleeping' ? '<span class="badge bg-warning text-dark">Sleeping</span>' :
+                    s.psm_state==='active' ? '<span class="badge bg-success">Active</span>' :
+                    '<span class="badge bg-secondary">'+s.psm_state+'</span>';
+      return `<div class="iot-kv" style="border-bottom:1px solid #eee;padding:2px 0"><span>${s.imsi}</span>${badge}<span>T3324=${s.t3324_sec}s T3412=${s.t3412_ext_sec}s</span></div>`;
+    }).join('');
+  }).catch(()=>{});
+
+  // CP data stats
+  fetch('/api/iot/nbiot/cp-data').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    document.getElementById('iotCpData').innerHTML =
+      `<span>UL: ${d.ul_messages||0}</span><span>DL: ${d.dl_messages||0}</span><span>DL Pending: ${d.dl_pending||0}</span>`;
+  }).catch(()=>{});
+
+  // Tags
+  fetch('/api/iot/tags?limit=20').then(r=>r.json()).then(d => {
+    const div = document.getElementById('iotTagList');
+    if (!d.ok || !d.tags.length) { div.innerHTML = ''; return; }
+    div.innerHTML = d.tags.map(t => {
+      const seen = t.last_seen_at ? new Date(t.last_seen_at*1000).toLocaleString() : 'Never';
+      return `<div class="iot-kv" style="border-bottom:1px solid #eee;padding:2px 0"><span class="tag-badge tag-${t.tag_class}">${t.tag_class}</span><span>${t.tag_id}</span><span>${t.tag_type}</span><span>Last: ${seen}</span></div>`;
+    }).join('');
+  }).catch(()=>{});
+
+  // Readers
+  fetch('/api/iot/readers').then(r=>r.json()).then(d => {
+    const div = document.getElementById('iotReaderList');
+    if (!d.ok || !d.readers.length) { div.innerHTML = '<small class="text-muted">No readers</small>'; return; }
+    div.innerHTML = d.readers.map(r =>
+      `<div class="iot-kv" style="border-bottom:1px solid #eee;padding:2px 0"><span>${r.reader_id}</span><span class="badge ${r.status==='active'?'bg-success':'bg-secondary'}">${r.status}</span><span>gNB: ${r.gnb_ip||'N/A'}</span></div>`
+    ).join('');
+  }).catch(()=>{});
+
+  // NIDD
+  fetch('/api/iot/nidd/sessions').then(r=>r.json()).then(d => {
+    const div = document.getElementById('iotNiddList');
+    if (!d.ok || !d.sessions.length) { div.innerHTML = '<small class="text-muted">No sessions</small>'; return; }
+    div.innerHTML = d.sessions.map(s =>
+      `<div class="iot-kv" style="border-bottom:1px solid #eee;padding:2px 0"><span>${s.session_id}</span><span>${s.imsi}</span><span>→ ${s.app_server_url}</span><span class="badge ${s.status==='active'?'bg-success':'bg-secondary'}">${s.status}</span></div>`
+    ).join('');
+  }).catch(()=>{});
+
+  document.getElementById('iotTs').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+}
+
+document.querySelector('a[href="#iot-tab"]')?.addEventListener('shown.bs.tab', iotLoad);
+</script>

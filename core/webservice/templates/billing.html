@@ -1,0 +1,159 @@
+<!-- templates/billing.html — Billing / Charging (TS 32.290) -->
+
+<!-- Dashboard -->
+<div class="row g-2 mb-3">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="blRevenue">$0</div><div class="small text-muted">Revenue</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="blCdrs">0</div><div class="small text-muted">Total CDRs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="blPending">0</div><div class="small text-muted">Pending</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="blInvoices">0</div><div class="small text-muted">Invoices</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="blBalances">0</div><div class="small text-muted">Active Balances</div></div></div>
+</div>
+
+<!-- CDR Viewer -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="blCdrBtn" class="accordion-button bg-primary text-white fw-bold" type="button"><div class="w-100 text-center">CDR Records</div></button></h2>
+  <div id="blCdrCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2 mb-2">
+      <div class="col-auto"><input id="blCdrImsi" class="form-control form-control-sm" placeholder="IMSI filter" style="width:160px"></div>
+      <div class="col-auto"><select id="blCdrType" class="form-select form-select-sm" style="width:100px"><option value="">All types</option><option>data</option><option>voice</option><option>video</option></select></div>
+      <div class="col-auto"><select id="blCdrStatus" class="form-select form-select-sm" style="width:110px"><option value="">All status</option><option>pending</option><option>rated</option><option>invoiced</option></select></div>
+      <div class="col-auto"><button id="btnBlCdrSearch" class="btn btn-outline-primary btn-sm">Search</button></div>
+      <div class="col-auto ms-auto"><a href="/api/billing/export-cdrs" class="btn btn-outline-success btn-sm" download>Export CSV</a></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:12px"><thead class="table-light">
+      <tr><th>CDR ID</th><th>IMSI</th><th>Type</th><th>DNN</th><th>Duration</th><th>Volume</th><th>Status</th><th>Created</th></tr>
+    </thead><tbody id="blCdrBody"><tr><td colspan="8" class="text-muted text-center">No CDRs</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Tariff Plans -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="blTariffBtn" class="accordion-button bg-success text-white fw-bold" type="button"><div class="w-100 text-center">Tariff Plans</div></button></h2>
+  <div id="blTariffCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2" style="font-size:12px"><thead class="table-light">
+      <tr><th>Name</th><th>Type</th><th>Unit Cost</th><th>Unit Size</th><th>Currency</th><th>Free Tier</th><th></th></tr>
+    </thead><tbody id="blTariffBody"><tr><td colspan="7" class="text-muted text-center">No tariff plans</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><input id="blTariffName" class="form-control form-control-sm" placeholder="Name" style="width:120px"></div>
+      <div class="col-auto"><select id="blTariffType" class="form-select form-select-sm" style="width:100px"><option>volume</option><option>time</option><option>event</option><option>flat</option></select></div>
+      <div class="col-auto"><input id="blTariffCost" class="form-control form-control-sm" placeholder="Unit cost" value="0.01" style="width:90px" type="number" step="0.001"></div>
+      <div class="col-auto"><input id="blTariffSize" class="form-control form-control-sm" placeholder="Unit size" value="1048576" style="width:100px" type="number"></div>
+      <div class="col-auto"><button id="btnBlAddTariff" class="btn btn-success btn-sm">+ Add</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Balance & Recharge -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="blBalBtn" class="accordion-button bg-warning text-dark fw-bold" type="button"><div class="w-100 text-center">Balances & Recharge</div></button></h2>
+  <div id="blBalCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><input id="blBalImsi" class="form-control form-control-sm" placeholder="IMSI" style="width:160px"></div>
+      <div class="col-auto"><input id="blBalAmount" class="form-control form-control-sm" placeholder="Amount" style="width:90px" type="number" step="0.01"></div>
+      <div class="col-auto"><button id="btnBlRecharge" class="btn btn-warning btn-sm">Recharge</button></div>
+      <div class="col-auto"><button id="btnBlCheckBal" class="btn btn-outline-info btn-sm">Check Balance</button></div>
+    </div>
+    <div id="blBalResult" class="small"></div>
+  </div></div>
+</div></div>
+
+<!-- Actions -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="blActBtn" class="accordion-button bg-info text-white fw-bold" type="button"><div class="w-100 text-center">Rating & Invoicing</div></button></h2>
+  <div id="blActCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="d-flex gap-2">
+      <button id="btnBlRate" class="btn btn-primary btn-sm">Rate Pending CDRs</button>
+      <button id="btnBlInvoice" class="btn btn-outline-primary btn-sm">Generate Monthly Invoices</button>
+    </div>
+    <div id="blActResult" class="mt-2 small"></div>
+  </div></div>
+</div></div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <button id="btnBlRefresh" class="btn btn-primary btn-sm">Refresh</button>
+  <small id="blLastRefresh" class="text-muted"></small>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=s=>{if(s==null)return'-';const e=document.createElement('span');e.textContent=String(s);return e.innerHTML;};
+  const fmtB=b=>{if(b>=1e9)return(b/1e9).toFixed(1)+'GB';if(b>=1e6)return(b/1e6).toFixed(1)+'MB';if(b>=1e3)return(b/1e3).toFixed(1)+'KB';return b+'B';};
+  const fmtT=t=>t?new Date(t*1000).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'-';
+
+  for(const[b,c]of[['blCdrBtn','blCdrCollapse'],['blTariffBtn','blTariffCollapse'],['blBalBtn','blBalCollapse'],['blActBtn','blActCollapse']]){
+    const btn=$(b),col=$(c);if(btn&&col&&!btn.dataset.bound){btn.dataset.bound='1';const inst=bootstrap.Collapse.getOrCreateInstance(col,{toggle:false});btn.addEventListener('click',()=>inst.toggle());}}
+
+  async function poll(){
+    // Dashboard
+    const ds=await(await fetch('/api/billing/dashboard')).json();
+    $('blRevenue').textContent='$'+ds.total_revenue;
+    $('blCdrs').textContent=ds.total||0;
+    $('blPending').textContent=ds.pending||0;
+    $('blInvoices').textContent=ds.invoice_count||0;
+    $('blBalances').textContent=ds.active_balances||0;
+
+    // CDRs
+    await searchCdrs();
+    // Tariffs
+    const tr=await(await fetch('/api/billing/tariff-plans')).json();
+    $('blTariffBody').innerHTML=(tr.tariffs||[]).length?(tr.tariffs||[]).map(t=>
+      `<tr><td>${esc(t.name)}</td><td>${t.charge_type}</td><td>${t.unit_cost}</td>`+
+      `<td>${t.unit_size}</td><td>${t.currency}</td><td>${fmtB(t.free_tier_bytes||0)}</td>`+
+      `<td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="blDelTariff('${esc(t.name)}')">Del</button></td></tr>`
+    ).join(''):'<tr><td colspan="7" class="text-muted text-center">No tariff plans</td></tr>';
+    $('blLastRefresh').textContent='Last: '+new Date().toLocaleTimeString();
+  }
+
+  async function searchCdrs(){
+    const p=new URLSearchParams();
+    if($('blCdrImsi').value)p.set('imsi',$('blCdrImsi').value);
+    if($('blCdrType').value)p.set('type',$('blCdrType').value);
+    if($('blCdrStatus').value)p.set('status',$('blCdrStatus').value);
+    const cr=await(await fetch('/api/billing/cdrs?'+p)).json();
+    $('blCdrBody').innerHTML=(cr.cdrs||[]).length?(cr.cdrs||[]).map(c=>
+      `<tr><td><code style="font-size:10px">${esc(c.cdr_id)}</code></td><td><code>${esc(c.imsi)}</code></td>`+
+      `<td><span class="badge bg-${c.cdr_type==='data'?'primary':c.cdr_type==='voice'?'success':'info'}">${c.cdr_type}</span></td>`+
+      `<td>${esc(c.dnn||c.media_type||'-')}</td><td>${Math.round(c.duration_sec||0)}s</td>`+
+      `<td>${fmtB(c.total_bytes||0)}</td>`+
+      `<td><span class="badge bg-${c.rating_status==='pending'?'warning':c.rating_status==='rated'?'success':'secondary'}">${c.rating_status}</span></td>`+
+      `<td style="font-size:11px">${fmtT(c.created_at)}</td></tr>`
+    ).join(''):'<tr><td colspan="8" class="text-muted text-center">No CDRs</td></tr>';
+  }
+
+  window.blDelTariff=async n=>{if(!confirm('Delete tariff?'))return;await fetch('/api/billing/tariff-plans/'+encodeURIComponent(n),{method:'DELETE'});poll();};
+
+  $('btnBlCdrSearch').addEventListener('click',searchCdrs);
+  $('btnBlAddTariff').addEventListener('click',async()=>{
+    await fetch('/api/billing/tariff-plans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      name:$('blTariffName').value,charge_type:$('blTariffType').value,
+      unit_cost:parseFloat($('blTariffCost').value),unit_size:parseInt($('blTariffSize').value)})});poll();});
+
+  $('btnBlRecharge').addEventListener('click',async()=>{
+    const r=await(await fetch('/api/billing/recharge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      imsi:$('blBalImsi').value,amount:parseFloat($('blBalAmount').value)||0})})).json();
+    $('blBalResult').innerHTML=r.ok?`<span class="text-success">New balance: $${r.new_balance}</span>`:'<span class="text-danger">Failed</span>';});
+
+  $('btnBlCheckBal').addEventListener('click',async()=>{
+    const imsi=$('blBalImsi').value;if(!imsi)return;
+    const r=await(await fetch('/api/billing/balances/'+imsi)).json();
+    const bals=r.balances||[];
+    $('blBalResult').innerHTML=bals.length?bals.map(b=>`<div>${b.balance_type}: <strong>$${b.balance_amount}</strong> (${b.status})</div>`).join(''):'<span class="text-muted">No balance records</span>';});
+
+  $('btnBlRate').addEventListener('click',async()=>{
+    const r=await(await fetch('/api/billing/rate-pending',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
+    $('blActResult').innerHTML=`<span class="text-success">Rated ${r.rated} CDRs — Revenue: $${r.revenue}</span>`;poll();});
+
+  $('btnBlInvoice').addEventListener('click',async()=>{
+    const now=Date.now()/1000;const start=now-30*86400;
+    const r=await(await fetch('/api/billing/generate-invoices',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({period_start:start,period_end:now})})).json();
+    $('blActResult').innerHTML=`<span class="text-success">Generated ${r.count} invoice(s)</span>`;poll();});
+
+  $('btnBlRefresh').addEventListener('click',poll);
+  const tab=document.getElementById('billing-tab');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active'))poll();});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  if(tab&&tab.classList.contains('active'))poll();
+})();
+</script>

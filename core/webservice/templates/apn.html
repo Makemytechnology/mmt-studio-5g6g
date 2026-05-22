@@ -1,0 +1,228 @@
+<!-- APN / DNN Configuration -->
+<h5>APN / DNN Configuration</h5>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    APN List
+    <button class="btn btn-primary btn-sm" onclick="apnShowForm(-1)">Add APN</button>
+  </div>
+  <!-- Inline Add/Edit form (hidden by default) -->
+  <div class="card-body border-bottom bg-light d-none" id="apn-form">
+    <h6 class="mb-2" id="apn-form-title">Add APN</h6>
+    <input type="hidden" id="apn-edit-name" value="">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label small">DNN / APN Name</label>
+        <input type="text" class="form-control form-control-sm" id="apn-name" placeholder="internet"></div>
+      <div class="col-md-2"><label class="form-label small">IPv4 Pool (CIDR)</label>
+        <input type="text" class="form-control form-control-sm" id="apn-pool" placeholder="10.45.0.0/16"></div>
+      <div class="col-md-2"><label class="form-label small">IPv6 Pool (CIDR)</label>
+        <input type="text" class="form-control form-control-sm" id="apn-pool6" placeholder="fd00:45::/64"></div>
+      <div class="col-md-2"><label class="form-label small">AMBR DL (Kbps)</label>
+        <input type="number" class="form-control form-control-sm" id="apn-ambr-dl" value="1000000" min="1"></div>
+      <div class="col-md-2"><label class="form-label small">AMBR UL (Kbps)</label>
+        <input type="number" class="form-control form-control-sm" id="apn-ambr-ul" value="1000000" min="1"></div>
+    </div>
+    <div class="row g-2 align-items-end mt-1">
+      <div class="col-md-2"><label class="form-label small">PDU Session Type</label>
+        <select class="form-select form-select-sm" id="apn-pdu-type">
+          <option value="IPv4" selected>IPv4</option>
+          <option value="IPv6">IPv6</option>
+          <option value="IPv4v6">IPv4v6</option>
+        </select></div>
+      <div class="col-md-1"><label class="form-label small">SSC Mode</label>
+        <select class="form-select form-select-sm" id="apn-ssc-mode">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select></div>
+      <div class="col-md-2"><label class="form-label small">DNS Primary</label>
+        <input type="text" class="form-control form-control-sm" id="apn-dns1" placeholder="8.8.8.8"></div>
+      <div class="col-md-2"><label class="form-label small">DNS Secondary</label>
+        <input type="text" class="form-control form-control-sm" id="apn-dns2" placeholder="8.8.4.4"></div>
+      <div class="col-md-2"><label class="form-label small">P-CSCF Address</label>
+        <input type="text" class="form-control form-control-sm" id="apn-pcscf" placeholder="(IMS only)"></div>
+      <div class="col-md-1"><label class="form-label small">MTU</label>
+        <input type="number" class="form-control form-control-sm" id="apn-mtu" value="1500" min="576" max="9000"></div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="apnSave()">Save</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="apnHideForm()">Cancel</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>DNN / APN</th><th>IPv4 Pool</th><th>IPv6 Pool</th><th>AMBR DL</th><th>AMBR UL</th><th>PDU Type</th><th>SSC</th><th>DNS</th><th>P-CSCF</th><th>MTU</th><th style="width:180px"></th></tr></thead>
+      <tbody id="apn-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// Cache pools per APN for display
+let _apnPools = {};
+
+async function apnLoadList() {
+  try {
+    const r = await fetch('/api/apn');
+    const d = await r.json();
+    const apns = d.items || [];
+    const tb = document.getElementById('apn-list');
+    if (!apns.length) {
+      tb.innerHTML = '<tr><td colspan="11" class="text-muted text-center">No APNs — click <strong>Add APN</strong></td></tr>';
+      _apnPools = {};
+      return;
+    }
+    // Fetch pools for each APN
+    _apnPools = {};
+    await Promise.all(apns.map(async a => {
+      try {
+        const pr = await fetch('/api/apn/' + encodeURIComponent(a.apn_name) + '/pools');
+        const pd = await pr.json();
+        _apnPools[a.apn_name] = pd.pools || [];
+      } catch(e) { _apnPools[a.apn_name] = []; }
+    }));
+    tb.innerHTML = '';
+    // AMBR=0 means "no rate limit" per TS 23.501 §5.7.2.6 — render
+    // "unlimited" so operators don't read 0 as a zero-throughput cap.
+    const fmtAmbr = (v) => (v > 0 ? v : '<em class="text-muted">unlimited</em>');
+    apns.forEach(a => {
+      const pools = _apnPools[a.apn_name] || [];
+      const v4 = pools.filter(p => p.ip_version === 4).map(p => p.cidr).join(', ') || '-';
+      const v6 = pools.filter(p => p.ip_version === 6).map(p => p.cidr).join(', ') || '-';
+      const dns = [a.dns_primary, a.dns_secondary].filter(Boolean).join(', ') || '-';
+      const pcscf = a.pcscf_address || '-';
+      tb.innerHTML += `<tr>
+        <td><strong>${a.apn_name||'-'}</strong></td>
+        <td><code>${v4}</code></td><td><code>${v6}</code></td>
+        <td>${fmtAmbr(a.ambr_dl_kbps)}</td><td>${fmtAmbr(a.ambr_ul_kbps)}</td>
+        <td>${a.pdu_session_type}</td><td>${a.ssc_mode}</td>
+        <td><small>${dns}</small></td>
+        <td><small>${pcscf}</small></td><td>${a.mtu}</td>
+        <td>
+          <button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="apnEdit('${a.apn_name}')">Edit</button>
+          <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="apnClone('${a.apn_name}')">Clone</button>
+          <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="apnDelete('${a.apn_name}')">Del</button>
+        </td>
+      </tr>`;
+    });
+  } catch(e) { console.error('apnLoadList', e); }
+}
+
+function apnShowForm(idx, apn, title) {
+  document.getElementById('apn-form').classList.remove('d-none');
+  document.getElementById('apn-form-title').textContent = title || 'Add APN';
+  document.getElementById('apn-edit-name').value = (apn && apn.apn_name) || '';
+  document.getElementById('apn-name').value = (apn && apn.apn_name) || '';
+  document.getElementById('apn-ambr-dl').value = (apn && apn.ambr_dl_kbps) || 1000000;
+  document.getElementById('apn-ambr-ul').value = (apn && apn.ambr_ul_kbps) || 1000000;
+  document.getElementById('apn-pdu-type').value = (apn && apn.pdu_session_type) || 'IPv4';
+  document.getElementById('apn-ssc-mode').value = (apn && apn.ssc_mode) || 1;
+  document.getElementById('apn-dns1').value = (apn && apn.dns_primary) || '';
+  document.getElementById('apn-dns2').value = (apn && apn.dns_secondary) || '';
+  document.getElementById('apn-pcscf').value = (apn && apn.pcscf_address) || '';
+  document.getElementById('apn-mtu').value = (apn && apn.mtu) || 1500;
+  // Load existing pools into fields (use original name for clones)
+  const poolKey = (apn && (apn._cloneFrom || apn.apn_name)) || '';
+  const pools = _apnPools[poolKey] || [];
+  document.getElementById('apn-pool').value = pools.filter(p=>p.ip_version===4).map(p=>p.cidr)[0] || '';
+  document.getElementById('apn-pool6').value = pools.filter(p=>p.ip_version===6).map(p=>p.cidr)[0] || '';
+  document.getElementById('apn-name').focus();
+}
+
+function apnHideForm() {
+  document.getElementById('apn-form').classList.add('d-none');
+}
+
+function apnEdit(name) {
+  fetch('/api/apn').then(r=>r.json()).then(d => {
+    const apn = (d.items||[]).find(a => a.apn_name === name);
+    if (apn) apnShowForm(0, apn, 'Edit APN — ' + apn.apn_name);
+  });
+}
+
+function apnClone(name) {
+  fetch('/api/apn').then(r=>r.json()).then(d => {
+    const apn = (d.items||[]).find(a => a.apn_name === name);
+    if (apn) {
+      const clone = Object.assign({}, apn, {apn_name: apn.apn_name + '-copy', _cloneFrom: apn.apn_name});
+      apnShowForm(-1, clone, 'Clone APN — ' + clone.apn_name);
+      document.getElementById('apn-edit-name').value = '';
+      // Don't inherit the source APN's IP pool — two APNs sharing the
+      // same CIDR would collide in the UE-to-APN routing. Operator
+      // must key a fresh pool; backend /api/apn/{name}/pools enforces
+      // this with a 409 if a duplicate slips through.
+      document.getElementById('apn-pool').value = '';
+      document.getElementById('apn-pool6').value = '';
+    }
+  });
+}
+
+async function apnSave() {
+  const name = document.getElementById('apn-name').value.trim();
+  if (!name) { alert('APN name required'); return; }
+  const oldName = document.getElementById('apn-edit-name').value;
+  const pool4 = document.getElementById('apn-pool').value.trim();
+  const pool6 = document.getElementById('apn-pool6').value.trim();
+
+  const body = {
+    apn_name: name,
+    // old_name is set only on rename; backend uses it to UPDATE in place
+    // (preserving apn_config.id and cascading the new name into
+    // ue_slice_dnn.dnn via ON UPDATE CASCADE). Empty → add/edit path.
+    old_name: (oldName && oldName !== name) ? oldName : '',
+    ambr_dl_kbps: parseInt(document.getElementById('apn-ambr-dl').value) || 1000000,
+    ambr_ul_kbps: parseInt(document.getElementById('apn-ambr-ul').value) || 1000000,
+    pdu_session_type: document.getElementById('apn-pdu-type').value,
+    ssc_mode: parseInt(document.getElementById('apn-ssc-mode').value) || 1,
+    dns_primary: document.getElementById('apn-dns1').value.trim() || null,
+    dns_secondary: document.getElementById('apn-dns2').value.trim() || null,
+    pcscf_address: document.getElementById('apn-pcscf').value.trim() || null,
+    mtu: parseInt(document.getElementById('apn-mtu').value) || 1500
+  };
+
+  try {
+    // Create / update / rename APN — single backend call, no DELETE.
+    const r = await fetch('/api/apn', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Save failed'); }
+
+    // Add IP pools (delete existing first by re-fetching and removing)
+    const existingPools = await fetch('/api/apn/' + encodeURIComponent(name) + '/pools').then(r=>r.json());
+    // Remove old pools (simple approach: pools are re-added)
+    // Note: no DELETE pool endpoint exists, so we skip cleanup for now and just add new ones
+    async function addPool(cidr, ver) {
+      const exists = (existingPools.pools||[]).some(p => p.cidr === cidr && p.ip_version === ver);
+      if (exists) return;
+      const pr = await fetch('/api/apn/' + encodeURIComponent(name) + '/pools', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({cidr, ip_version: ver})
+      });
+      if (!pr.ok) {
+        const pe = await pr.json().catch(() => ({error: 'pool save failed'}));
+        throw new Error(pe.error || 'pool save failed');
+      }
+    }
+    if (pool4) await addPool(pool4, 4);
+    if (pool6) await addPool(pool6, 6);
+
+    apnHideForm();
+    apnLoadList();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function apnDelete(name) {
+  if (!confirm('Delete APN "' + name + '"?')) return;
+  fetch('/api/apn/' + encodeURIComponent(name), {method:'DELETE'})
+    .then(() => apnLoadList())
+    .catch(e => alert('Error: ' + e));
+}
+
+document.querySelector('[href="#apn-tab"]')?.addEventListener('shown.bs.tab', apnLoadList);
+apnLoadList();
+</script>

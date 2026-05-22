@@ -1,0 +1,270 @@
+<!-- Live Benchmark — real-time KPI tiles (not methodology-compliant benchmarks) -->
+
+<style>
+  .bm-tile { border-left: 4px solid #0d6efd; padding: 14px 16px; height: 100%; }
+  .bm-tile.green  { border-left-color: #198754; }
+  .bm-tile.amber  { border-left-color: #fd7e14; }
+  .bm-tile.red    { border-left-color: #dc3545; }
+  .bm-val   { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+  .bm-unit  { font-size: 0.9rem; color: #6c757d; margin-left: 4px; }
+  .bm-label { font-size: 0.78rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .bm-sub   { font-size: 0.80rem; color: #6c757d; margin-top: 4px; }
+  .bm-peak  { color: #0d6efd; font-weight: 600; }
+  .bm-target{ color: #6c757d; }
+  .bm-note  { background: #fff3cd; border-left: 3px solid #ffc107; padding: 8px 12px;
+              font-size: 0.82rem; border-radius: 3px; margin-bottom: 16px; }
+</style>
+
+<div class="accordion mb-4" id="bmAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center"
+              type="button" data-bs-toggle="collapse" data-bs-target="#bmCollapse">
+        <div class="w-100 text-center">Live Benchmark — Real-time KPI Rates</div>
+      </button>
+    </h2>
+    <div id="bmCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body">
+
+        <div class="bm-note">
+          <strong>Live observed rates</strong> against whatever load is currently
+          hitting the core. These are <em>not</em> methodology-compliant
+          benchmarks — see
+          <a href="https://github.com/Makemytechnology/mmt_studio_core/tree/main/benchmarks" target="_blank">benchmarks/</a>
+          and
+          <a href="https://github.com/Makemytechnology/mmt_studio_core/blob/main/docs/BENCHMARK_PLAN.md" target="_blank">docs/BENCHMARK_PLAN.md</a>
+          for published results and the reproducible methodology.
+        </div>
+
+        <!-- Controls -->
+        <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+          <button id="bmRefreshBtn" class="btn btn-sm btn-outline-primary">Refresh</button>
+          <div class="form-check form-switch">
+            <input id="bmLiveToggle" class="form-check-input" type="checkbox" checked>
+            <label class="form-check-label small" for="bmLiveToggle">Live (1 Hz)</label>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <label class="form-label mb-0 small">Window</label>
+            <select id="bmWindow" class="form-select form-select-sm" style="width:90px">
+              <option value="2">2 s</option>
+              <option value="5" selected>5 s</option>
+              <option value="15">15 s</option>
+              <option value="60">60 s</option>
+            </select>
+          </div>
+          <button id="bmResetPeaksBtn" class="btn btn-sm btn-outline-secondary">Reset peaks</button>
+
+          <div class="d-flex align-items-center gap-1 ms-3">
+            <label class="form-label mb-0 small">Soak</label>
+            <input id="bmSoakDur" type="number" class="form-control form-control-sm" style="width:70px"
+                   min="5" max="600" value="60">
+            <span class="small text-muted">s</span>
+            <button id="bmSoakBtn" class="btn btn-sm btn-outline-success">Run soak</button>
+          </div>
+
+          <span id="bmLastUpdate" class="ms-auto small text-muted"></span>
+        </div>
+
+        <!-- Control-plane rate tiles -->
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3"><div class="card bm-tile" id="bmTileReg">
+            <div class="bm-label">Registrations / sec</div>
+            <div><span class="bm-val" id="bmv_reg">0</span><span class="bm-unit">reg/s</span></div>
+            <div class="bm-sub">peak <span class="bm-peak" id="bmp_reg">0</span>
+                              · target <span class="bm-target" id="bmt_reg">—</span></div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card bm-tile" id="bmTilePdu">
+            <div class="bm-label">PDU Sessions / sec</div>
+            <div><span class="bm-val" id="bmv_pdu">0</span><span class="bm-unit">/s</span></div>
+            <div class="bm-sub">peak <span class="bm-peak" id="bmp_pdu">0</span>
+                              · target <span class="bm-target" id="bmt_pdu">—</span></div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card bm-tile" id="bmTileCps">
+            <div class="bm-label">IMS CPS</div>
+            <div><span class="bm-val" id="bmv_cps">0</span><span class="bm-unit">call/s</span></div>
+            <div class="bm-sub">peak <span class="bm-peak" id="bmp_cps">0</span>
+                              · target <span class="bm-target" id="bmt_cps">—</span></div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card bm-tile" id="bmTileGbps">
+            <div class="bm-label">UPF Throughput</div>
+            <div><span class="bm-val" id="bmv_gbps">0.00</span><span class="bm-unit">Gbps</span></div>
+            <div class="bm-sub">UL <span id="bmv_ul">0</span> · DL <span id="bmv_dl">0</span> Gbps
+                              · target <span class="bm-target" id="bmt_gbps">—</span></div>
+          </div></div>
+        </div>
+
+        <!-- Supporting tiles -->
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3"><div class="card bm-tile">
+            <div class="bm-label">Auth / sec</div>
+            <div><span class="bm-val" id="bmv_auth">0</span><span class="bm-unit">/s</span></div>
+            <div class="bm-sub">success rate <span id="bmv_auth_sr">—</span>%</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card bm-tile">
+            <div class="bm-label">Paging / sec</div>
+            <div><span class="bm-val" id="bmv_pag">0</span><span class="bm-unit">/s</span></div>
+            <div class="bm-sub">service req <span id="bmv_svc">0</span>/s</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card bm-tile">
+            <div class="bm-label">Registered UEs</div>
+            <div><span class="bm-val" id="bmv_ues">0</span></div>
+            <div class="bm-sub">reg success rate <span id="bmv_reg_sr">—</span>%</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card bm-tile">
+            <div class="bm-label">Active PDU Sessions</div>
+            <div><span class="bm-val" id="bmv_pdu_act">0</span></div>
+            <div class="bm-sub">Active drops UL <span id="bmv_drop_ul">0</span>
+                               · DL <span id="bmv_drop_dl">0</span>
+                               <span class="text-muted" id="bmv_drop_extra"></span></div>
+          </div></div>
+        </div>
+
+        <!-- Soak result -->
+        <div id="bmSoakResult" class="alert alert-info d-none">
+          <strong>Soak complete</strong> over <span id="bmsr_dur">0</span> s:
+          <ul class="mb-0">
+            <li>Registrations: <strong id="bmsr_reg">0</strong> (<span id="bmsr_reg_rate">0</span>/s)</li>
+            <li>PDU Sessions: <strong id="bmsr_pdu">0</strong> (<span id="bmsr_pdu_rate">0</span>/s)</li>
+            <li>Auths: <strong id="bmsr_auth">0</strong> (<span id="bmsr_auth_rate">0</span>/s)</li>
+            <li>Success: reg <span id="bmsr_reg_sr">—</span>% · auth <span id="bmsr_auth_sr">—</span>% · pdu <span id="bmsr_pdu_sr">—</span>%</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let bmTimer = null;
+
+  function tileClass(val, target) {
+    if (!target) return '';
+    if (val >= target)          return 'green';
+    if (val >= target * 0.5)    return 'amber';
+    return val > 0 ? 'red' : '';
+  }
+  function setTile(id, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('green', 'amber', 'red');
+    if (cls) el.classList.add(cls);
+  }
+
+  async function bmFetch() {
+    const win = document.getElementById('bmWindow').value;
+    try {
+      const r = await fetch('/api/benchmark/live?window=' + encodeURIComponent(win));
+      const d = await r.json();
+
+      const R = d.rates, P = d.peaks, S = d.success_rates_pct, C = d.concurrent, U = d.upf, T = d.targets;
+
+      document.getElementById('bmv_reg').textContent  = R.registrations_per_sec.toFixed(1);
+      document.getElementById('bmv_pdu').textContent  = R.pdu_sessions_per_sec.toFixed(1);
+      document.getElementById('bmv_cps').textContent  = R.ims_cps.toFixed(1);
+      document.getElementById('bmv_auth').textContent = R.auth_per_sec.toFixed(1);
+      document.getElementById('bmv_pag').textContent  = R.paging_per_sec.toFixed(1);
+      document.getElementById('bmv_svc').textContent  = R.service_req_per_sec.toFixed(1);
+
+      document.getElementById('bmp_reg').textContent = P.registrations_per_sec.toFixed(0);
+      document.getElementById('bmp_pdu').textContent = P.pdu_sessions_per_sec.toFixed(0);
+      document.getElementById('bmp_cps').textContent = P.ims_cps.toFixed(0);
+
+      document.getElementById('bmt_reg').textContent  = T.registrations_per_sec + '/s';
+      document.getElementById('bmt_pdu').textContent  = T.pdu_sessions_per_sec + '/s';
+      document.getElementById('bmt_cps').textContent  = T.ims_cps + '/s';
+      document.getElementById('bmt_gbps').textContent = T.upf_gbps + ' Gbps';
+
+      document.getElementById('bmv_gbps').textContent = U.total_gbps.toFixed(2);
+      document.getElementById('bmv_ul').textContent   = U.ul_gbps.toFixed(2);
+      document.getElementById('bmv_dl').textContent   = U.dl_gbps.toFixed(2);
+      // Show "active" drops (real bottleneck) prominently; break out the
+      // harmless no-session / metered counts in the muted extra line.
+      const aUL = U.ul_dropped_active ?? U.ul_dropped;
+      const aDL = U.dl_dropped_active ?? U.dl_dropped;
+      document.getElementById('bmv_drop_ul').textContent = aUL;
+      document.getElementById('bmv_drop_dl').textContent = aDL;
+      const ns = (U.ul_no_session || 0) + (U.dl_no_session || 0);
+      const mt = (U.ul_metered || 0)    + (U.dl_metered || 0);
+      let extra = '';
+      if (ns) extra += ` · no-session: ${ns}`;
+      if (mt) extra += ` · metered: ${mt}`;
+      document.getElementById('bmv_drop_extra').textContent = extra;
+
+      document.getElementById('bmv_ues').textContent     = C.registered_ues;
+      document.getElementById('bmv_pdu_act').textContent = C.active_pdu_sessions;
+
+      document.getElementById('bmv_reg_sr').textContent  = S.registration == null ? '—' : S.registration.toFixed(2);
+      document.getElementById('bmv_auth_sr').textContent = S.auth         == null ? '—' : S.auth.toFixed(2);
+
+      setTile('bmTileReg',  tileClass(R.registrations_per_sec, T.registrations_per_sec));
+      setTile('bmTilePdu',  tileClass(R.pdu_sessions_per_sec,  T.pdu_sessions_per_sec));
+      setTile('bmTileCps',  tileClass(R.ims_cps,               T.ims_cps));
+      setTile('bmTileGbps', tileClass(U.total_gbps,            T.upf_gbps));
+
+      document.getElementById('bmLastUpdate').textContent =
+        'Updated ' + new Date(d.ts * 1000).toLocaleTimeString();
+    } catch (e) {
+      document.getElementById('bmLastUpdate').textContent = 'Error: ' + e.message;
+    }
+  }
+
+  function bmStart() {
+    bmFetch();
+    bmTimer = setInterval(bmFetch, 1000);
+  }
+  function bmStop() {
+    if (bmTimer) { clearInterval(bmTimer); bmTimer = null; }
+  }
+
+  document.getElementById('bmRefreshBtn').addEventListener('click', bmFetch);
+  document.getElementById('bmLiveToggle').addEventListener('change', (e) => {
+    if (e.target.checked) bmStart(); else bmStop();
+  });
+  document.getElementById('bmWindow').addEventListener('change', bmFetch);
+  document.getElementById('bmResetPeaksBtn').addEventListener('click', async () => {
+    await fetch('/api/benchmark/reset-peaks', { method: 'POST' });
+    bmFetch();
+  });
+  document.getElementById('bmSoakBtn').addEventListener('click', async (ev) => {
+    const btn = ev.target;
+    const dur = parseInt(document.getElementById('bmSoakDur').value, 10);
+    btn.disabled = true;
+    btn.textContent = 'Running ' + dur + 's…';
+    try {
+      const r = await fetch('/api/benchmark/soak?duration_sec=' + dur, { method: 'POST' });
+      const d = await r.json();
+      if (d.error) { alert(d.error); return; }
+      const box = document.getElementById('bmSoakResult');
+      box.classList.remove('d-none');
+      document.getElementById('bmsr_dur').textContent  = d.duration_sec;
+      document.getElementById('bmsr_reg').textContent  = d.totals.registrations;
+      document.getElementById('bmsr_pdu').textContent  = d.totals.pdu_sessions;
+      document.getElementById('bmsr_auth').textContent = d.totals.auths;
+      document.getElementById('bmsr_reg_rate').textContent  = d.average_rates.registrations_per_sec;
+      document.getElementById('bmsr_pdu_rate').textContent  = d.average_rates.pdu_sessions_per_sec;
+      document.getElementById('bmsr_auth_rate').textContent = d.average_rates.auth_per_sec;
+      document.getElementById('bmsr_reg_sr').textContent  = d.success_rates_pct.registration ?? '—';
+      document.getElementById('bmsr_auth_sr').textContent = d.success_rates_pct.auth         ?? '—';
+      document.getElementById('bmsr_pdu_sr').textContent  = d.success_rates_pct.pdu_session  ?? '—';
+    } catch (e) {
+      alert('Soak failed: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Run soak';
+    }
+  });
+
+  // Start live updates when this tab is shown
+  const tabLink = document.querySelector('a[href="#benchmark-tab"]');
+  if (tabLink) {
+    tabLink.addEventListener('shown.bs.tab', () => {
+      if (document.getElementById('bmLiveToggle').checked) bmStart();
+    });
+    tabLink.addEventListener('hidden.bs.tab', bmStop);
+  }
+  // Also trigger once on page load if tab already visible
+  if (document.querySelector('#benchmark-tab.active')) bmStart();
+})();
+</script>

@@ -1,0 +1,122 @@
+<!-- N26 Inter-System Handover (TS 23.502 §4.11) -->
+<h5>N26 Inter-System Handover <small class="text-muted">5G &harr; 4G</small></h5>
+<p class="text-muted small">TS 23.502 &sect;4.11 &mdash; Context transfer between AMF (5G) and MME (4G) via N26 interface</p>
+
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body">
+        <h6 class="card-title">5G UE Contexts</h6>
+        <span class="fs-3 fw-bold text-primary" id="n26-amf-count">-</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body">
+        <h6 class="card-title">4G UE Contexts</h6>
+        <span class="fs-3 fw-bold text-success" id="n26-mme-count">-</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body">
+        <h6 class="card-title">N26 Status</h6>
+        <span class="badge bg-success fs-6" id="n26-status">Enabled</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trigger Handover -->
+<div class="card mb-3">
+  <div class="card-header">Trigger Handover</div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="n26-imsi" placeholder="001010000000001">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Direction</label>
+        <select class="form-select form-select-sm" id="n26-direction">
+          <option value="5g-to-4g">5G &rarr; 4G</option>
+          <option value="4g-to-5g">4G &rarr; 5G</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary btn-sm w-100" onclick="n26Handover()">Execute</button>
+      </div>
+    </div>
+    <div id="n26-result" class="mt-2"></div>
+  </div>
+</div>
+
+<!-- Handover History -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Handover History
+    <button class="btn btn-outline-secondary btn-sm" onclick="n26LoadHistory()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead>
+        <tr><th>Time</th><th>IMSI</th><th>Direction</th><th>Source ID</th><th>Target ID</th><th>Status</th></tr>
+      </thead>
+      <tbody id="n26-history"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function n26LoadStatus() {
+  fetch('/api/n26/status').then(r=>r.json()).then(d=>{
+    document.getElementById('n26-amf-count').textContent = d.amf_ue_contexts || 0;
+    document.getElementById('n26-mme-count').textContent = d.mme_ue_contexts || 0;
+    document.getElementById('n26-status').textContent = d.n26_enabled ? 'Enabled' : 'Disabled';
+  }).catch(()=>{});
+}
+
+function n26Handover() {
+  const imsi = document.getElementById('n26-imsi').value.trim();
+  if (!imsi) { alert('Enter IMSI'); return; }
+  const dir = document.getElementById('n26-direction').value;
+  const url = '/api/n26/handover/' + dir;
+  fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({imsi})})
+    .then(r=>r.json()).then(d=>{
+      const el = document.getElementById('n26-result');
+      if (d.success) {
+        el.innerHTML = '<div class="alert alert-success py-1 small">Handover completed: ' +
+          (d.mme_ue_s1ap_id ? 'MME-ID=' + d.mme_ue_s1ap_id : 'AMF-ID=' + d.amf_ue_ngap_id) + '</div>';
+      } else {
+        el.innerHTML = '<div class="alert alert-danger py-1 small">Failed: ' + (d.error||'Unknown') + '</div>';
+      }
+      n26LoadStatus();
+      n26LoadHistory();
+    }).catch(e=>{
+      document.getElementById('n26-result').innerHTML =
+        '<div class="alert alert-danger py-1 small">Error: ' + e + '</div>';
+    });
+}
+
+function n26LoadHistory() {
+  fetch('/api/n26/handovers?limit=20').then(r=>r.json()).then(rows=>{
+    const tb = document.getElementById('n26-history');
+    tb.innerHTML = '';
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center">No handovers</td></tr>'; return; }
+    rows.forEach(r=>{
+      const t = new Date(r.timestamp * 1000).toLocaleString();
+      const dir = r.source_rat + ' &rarr; ' + r.target_rat;
+      const badge = r.status === 'completed' ? 'bg-success' : r.status === 'failed' ? 'bg-danger' : 'bg-warning';
+      tb.innerHTML += `<tr><td>${t}</td><td>${r.imsi}</td><td>${dir}</td><td>${r.source_ue_id||'-'}</td><td>${r.target_ue_id||'-'}</td><td><span class="badge ${badge}">${r.status}</span></td></tr>`;
+    });
+  }).catch(()=>{});
+}
+
+// Auto-load on tab show
+document.querySelector('[href="#n26-tab"]')?.addEventListener('shown.bs.tab', ()=>{
+  n26LoadStatus();
+  n26LoadHistory();
+});
+</script>

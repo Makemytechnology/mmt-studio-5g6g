@@ -1,0 +1,188 @@
+<!-- templates/ntn_phase2.html — NTN Phase 2 (TS 23.501 §5.40 / TS 38.821) -->
+
+<!-- Status Overview -->
+<div class="row g-2 mb-3" id="ntnP2Status">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="ntnP2RegenTotal">0</div><div class="small text-muted">Regenerative Sats</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="ntnP2RegenActive">0</div><div class="small text-muted">Active Onboard</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="ntnP2SfQueued">0</div><div class="small text-muted">S&F Queued</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="ntnP2SfFwd">0</div><div class="small text-muted">S&F Forwarded</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="ntnP2IslActive">0</div><div class="small text-muted">Active ISLs</div></div></div>
+</div>
+
+<!-- Regenerative Payload -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#ntnP2RegenCollapse"><div class="w-100 text-center">Regenerative Payload (TS 38.821 §6.1)</div></button></h2>
+  <div id="ntnP2RegenCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Satellite</th><th>Onboard NFs</th><th>Capacity</th><th>Memory (MB)</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="ntnP2RegenBody"><tr><td colspan="8" class="text-muted text-center">No regenerative configs</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Satellite ID</label><input id="ntnP2RegenSat" class="form-control form-control-sm" style="width:120px" placeholder="SAT-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Onboard NFs (csv)</label><input id="ntnP2RegenNfs" class="form-control form-control-sm" style="width:180px" placeholder="gNB-DU,UPF"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Capacity</label><input id="ntnP2RegenCap" class="form-control form-control-sm" style="width:80px" type="number" value="100"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Memory MB</label><input id="ntnP2RegenMem" class="form-control form-control-sm" style="width:80px" type="number" value="2048"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Status</label><select id="ntnP2RegenSt" class="form-select form-select-sm" style="width:100px"><option>standby</option><option>active</option><option>offline</option></select></div>
+      <div class="col-auto"><button id="btnNtnP2RegenAdd" class="btn btn-success btn-sm">+ Configure</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Store-and-Forward -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ntnP2SfCollapse"><div class="w-100 text-center">Store-and-Forward (TS 38.821 §6.2)</div></button></h2>
+  <div id="ntnP2SfCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">Satellite ID</label><input id="ntnP2SfSatView" class="form-control form-control-sm" style="width:120px" placeholder="SAT-001"></div>
+      <div class="col-auto"><button id="btnNtnP2SfLoad" class="btn btn-primary btn-sm">Load Queue</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Satellite</th><th>Target</th><th>Size (B)</th><th>Priority</th><th>Status</th><th>Queued</th><th>Forwarded</th><th></th></tr>
+    </thead><tbody id="ntnP2SfBody"><tr><td colspan="9" class="text-muted text-center">Select a satellite to view queue</td></tr></tbody></table></div>
+    <hr>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Satellite ID</label><input id="ntnP2SfSat" class="form-control form-control-sm" style="width:120px" placeholder="SAT-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Target</label><input id="ntnP2SfTarget" class="form-control form-control-sm" style="width:140px" placeholder="GS-NYC"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Data (hex)</label><input id="ntnP2SfData" class="form-control form-control-sm" style="width:200px" placeholder="deadbeef"></div>
+      <div class="col-auto"><button id="btnNtnP2SfQueue" class="btn btn-success btn-sm">+ Queue Data</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Inter-Satellite Links -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ntnP2IslCollapse"><div class="w-100 text-center">Inter-Satellite Links (TS 38.821 §6.3)</div></button></h2>
+  <div id="ntnP2IslCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Satellite 1</th><th>Satellite 2</th><th>Bandwidth (Mbps)</th><th>Latency (ms)</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="ntnP2IslBody"><tr><td colspan="8" class="text-muted text-center">No ISL links</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Satellite 1</label><input id="ntnP2IslSat1" class="form-control form-control-sm" style="width:120px" placeholder="SAT-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Satellite 2</label><input id="ntnP2IslSat2" class="form-control form-control-sm" style="width:120px" placeholder="SAT-002"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">BW (Mbps)</label><input id="ntnP2IslBw" class="form-control form-control-sm" style="width:80px" type="number" value="1000"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Latency (ms)</label><input id="ntnP2IslLat" class="form-control form-control-sm" style="width:80px" type="number" step="0.1" value="5.0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Status</label><select id="ntnP2IslSt" class="form-select form-select-sm" style="width:100px"><option>inactive</option><option>active</option><option>degraded</option></select></div>
+      <div class="col-auto"><button id="btnNtnP2IslAdd" class="btn btn-success btn-sm">+ Create ISL</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/ntn/phase2';
+
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      document.getElementById('ntnP2RegenTotal').textContent = d.regenerative_total||0;
+      document.getElementById('ntnP2RegenActive').textContent = d.regenerative_active||0;
+      document.getElementById('ntnP2SfQueued').textContent = d.store_forward_queued||0;
+      document.getElementById('ntnP2SfFwd').textContent = d.store_forward_forwarded||0;
+      document.getElementById('ntnP2IslActive').textContent = d.isl_active||0;
+    }).catch(()=>{});
+  }
+
+  function loadRegen(){
+    fetch(API+'/regenerative').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('ntnP2RegenBody');
+      const items = d.items||[];
+      if(!items.length){ tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No regenerative configs</td></tr>'; return; }
+      tb.innerHTML = items.map(r=>`<tr>
+        <td>${r.id}</td><td>${r.sat_id}</td><td>${r.onboard_nfs||''}</td>
+        <td>${r.processing_capacity}</td><td>${r.memory_mb}</td>
+        <td><span class="badge bg-${r.status==='active'?'success':r.status==='standby'?'warning':'secondary'}">${r.status}</span></td>
+        <td>${r.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0" onclick="ntnP2DelRegen('${r.sat_id}')">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  window.ntnP2DelRegen = function(sid){
+    if(!confirm('Delete regenerative config for '+sid+'?')) return;
+    fetch(API+'/regenerative/'+sid,{method:'DELETE'}).then(()=>{ loadRegen(); loadStats(); });
+  };
+
+  document.getElementById('btnNtnP2RegenAdd').addEventListener('click', ()=>{
+    const nfs = document.getElementById('ntnP2RegenNfs').value;
+    const body = {
+      sat_id: document.getElementById('ntnP2RegenSat').value,
+      onboard_nfs: nfs ? nfs.split(',').map(s=>s.trim()) : [],
+      processing_capacity: parseInt(document.getElementById('ntnP2RegenCap').value)||0,
+      memory_mb: parseInt(document.getElementById('ntnP2RegenMem').value)||0,
+      status: document.getElementById('ntnP2RegenSt').value,
+    };
+    fetch(API+'/regenerative',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(()=>{ loadRegen(); loadStats(); });
+  });
+
+  // Store-and-Forward
+  function loadSfQueue(){
+    const sid = document.getElementById('ntnP2SfSatView').value;
+    if(!sid) return;
+    fetch(API+'/store-forward/'+sid).then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('ntnP2SfBody');
+      const items = d.items||[];
+      if(!items.length){ tb.innerHTML='<tr><td colspan="9" class="text-muted text-center">Queue empty</td></tr>'; return; }
+      tb.innerHTML = items.map(e=>`<tr>
+        <td>${e.id}</td><td>${e.sat_id}</td><td>${e.target}</td><td>${e.data_size}</td><td>${e.priority}</td>
+        <td><span class="badge bg-${e.status==='queued'?'warning':e.status==='forwarded'?'success':'secondary'}">${e.status}</span></td>
+        <td>${e.queued_at||''}</td><td>${e.forwarded_at||''}</td>
+        <td>${e.status==='queued'?'<button class="btn btn-outline-success btn-sm py-0" onclick="ntnP2FwdSf('+e.id+')">Fwd</button>':''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  window.ntnP2FwdSf = function(id){
+    fetch(API+'/store-forward/'+id+'/forward',{method:'POST'}).then(()=>{ loadSfQueue(); loadStats(); });
+  };
+
+  document.getElementById('btnNtnP2SfLoad').addEventListener('click', loadSfQueue);
+
+  document.getElementById('btnNtnP2SfQueue').addEventListener('click', ()=>{
+    const body = {
+      sat_id: document.getElementById('ntnP2SfSat').value,
+      target: document.getElementById('ntnP2SfTarget').value,
+      data: document.getElementById('ntnP2SfData').value,
+    };
+    fetch(API+'/store-forward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(()=>{ loadStats();
+        if(document.getElementById('ntnP2SfSatView').value) loadSfQueue();
+      });
+  });
+
+  // ISL
+  function loadIsl(){
+    fetch(API+'/isl').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('ntnP2IslBody');
+      const items = d.items||[];
+      if(!items.length){ tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No ISL links</td></tr>'; return; }
+      tb.innerHTML = items.map(l=>`<tr>
+        <td>${l.id}</td><td>${l.sat1_id}</td><td>${l.sat2_id}</td>
+        <td>${l.bandwidth_mbps}</td><td>${l.latency_ms}</td>
+        <td><span class="badge bg-${l.status==='active'?'success':l.status==='degraded'?'warning':'secondary'}">${l.status}</span></td>
+        <td>${l.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0" onclick="ntnP2DelIsl(${l.id})">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  window.ntnP2DelIsl = function(id){
+    if(!confirm('Delete ISL link '+id+'?')) return;
+    fetch(API+'/isl/'+id,{method:'DELETE'}).then(()=>{ loadIsl(); loadStats(); });
+  };
+
+  document.getElementById('btnNtnP2IslAdd').addEventListener('click', ()=>{
+    const body = {
+      sat1_id: document.getElementById('ntnP2IslSat1').value,
+      sat2_id: document.getElementById('ntnP2IslSat2').value,
+      bandwidth_mbps: parseInt(document.getElementById('ntnP2IslBw').value)||0,
+      latency_ms: parseFloat(document.getElementById('ntnP2IslLat').value)||0,
+      status: document.getElementById('ntnP2IslSt').value,
+    };
+    fetch(API+'/isl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(()=>{ loadIsl(); loadStats(); });
+  });
+
+  loadStats();
+  loadRegen();
+  loadIsl();
+})();
+</script>

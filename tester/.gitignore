@@ -1,0 +1,45 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv/
+venv/
+
+# --- Build / Packaging ---
+build/dist/
+build/output/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# --- Test / Coverage ---
+.coverage
+coverage.xml
+htmlcov/
+pytest_cache/
+.cache/
+robot/results/
+
+# --- Runtime data (generated, not tracked) ---
+*.db
+*.log
+data/logs/
+data/test_results/
+data/reports/
+data/rag_store.json
+data/sa_tester.db
+data/test_inventory.json
+
+# --- Windows embedded Python (not needed on Linux) ---
+python/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+

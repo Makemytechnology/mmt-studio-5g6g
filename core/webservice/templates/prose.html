@@ -1,0 +1,345 @@
+<!-- templates/prose.html — ProSe Proximity Services (TS 23.304) -->
+
+<!-- ProSe Status Overview -->
+<div class="row g-2 mb-3" id="proseStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="proseApps">0</div><div class="small text-muted">Apps</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="proseUeConfigs">0</div><div class="small text-muted">UE Configs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="proseAuthorized">0</div><div class="small text-muted">Authorized</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="proseActiveSessions">0</div><div class="small text-muted">Active Sessions</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #20c997"><div class="fw-bold fs-4" id="proseRelays">0</div><div class="small text-muted">Relay Sessions</div></div></div>
+</div>
+
+<!-- ProSe App Registry -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#proseAppCollapse"><div class="w-100 text-center">ProSe Applications (TS 23.304 Section 5.3)</div></button></h2>
+  <div id="proseAppCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>App ID</th><th>Name</th><th>App Code</th><th>Validity (hrs)</th><th>Created</th><th></th></tr>
+    </thead><tbody id="proseAppBody"><tr><td colspan="7" class="text-muted text-center">No apps</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">App ID</label><input id="proseAppId" class="form-control form-control-sm" style="width:120px" placeholder="prose.app.1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="proseAppName" class="form-control form-control-sm" style="width:140px" placeholder="Safety Alert"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">App Code</label><input id="proseAppCode" class="form-control form-control-sm" style="width:120px" placeholder="0x00AB"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Validity (hrs)</label><input id="proseAppValidity" class="form-control form-control-sm" style="width:80px" type="number" value="24"></div>
+      <div class="col-auto"><button id="btnProseAddApp" class="btn btn-success btn-sm">+ Add App</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- UE ProSe Config -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#proseUeCollapse"><div class="w-100 text-center">UE ProSe Configuration (TS 23.304 Section 5.2)</div></button></h2>
+  <div id="proseUeCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>IMSI</th><th>Authorized</th><th>Discovery</th><th>Communication</th><th>Relay Capable</th><th>Relay Enabled</th><th>Updated</th></tr>
+    </thead><tbody id="proseUeBody"><tr><td colspan="7" class="text-muted text-center">No UE configs</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="proseUeImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+      <div class="col-auto"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="proseUeAuth" checked><label class="form-check-label small" for="proseUeAuth">Authorized</label></div></div>
+      <div class="col-auto"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="proseUeDisc" checked><label class="form-check-label small" for="proseUeDisc">Discovery</label></div></div>
+      <div class="col-auto"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="proseUeComm" checked><label class="form-check-label small" for="proseUeComm">Communication</label></div></div>
+      <div class="col-auto"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="proseUeRelayCap"><label class="form-check-label small" for="proseUeRelayCap">Relay Capable</label></div></div>
+      <div class="col-auto"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="proseUeRelayEn"><label class="form-check-label small" for="proseUeRelayEn">Relay Enabled</label></div></div>
+      <div class="col-auto"><button id="btnProseSetUe" class="btn btn-success btn-sm">Save UE Config</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Discovery Announce / Monitor -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#proseDiscCollapse"><div class="w-100 text-center">Direct Discovery (TS 23.304 Section 6.2)</div></button></h2>
+  <div id="proseDiscCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <h6 class="fw-bold">Announce (Model A — "I am here")</h6>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="proseAnnImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+          <div class="col-auto"><label class="form-label mb-0 small">App Code</label><input id="proseAnnCode" class="form-control form-control-sm" style="width:100px" placeholder="0x00AB"></div>
+          <div class="col-auto"><label class="form-label mb-0 small">Validity (s)</label><input id="proseAnnValidity" class="form-control form-control-sm" style="width:80px" type="number" value="3600"></div>
+          <div class="col-auto"><button id="btnProseAnnounce" class="btn btn-success btn-sm">Announce</button></div>
+        </div>
+        <div id="proseAnnResult" class="mt-2 small"></div>
+      </div>
+      <div class="col-md-6">
+        <h6 class="fw-bold">Monitor (Discover nearby UEs)</h6>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="proseMonImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000002"></div>
+          <div class="col-auto"><label class="form-label mb-0 small">App Code filter</label><input id="proseMonCode" class="form-control form-control-sm" style="width:100px" placeholder="(optional)"></div>
+          <div class="col-auto"><button id="btnProseMonitor" class="btn btn-outline-success btn-sm">Monitor</button></div>
+        </div>
+        <div id="proseMonResult" class="mt-2 small"></div>
+      </div>
+    </div>
+    <h6 class="fw-bold">Active Announcements</h6>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>IMSI</th><th>App Code</th><th>Announced At</th><th>Expires At</th></tr>
+    </thead><tbody id="proseAnnBody"><tr><td colspan="4" class="text-muted text-center">No active announcements</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Direct Communication Sessions -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#proseCommCollapse"><div class="w-100 text-center">Direct Communication (TS 23.304 Section 6.3)</div></button></h2>
+  <div id="proseCommCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-3">
+      <div class="col-auto"><label class="form-label mb-0 small">Source IMSI</label><input id="proseCommSrc" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Target IMSI</label><input id="proseCommTgt" class="form-control form-control-sm" style="width:160px" placeholder="(unicast)"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Group ID</label><input id="proseCommGrp" class="form-control form-control-sm" style="width:120px" placeholder="(groupcast)"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Service</label><input id="proseCommSvc" class="form-control form-control-sm" style="width:120px" placeholder="(optional)"></div>
+      <div class="col-auto"><button id="btnProseSetup" class="btn btn-warning btn-sm">Setup Session</button></div>
+    </div>
+    <div id="proseCommResult" class="mb-2 small"></div>
+    <h6 class="fw-bold">Active Sessions</h6>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Type</th><th>Source</th><th>Target/Group</th><th>Relay</th><th>Service</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="proseSessionBody"><tr><td colspan="9" class="text-muted text-center">No sessions</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Relay -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#proseRelayCollapse" style="background:#20c997;color:#fff"><div class="w-100 text-center">UE-to-Network Relay (TS 23.304 Section 6.4)</div></button></h2>
+  <div id="proseRelayCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <h6 class="fw-bold">Register Relay UE</h6>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="proseRelayImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000003"></div>
+          <div class="col-auto"><label class="form-label mb-0 small">Service Code</label><input id="proseRelaySvc" class="form-control form-control-sm" style="width:100px" placeholder="RSC-01"></div>
+          <div class="col-auto"><label class="form-label mb-0 small">Connectivity</label>
+            <select id="proseRelayConn" class="form-select form-select-sm" style="width:90px">
+              <option value="5gc" selected>5GC</option><option value="epc">EPC</option><option value="both">Both</option>
+            </select>
+          </div>
+          <div class="col-auto"><button id="btnProseRegRelay" class="btn btn-sm" style="background:#20c997;color:#fff">Register</button></div>
+        </div>
+        <div id="proseRelayRegResult" class="mt-2 small"></div>
+      </div>
+      <div class="col-md-6">
+        <h6 class="fw-bold">Discover Relays</h6>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto"><label class="form-label mb-0 small">Remote IMSI</label><input id="proseRelayDiscImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000004"></div>
+          <div class="col-auto"><label class="form-label mb-0 small">Service Code</label><input id="proseRelayDiscSvc" class="form-control form-control-sm" style="width:100px" placeholder="(optional)"></div>
+          <div class="col-auto"><button id="btnProseDiscRelay" class="btn btn-outline-info btn-sm">Discover</button></div>
+        </div>
+        <div id="proseRelayDiscResult" class="mt-2 small"></div>
+      </div>
+    </div>
+    <h6 class="fw-bold">Active Relay UEs</h6>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>IMSI</th><th>Service Code</th><th>Connectivity</th><th>Registered</th><th>Expires</th></tr>
+    </thead><tbody id="proseRelayBody"><tr><td colspan="5" class="text-muted text-center">No active relays</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/prose';
+
+  // ---- helpers ----
+  function j(r){return r.json()}
+  function ts(epoch){if(!epoch)return'-'; return new Date(epoch*1000).toLocaleString()}
+  function badge(s){
+    const m={active:'success',released:'secondary',failed:'danger'};
+    return `<span class="badge bg-${m[s]||'dark'}">${s}</span>`;
+  }
+
+  // ---- Stats ----
+  function loadStats(){
+    fetch(API+'/stats').then(j).then(d=>{
+      document.getElementById('proseApps').textContent=d.apps||0;
+      document.getElementById('proseUeConfigs').textContent=d.ue_configs||0;
+      document.getElementById('proseAuthorized').textContent=d.authorized_ues||0;
+      document.getElementById('proseActiveSessions').textContent=d.active_sessions||0;
+      document.getElementById('proseRelays').textContent=d.relay_sessions||0;
+    }).catch(()=>{});
+  }
+
+  // ---- Apps ----
+  function loadApps(){
+    fetch(API+'/apps').then(j).then(d=>{
+      const tb=document.getElementById('proseAppBody');
+      if(!d.items||!d.items.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No apps</td></tr>';return;}
+      tb.innerHTML=d.items.map(a=>`<tr>
+        <td>${a.id}</td><td>${a.app_id}</td><td>${a.name}</td><td>${a.prose_app_code}</td>
+        <td>${a.validity_hours}</td><td>${a.created_at||'-'}</td>
+        <td><button class="btn btn-danger btn-sm py-0 px-1" onclick="proseDelApp(${a.id})">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  window.proseDelApp=function(id){
+    fetch(API+'/apps/'+id,{method:'DELETE'}).then(j).then(()=>{loadApps();loadStats();});
+  };
+  document.getElementById('btnProseAddApp').addEventListener('click',function(){
+    const body={
+      app_id:document.getElementById('proseAppId').value.trim(),
+      name:document.getElementById('proseAppName').value.trim(),
+      prose_app_code:document.getElementById('proseAppCode').value.trim(),
+      validity_hours:parseInt(document.getElementById('proseAppValidity').value)||24,
+    };
+    if(!body.app_id||!body.name||!body.prose_app_code){alert('App ID, Name, and App Code required');return;}
+    fetch(API+'/apps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(j).then(()=>{loadApps();loadStats();}).catch(e=>alert(e));
+  });
+
+  // ---- UE Config ----
+  function loadUeConfig(){
+    fetch(API+'/ue-config').then(j).then(d=>{
+      const tb=document.getElementById('proseUeBody');
+      if(!d.items||!d.items.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No UE configs</td></tr>';return;}
+      const ck=v=>v?'Yes':'No';
+      tb.innerHTML=d.items.map(u=>`<tr>
+        <td>${u.imsi}</td><td>${ck(u.authorized)}</td><td>${ck(u.discovery_enabled)}</td>
+        <td>${ck(u.communication_enabled)}</td><td>${ck(u.relay_capable)}</td>
+        <td>${ck(u.relay_enabled)}</td><td>${u.updated_at||'-'}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  document.getElementById('btnProseSetUe').addEventListener('click',function(){
+    const body={
+      imsi:document.getElementById('proseUeImsi').value.trim(),
+      authorized:document.getElementById('proseUeAuth').checked?1:0,
+      discovery_enabled:document.getElementById('proseUeDisc').checked?1:0,
+      communication_enabled:document.getElementById('proseUeComm').checked?1:0,
+      relay_capable:document.getElementById('proseUeRelayCap').checked?1:0,
+      relay_enabled:document.getElementById('proseUeRelayEn').checked?1:0,
+    };
+    if(!body.imsi){alert('IMSI required');return;}
+    fetch(API+'/ue-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(j).then(()=>{loadUeConfig();loadStats();}).catch(e=>alert(e));
+  });
+
+  // ---- Discovery ----
+  function loadAnnouncements(){
+    fetch(API+'/discovery/active').then(j).then(d=>{
+      const tb=document.getElementById('proseAnnBody');
+      if(!d.items||!d.items.length){tb.innerHTML='<tr><td colspan="4" class="text-muted text-center">No active announcements</td></tr>';return;}
+      tb.innerHTML=d.items.map(a=>`<tr>
+        <td>${a.imsi}</td><td>${a.app_code}</td><td>${ts(a.announced_at)}</td><td>${ts(a.expires_at)}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  document.getElementById('btnProseAnnounce').addEventListener('click',function(){
+    const body={
+      imsi:document.getElementById('proseAnnImsi').value.trim(),
+      app_code:document.getElementById('proseAnnCode').value.trim(),
+      validity_seconds:parseInt(document.getElementById('proseAnnValidity').value)||3600,
+    };
+    if(!body.imsi||!body.app_code){alert('IMSI and App Code required');return;}
+    fetch(API+'/discovery/announce',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(j).then(d=>{
+        document.getElementById('proseAnnResult').innerHTML=d.ok
+          ?'<span class="text-success">Announced successfully</span>'
+          :`<span class="text-danger">${d.error||'Failed'}</span>`;
+        loadAnnouncements();loadStats();
+      }).catch(e=>alert(e));
+  });
+  document.getElementById('btnProseMonitor').addEventListener('click',function(){
+    const imsi=document.getElementById('proseMonImsi').value.trim();
+    if(!imsi){alert('IMSI required');return;}
+    const filters={};
+    const code=document.getElementById('proseMonCode').value.trim();
+    if(code)filters.app_code=code;
+    fetch(API+'/discovery/monitor',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imsi,filters})})
+      .then(j).then(d=>{
+        const el=document.getElementById('proseMonResult');
+        if(!d.ok){el.innerHTML=`<span class="text-danger">${d.error||'Denied'}</span>`;return;}
+        if(!d.discovered||!d.discovered.length){el.innerHTML='<span class="text-muted">No nearby UEs discovered</span>';return;}
+        el.innerHTML='<strong>Discovered:</strong> '+d.discovered.map(x=>`${x.imsi} (${x.app_code})`).join(', ');
+      }).catch(e=>alert(e));
+  });
+
+  // ---- Communication ----
+  function loadSessions(){
+    fetch(API+'/communication').then(j).then(d=>{
+      const tb=document.getElementById('proseSessionBody');
+      if(!d.items||!d.items.length){tb.innerHTML='<tr><td colspan="9" class="text-muted text-center">No sessions</td></tr>';return;}
+      tb.innerHTML=d.items.map(s=>`<tr>
+        <td>${s.id}</td><td>${s.session_type}</td><td>${s.source_imsi}</td>
+        <td>${s.target_imsi||s.group_id||'-'}</td><td>${s.relay_imsi||'-'}</td>
+        <td>${s.service||'-'}</td><td>${badge(s.status)}</td><td>${s.created_at||'-'}</td>
+        <td>${s.status==='active'?`<button class="btn btn-danger btn-sm py-0 px-1" onclick="proseRelease(${s.id})">Release</button>`:''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  window.proseRelease=function(id){
+    fetch(API+'/communication/'+id,{method:'DELETE'}).then(j).then(()=>{loadSessions();loadStats();});
+  };
+  document.getElementById('btnProseSetup').addEventListener('click',function(){
+    const body={
+      source_imsi:document.getElementById('proseCommSrc').value.trim(),
+      target_imsi:document.getElementById('proseCommTgt').value.trim()||undefined,
+      group_id:document.getElementById('proseCommGrp').value.trim()||undefined,
+      service:document.getElementById('proseCommSvc').value.trim()||undefined,
+    };
+    if(!body.source_imsi){alert('Source IMSI required');return;}
+    if(!body.target_imsi&&!body.group_id){alert('Target IMSI or Group ID required');return;}
+    fetch(API+'/communication/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(j).then(d=>{
+        document.getElementById('proseCommResult').innerHTML=d.ok
+          ?`<span class="text-success">Session ${d.session_id} created (${d.session_type})</span>`
+          :`<span class="text-danger">${d.error||'Failed'}</span>`;
+        loadSessions();loadStats();
+      }).catch(e=>alert(e));
+  });
+
+  // ---- Relay ----
+  function loadRelays(){
+    fetch(API+'/relay').then(j).then(d=>{
+      const tb=document.getElementById('proseRelayBody');
+      if(!d.items||!d.items.length){tb.innerHTML='<tr><td colspan="5" class="text-muted text-center">No active relays</td></tr>';return;}
+      tb.innerHTML=d.items.map(r=>`<tr>
+        <td>${r.imsi}</td><td>${r.service_code}</td><td>${r.connectivity}</td>
+        <td>${ts(r.registered_at)}</td><td>${ts(r.expires_at)}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  document.getElementById('btnProseRegRelay').addEventListener('click',function(){
+    const body={
+      imsi:document.getElementById('proseRelayImsi').value.trim(),
+      service_code:document.getElementById('proseRelaySvc').value.trim(),
+      connectivity:document.getElementById('proseRelayConn').value,
+    };
+    if(!body.imsi||!body.service_code){alert('IMSI and Service Code required');return;}
+    fetch(API+'/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(j).then(d=>{
+        document.getElementById('proseRelayRegResult').innerHTML=d.ok
+          ?'<span class="text-success">Relay registered</span>'
+          :`<span class="text-danger">${d.error||'Failed'}</span>`;
+        loadRelays();loadStats();
+      }).catch(e=>alert(e));
+  });
+  document.getElementById('btnProseDiscRelay').addEventListener('click',function(){
+    const imsi=document.getElementById('proseRelayDiscImsi').value.trim();
+    if(!imsi){alert('IMSI required');return;}
+    const body={imsi};
+    const svc=document.getElementById('proseRelayDiscSvc').value.trim();
+    if(svc)body.service_code=svc;
+    fetch(API+'/relay/discover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(j).then(d=>{
+        const el=document.getElementById('proseRelayDiscResult');
+        if(!d.ok){el.innerHTML=`<span class="text-danger">${d.error||'Denied'}</span>`;return;}
+        if(!d.relays||!d.relays.length){el.innerHTML='<span class="text-muted">No relays discovered</span>';return;}
+        el.innerHTML='<strong>Relays:</strong> '+d.relays.map(r=>`${r.imsi} (${r.service_code}, ${r.connectivity})`).join(', ');
+      }).catch(e=>alert(e));
+  });
+
+  // ---- Tab activation auto-refresh ----
+  const tab=document.querySelector('a[href="#prose-tab"]');
+  if(tab){tab.addEventListener('shown.bs.tab',function(){loadAll();});}
+  function loadAll(){loadStats();loadApps();loadUeConfig();loadAnnouncements();loadSessions();loadRelays();}
+
+  // Also load when the prose-tab pane becomes visible
+  const observer=new MutationObserver(function(mutations){
+    mutations.forEach(function(m){
+      if(m.target.id==='prose-tab'&&m.target.classList.contains('active')){loadAll();}
+    });
+  });
+  const pane=document.getElementById('prose-tab');
+  if(pane)observer.observe(pane,{attributes:true,attributeFilter:['class']});
+
+  // Initial load
+  loadAll();
+})();
+</script>

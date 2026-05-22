@@ -1,0 +1,168 @@
+<!-- templates/nwdaf.html — NWDAF Analytics Dashboard (TS 23.288) -->
+
+<style>
+.nw-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.nw-card .n-val { font-size: 1.5rem; font-weight: 700; }
+.nw-card .n-lbl { font-size: 0.78rem; opacity: 0.9; }
+.nw-green { background: #28a745; }
+.nw-blue { background: #0d6efd; }
+.nw-orange { background: #fd7e14; }
+.nw-red { background: #dc3545; }
+.nw-purple { background: #6f42c1; }
+.nw-gray { background: #6c757d; }
+.nw-panel { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #f8f9fa; }
+.nw-panel h6 { margin-bottom: 8px; font-size: 0.9rem; }
+.nw-kv { font-size: 0.82rem; color: #333; }
+.nw-kv span { margin-right: 16px; }
+.nw-alert { border-left: 4px solid #dc3545; padding: 6px 12px; margin: 4px 0; background: #fff5f5; font-size: 0.82rem; }
+.nw-alert.sev-medium { border-left-color: #fd7e14; background: #fff8f0; }
+.nw-alert.sev-high { border-left-color: #dc3545; }
+.nw-alert.sev-critical { border-left-color: #721c24; background: #f8d7da; }
+</style>
+
+<!-- Summary Row -->
+<div class="row g-2 mb-3" id="nwdafSummary">
+  <div class="col"><div class="nw-card nw-green" id="nwLoad"><div class="n-val">--</div><div class="n-lbl">NF Load</div></div></div>
+  <div class="col"><div class="nw-card nw-blue"><div class="n-val" id="nwUes">--</div><div class="n-lbl">Active UEs</div></div></div>
+  <div class="col"><div class="nw-card nw-purple"><div class="n-val" id="nwSessions">--</div><div class="n-lbl">PDU Sessions</div></div></div>
+  <div class="col"><div class="nw-card nw-gray" id="nwQos"><div class="n-val">--</div><div class="n-lbl">QoS Status</div></div></div>
+  <div class="col"><div class="nw-card nw-gray" id="nwAnomalies"><div class="n-val">0</div><div class="n-lbl">Anomalies</div></div></div>
+</div>
+
+<!-- Analytics Panels -->
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="nw-panel" id="nwNfLoad">
+      <h6 class="fw-bold">NF Load (TS 23.288 §6.5)</h6>
+      <div class="nw-kv">Loading...</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="nw-panel" id="nwMobility">
+      <h6 class="fw-bold">UE Mobility (TS 23.288 §6.7)</h6>
+      <div class="nw-kv">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="nw-panel" id="nwPduSession">
+      <h6 class="fw-bold">PDU Sessions (TS 23.288 §6.4)</h6>
+      <div class="nw-kv">Loading...</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="nw-panel" id="nwQosPanel">
+      <h6 class="fw-bold">QoS Sustainability (TS 23.288 §6.9)</h6>
+      <div class="nw-kv">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Anomaly Detection -->
+<div class="nw-panel" id="nwAnomalyPanel">
+  <h6 class="fw-bold">Anomaly Detection (TS 23.288 §6.11)</h6>
+  <div id="nwAnomalyAlerts"><span class="text-muted" style="font-size:0.82rem">No anomalies detected</span></div>
+</div>
+
+<!-- Slice Load -->
+<div class="nw-panel" id="nwSlicePanel">
+  <h6 class="fw-bold">Slice Load (TS 23.288 §6.3)</h6>
+  <div id="nwSliceData" class="nw-kv">Loading...</div>
+</div>
+
+<div class="text-end mt-2">
+  <small class="text-muted" id="nwTs">Last updated: --</small>
+  <button class="btn btn-sm btn-outline-secondary ms-2" onclick="nwdafLoad()">Refresh</button>
+</div>
+
+<script>
+function nwdafLoad() {
+  fetch('/api/nwdaf/analytics').then(r => r.json()).then(d => {
+    if (!d.ok) return;
+    const a = d.analytics || {};
+
+    // NF Load
+    const nfl = (a.NF_LOAD || {}).result || {};
+    const loadEl = document.getElementById('nwLoad');
+    const ll = nfl.load_level || 'unknown';
+    loadEl.className = 'nw-card ' + (ll === 'low' ? 'nw-green' : ll === 'medium' ? 'nw-orange' : ll === 'high' ? 'nw-red' : 'nw-gray');
+    loadEl.querySelector('.n-val').textContent = ll.charAt(0).toUpperCase() + ll.slice(1);
+    document.getElementById('nwNfLoad').querySelector('.nw-kv').innerHTML =
+      `<span>Trend: <strong>${nfl.trend || '--'}</strong></span>` +
+      `<span>Reg Rate: ${nfl.avg_registration_rate ?? '--'}/interval</span>` +
+      `<span>Sess Rate: ${nfl.avg_session_rate ?? '--'}/interval</span>` +
+      `<br><span>Confidence: ${((a.NF_LOAD||{}).confidence*100||0).toFixed(0)}%</span>`;
+
+    // UE Mobility
+    const mob = (a.UE_MOBILITY || {}).result || {};
+    document.getElementById('nwUes').textContent = mob.current_ues ?? '--';
+    document.getElementById('nwMobility').querySelector('.nw-kv').innerHTML =
+      `<span>Registered: ${mob.current_registered ?? '--'}</span>` +
+      `<span>Connected: ${mob.current_connected ?? '--'}</span>` +
+      `<span>Avg: ${mob.avg_ues ?? '--'}</span>` +
+      `<span>Peak: ${mob.peak_ues ?? '--'}</span>`;
+
+    // PDU Sessions
+    const pdu = (a.PDU_SESSION || {}).result || {};
+    document.getElementById('nwSessions').textContent = pdu.total_active_sessions ?? '--';
+    let pduHtml = '';
+    for (const [dnn, cnt] of Object.entries(pdu.sessions_by_dnn || {})) {
+      pduHtml += `<span>${dnn}: ${cnt}</span>`;
+    }
+    const pools = pdu.ip_pool_usage || {};
+    for (const [dnn, cnt] of Object.entries(pools)) {
+      pduHtml += `<span>${dnn} IPs: ${cnt}</span>`;
+    }
+    document.getElementById('nwPduSession').querySelector('.nw-kv').innerHTML = pduHtml || '<span>No sessions</span>';
+
+    // QoS
+    const qos = (a.QOS_SUSTAINABILITY || {}).result || {};
+    const qs = qos.qos_status || 'no_data';
+    const qosEl = document.getElementById('nwQos');
+    qosEl.className = 'nw-card ' + (qs === 'sustainable' ? 'nw-green' : qs === 'at_risk' ? 'nw-orange' : qs === 'degraded' ? 'nw-red' : 'nw-gray');
+    qosEl.querySelector('.n-val').textContent = qs.charAt(0).toUpperCase() + qs.slice(1).replace('_',' ');
+    document.getElementById('nwQosPanel').querySelector('.nw-kv').innerHTML =
+      `<span>Drop Rate: ${((qos.drop_rate||0)*100).toFixed(4)}%</span>` +
+      `<span>Packets: ${qos.total_packets ?? '--'}</span>` +
+      `<span>Dropped: ${qos.dropped_packets ?? '--'}</span>`;
+
+    // Anomalies
+    const abn = (a.ABNORMAL_BEHAVIOUR || {}).result || {};
+    const alerts = abn.alerts || [];
+    document.getElementById('nwAnomalies').querySelector('.n-val').textContent = alerts.length;
+    const anEl = document.getElementById('nwAnomalies');
+    anEl.className = 'nw-card ' + (alerts.length > 0 ? 'nw-red' : 'nw-green');
+    const alertDiv = document.getElementById('nwAnomalyAlerts');
+    if (alerts.length === 0) {
+      alertDiv.innerHTML = '<span class="text-muted" style="font-size:0.82rem">No anomalies detected</span>';
+    } else {
+      alertDiv.innerHTML = alerts.map(al =>
+        `<div class="nw-alert sev-${al.severity}"><strong>${al.type}</strong> — ${al.detail}</div>`
+      ).join('');
+    }
+
+    // Slice Load
+    const slices = ((a.SLICE_LOAD || {}).result || {}).slices || {};
+    let sliceHtml = '';
+    for (const [sst, data] of Object.entries(slices)) {
+      sliceHtml += `<span>SST ${sst}: ${data.current_sessions} sessions (avg ${data.avg_sessions}, peak ${data.peak_sessions})</span><br>`;
+    }
+    document.getElementById('nwSliceData').innerHTML = sliceHtml || '<span>No slice data</span>';
+
+    // Timestamp
+    document.getElementById('nwTs').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  }).catch(() => {});
+}
+
+// Auto-refresh every 30s when tab active
+let nwdafInterval = null;
+document.querySelector('a[href="#nwdaf-tab"]')?.addEventListener('shown.bs.tab', () => {
+  nwdafLoad();
+  nwdafInterval = setInterval(nwdafLoad, 30000);
+});
+document.querySelector('a[href="#nwdaf-tab"]')?.addEventListener('hidden.bs.tab', () => {
+  if (nwdafInterval) { clearInterval(nwdafInterval); nwdafInterval = null; }
+});
+</script>
