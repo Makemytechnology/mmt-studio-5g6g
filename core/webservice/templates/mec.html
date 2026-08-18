@@ -1,0 +1,185 @@
+<!-- templates/mec.html — Multi-access Edge Computing (TS 23.548 / TS 23.558) -->
+
+<!-- MEC Status Overview -->
+<div class="row g-2 mb-3" id="mecStatus">
+  <div class="col"><div class="card p-2 text-center border-left-primary" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="mecSites">0</div><div class="small text-muted">Edge Sites</div></div></div>
+  <div class="col"><div class="card p-2 text-center border-left-success" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="mecApps">0</div><div class="small text-muted">Edge Apps</div></div></div>
+  <div class="col"><div class="card p-2 text-center border-left-info" style="border-left:3px solid #0dcaf0"><div class="fw-bold fs-4" id="mecInstances">0</div><div class="small text-muted">Running Instances</div></div></div>
+  <div class="col"><div class="card p-2 text-center border-left-warning" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="mecUlcl">0</div><div class="small text-muted">ULCL Rules</div></div></div>
+  <div class="col"><div class="card p-2 text-center border-left-secondary" style="border-left:3px solid #6c757d"><div class="fw-bold fs-4" id="mecAf">0</div><div class="small text-muted">AF Influences</div></div></div>
+</div>
+
+<!-- Edge Sites -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="mecSitesBtn" class="accordion-button bg-primary text-white fw-bold" type="button"><div class="w-100 text-center">Edge Sites</div></button></h2>
+  <div id="mecSitesCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>TAIs</th><th>Local DN</th><th>Capacity</th><th>Status</th><th></th></tr>
+    </thead><tbody id="mecSitesBody"><tr><td colspan="7" class="text-muted text-center">No edge sites</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="mecSiteName" class="form-control form-control-sm" style="width:120px" placeholder="edge-north"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">TAIs (comma)</label><input id="mecSiteTais" class="form-control form-control-sm" style="width:120px" placeholder="000001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Local DN IP</label><input id="mecSiteDnIp" class="form-control form-control-sm" style="width:120px" placeholder="10.100.0.1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Local DN CIDR</label><input id="mecSiteDnCidr" class="form-control form-control-sm" style="width:140px" placeholder="10.100.0.0/24"></div>
+      <div class="col-auto"><button id="btnMecAddSite" class="btn btn-success btn-sm">+ Add Site</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Edge Apps -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="mecAppsBtn" class="accordion-button bg-success text-white fw-bold" type="button"><div class="w-100 text-center">Edge Applications (EAS)</div></button></h2>
+  <div id="mecAppsCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>FQDN</th><th>DNN</th><th>Filter</th><th>Instances</th><th></th></tr>
+    </thead><tbody id="mecAppsBody"><tr><td colspan="7" class="text-muted text-center">No edge apps</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="mecAppName" class="form-control form-control-sm" style="width:120px" placeholder="video-cdn"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">FQDN</label><input id="mecAppFqdn" class="form-control form-control-sm" style="width:160px" placeholder="cdn.edge.local"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">DNN</label><input id="mecAppDnn" class="form-control form-control-sm" style="width:100px" value="internet"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">IP Filter</label><input id="mecAppIp" class="form-control form-control-sm" style="width:130px" placeholder="10.200.0.0/24"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Port</label><input id="mecAppPort" class="form-control form-control-sm" style="width:70px" placeholder="8080"></div>
+      <div class="col-auto"><button id="btnMecAddApp" class="btn btn-success btn-sm">+ Add App</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- ULCL Rules -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="mecUlclBtn" class="accordion-button bg-info text-white fw-bold" type="button"><div class="w-100 text-center">ULCL Traffic Steering Rules</div></button></h2>
+  <div id="mecUlclCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>Rule ID</th><th>UE</th><th>DNN</th><th>Target</th><th>Edge Site</th><th>Priority</th><th>Status</th><th>Matched</th></tr>
+    </thead><tbody id="mecUlclBody"><tr><td colspan="8" class="text-muted text-center">No ULCL rules</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Deploy -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="mecDeployBtn" class="accordion-button bg-warning text-dark fw-bold" type="button"><div class="w-100 text-center">Deploy / AF Influence</div></button></h2>
+  <div id="mecDeployCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2">
+      <div class="col-md-6">
+        <h6>Deploy App Instance</h6>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto"><select id="mecDeployApp" class="form-select form-select-sm" style="width:130px"><option value="">App</option></select></div>
+          <div class="col-auto"><select id="mecDeploySite" class="form-select form-select-sm" style="width:130px"><option value="">Site</option></select></div>
+          <div class="col-auto"><input id="mecDeployIp" class="form-control form-control-sm" style="width:120px" placeholder="App IP"></div>
+          <div class="col-auto"><input id="mecDeployPort" class="form-control form-control-sm" style="width:70px" placeholder="8080" value="8080"></div>
+          <div class="col-auto"><button id="btnMecDeploy" class="btn btn-warning btn-sm">Deploy</button></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h6>AF Traffic Influence</h6>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto"><input id="mecAfDnn" class="form-control form-control-sm" style="width:100px" value="internet" placeholder="DNN"></div>
+          <div class="col-auto"><input id="mecAfIp" class="form-control form-control-sm" style="width:130px" placeholder="Target IP"></div>
+          <div class="col-auto"><select id="mecAfSite" class="form-select form-select-sm" style="width:130px"><option value="">Edge Site</option></select></div>
+          <div class="col-auto"><button id="btnMecAfInfluence" class="btn btn-outline-warning btn-sm">Create</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="mecDeployStatus" class="mt-2"></div>
+  </div></div>
+</div></div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <button id="btnMecRefresh" class="btn btn-primary btn-sm">Refresh</button>
+  <small id="mecLastRefresh" class="text-muted"></small>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=s=>{if(s==null)return'-';const e=document.createElement('span');e.textContent=String(s);return e.innerHTML;};
+
+  for(const[b,c]of[['mecSitesBtn','mecSitesCollapse'],['mecAppsBtn','mecAppsCollapse'],['mecUlclBtn','mecUlclCollapse'],['mecDeployBtn','mecDeployCollapse']]){
+    const btn=$(b),col=$(c);
+    if(btn&&col&&!btn.dataset.bound){btn.dataset.bound='1';const inst=bootstrap.Collapse.getOrCreateInstance(col,{toggle:false});btn.addEventListener('click',()=>inst.toggle());}
+  }
+
+  async function poll(){
+    try{
+      const[rSt,rSi,rAp,rUl]=await Promise.all([fetch('/api/mec/status'),fetch('/api/mec/sites'),fetch('/api/mec/apps'),fetch('/api/mec/ulcl-rules')]);
+      const st=await rSt.json(),si=await rSi.json(),ap=await rAp.json(),ul=await rUl.json();
+
+      $('mecSites').textContent=st.total_sites||0;
+      $('mecApps').textContent=st.total_apps||0;
+      $('mecInstances').textContent=st.running_instances||0;
+      $('mecUlcl').textContent=st.ulcl_rules||0;
+      $('mecAf').textContent=st.af_influences||0;
+
+      // Sites
+      const sites=si.sites||[];
+      $('mecSitesBody').innerHTML=sites.length?sites.map(s=>
+        `<tr><td><code>${esc(s.site_id)}</code></td><td>${esc(s.name)}</td><td>${(s.tais||[]).join(', ')}</td>`+
+        `<td><code>${esc(s.local_dn_cidr)}</code></td><td>${s.capacity}</td>`+
+        `<td><span class="badge bg-${s.status==='active'?'success':'secondary'}">${s.status}</span></td>`+
+        `<td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="mecDelSite('${s.site_id}')">Del</button></td></tr>`
+      ).join(''):'<tr><td colspan="7" class="text-muted text-center">No edge sites</td></tr>';
+
+      // Apps
+      const apps=ap.apps||[];
+      $('mecAppsBody').innerHTML=apps.length?apps.map(a=>{
+        const ni=Object.keys(a.instances||{}).length;
+        return `<tr><td><code>${esc(a.app_id)}</code></td><td>${esc(a.name)}</td><td><code>${esc(a.fqdn)}</code></td>`+
+        `<td>${esc(a.dnn)}</td><td>${esc(a.ip_filter||'-')}:${a.port||'*'}</td>`+
+        `<td>${ni} instance(s)</td>`+
+        `<td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="mecDelApp('${a.app_id}')">Del</button></td></tr>`;
+      }).join(''):'<tr><td colspan="7" class="text-muted text-center">No edge apps</td></tr>';
+
+      // ULCL
+      const rules=ul.rules||[];
+      $('mecUlclBody').innerHTML=rules.length?rules.map(r=>
+        `<tr><td><code>${esc(r.rule_id)}</code></td><td>${esc(r.imsi||'*')}</td><td>${esc(r.dnn||'*')}</td>`+
+        `<td>${esc(r.target_ip||r.target_fqdn||'-')}:${r.target_port||'*'}</td>`+
+        `<td>${esc(r.edge_site_id||'-')}</td><td>${r.priority}</td>`+
+        `<td><span class="badge bg-${r.status==='active'?'success':'secondary'}">${r.status}</span></td>`+
+        `<td>${r.matched_packets} pkts</td></tr>`
+      ).join(''):'<tr><td colspan="8" class="text-muted text-center">No ULCL rules</td></tr>';
+
+      // Populate deploy dropdowns
+      const appSel=$('mecDeployApp'),siteSel=$('mecDeploySite'),afSite=$('mecAfSite');
+      appSel.innerHTML='<option value="">App</option>'+apps.map(a=>`<option value="${a.app_id}">${a.name}</option>`).join('');
+      const siteOpts='<option value="">Site</option>'+sites.map(s=>`<option value="${s.site_id}">${s.name}</option>`).join('');
+      siteSel.innerHTML=siteOpts; afSite.innerHTML=siteOpts;
+
+      $('mecLastRefresh').textContent='Last: '+new Date().toLocaleTimeString();
+    }catch(e){}
+  }
+
+  window.mecDelSite=async id=>{if(!confirm('Delete site?'))return;await fetch('/api/mec/sites/'+id,{method:'DELETE'});poll();};
+  window.mecDelApp=async id=>{if(!confirm('Delete app?'))return;await fetch('/api/mec/apps/'+id,{method:'DELETE'});poll();};
+
+  $('btnMecAddSite').addEventListener('click',async()=>{
+    await fetch('/api/mec/sites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      name:$('mecSiteName').value,tais:$('mecSiteTais').value.split(',').map(s=>s.trim()).filter(Boolean),
+      local_dn_ip:$('mecSiteDnIp').value,local_dn_cidr:$('mecSiteDnCidr').value})});poll();});
+
+  $('btnMecAddApp').addEventListener('click',async()=>{
+    await fetch('/api/mec/apps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      name:$('mecAppName').value,fqdn:$('mecAppFqdn').value,dnn:$('mecAppDnn').value,
+      ip_filter:$('mecAppIp').value||null,port:parseInt($('mecAppPort').value)||null})});poll();});
+
+  $('btnMecDeploy').addEventListener('click',async()=>{
+    const r=await fetch('/api/mec/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      app_id:$('mecDeployApp').value,site_id:$('mecDeploySite').value,
+      app_ip:$('mecDeployIp').value,app_port:parseInt($('mecDeployPort').value)||8080})});
+    const d=await r.json();
+    $('mecDeployStatus').innerHTML=d.ok?'<div class="alert alert-success py-1 small">Deployed</div>':'<div class="alert alert-danger py-1 small">'+esc(d.error)+'</div>';
+    poll();});
+
+  $('btnMecAfInfluence').addEventListener('click',async()=>{
+    const r=await fetch('/api/mec/af-influence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      dnn:$('mecAfDnn').value,target_ip:$('mecAfIp').value||null,edge_site_id:$('mecAfSite').value||null})});
+    const d=await r.json();
+    $('mecDeployStatus').innerHTML=d.ok?'<div class="alert alert-success py-1 small">AF Influence created: '+esc(d.req_id)+'</div>':'<div class="alert alert-danger py-1 small">Failed</div>';
+    poll();});
+
+  $('btnMecRefresh').addEventListener('click',poll);
+  const tab=document.getElementById('mec-tab');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active'))poll();});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  if(tab&&tab.classList.contains('active'))poll();
+})();
+</script>

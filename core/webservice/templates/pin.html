@@ -1,0 +1,197 @@
+<!-- templates/pin.html — Personal IoT Network (TS 23.542) -->
+
+<!-- Status Overview -->
+<div class="row g-2 mb-3" id="pinStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="pinTotalNets">0</div><div class="small text-muted">Total PINs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="pinActiveNets">0</div><div class="small text-muted">Active</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="pinTotalElems">0</div><div class="small text-muted">Elements</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="pinConnElems">0</div><div class="small text-muted">Connected</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="pinDataEvents">0</div><div class="small text-muted">Data Events</div></div></div>
+</div>
+
+<!-- PIN Networks -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#pinNetsCollapse"><div class="w-100 text-center">PIN Networks (TS 23.542 §6.2)</div></button></h2>
+  <div id="pinNetsCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Owner IMSI</th><th>Name</th><th>Description</th><th>Gateway IMSI</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="pinNetsBody"><tr><td colspan="8" class="text-muted text-center">No PIN networks</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Owner IMSI</label><input id="pinOwnerImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000097"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="pinName" class="form-control form-control-sm" style="width:140px" placeholder="My Home IoT"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Description</label><input id="pinDesc" class="form-control form-control-sm" style="width:180px" placeholder="Smart home sensors"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Gateway IMSI</label><input id="pinGwImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000098"></div>
+      <div class="col-auto"><button id="btnPinCreate" class="btn btn-success btn-sm">+ Create PIN</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- PIN Elements -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pinElemsCollapse"><div class="w-100 text-center">PIN Elements (TS 23.542 §6.3)</div></button></h2>
+  <div id="pinElemsCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">PIN ID</label><input id="pinElemNetId" class="form-control form-control-sm" style="width:80px" type="number" placeholder="1"></div>
+      <div class="col-auto"><button id="btnPinLoadElems" class="btn btn-primary btn-sm">Load Elements</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>Row ID</th><th>Element ID</th><th>Type</th><th>Protocol</th><th>Name</th><th>Status</th><th>Last Seen</th><th></th></tr>
+    </thead><tbody id="pinElemsBody"><tr><td colspan="8" class="text-muted text-center">Select a PIN to view elements</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Element ID</label><input id="pinElemId" class="form-control form-control-sm" style="width:120px" placeholder="sensor-01"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Type</label><select id="pinElemType" class="form-select form-select-sm" style="width:110px"><option>sensor</option><option>actuator</option><option>gateway</option><option>wearable</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Protocol</label><select id="pinElemProto" class="form-select form-select-sm" style="width:100px"><option>BLE</option><option>Zigbee</option><option>WiFi</option><option>Thread</option><option>NFC</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="pinElemName" class="form-control form-control-sm" style="width:140px" placeholder="Temperature"></div>
+      <div class="col-auto"><button id="btnPinAddElem" class="btn btn-success btn-sm">+ Add Element</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Data Relay -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pinRelayCollapse"><div class="w-100 text-center">Data Relay via PINGW (TS 23.542 §6.4)</div></button></h2>
+  <div id="pinRelayCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">PIN ID</label><input id="pinRelayNetId" class="form-control form-control-sm" style="width:80px" type="number" placeholder="1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">Element ID</label><input id="pinRelayElemId" class="form-control form-control-sm" style="width:120px" placeholder="sensor-01"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Direction</label><select id="pinRelayDir" class="form-select form-select-sm" style="width:80px"><option>UL</option><option>DL</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Data (hex)</label><input id="pinRelayData" class="form-control form-control-sm" style="width:200px" placeholder="0102030405"></div>
+      <div class="col-auto"><button id="btnPinRelay" class="btn btn-warning btn-sm">Relay Data</button></div>
+    </div>
+    <div id="pinRelayResult" class="small text-muted"></div>
+  </div></div>
+</div></div>
+
+<!-- Data Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-secondary text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pinLogCollapse"><div class="w-100 text-center">Data Log</div></button></h2>
+  <div id="pinLogCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">PIN ID</label><input id="pinLogNetId" class="form-control form-control-sm" style="width:80px" type="number" placeholder="1"></div>
+      <div class="col-auto"><button id="btnPinLoadLog" class="btn btn-primary btn-sm">Load Log</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Element ID</th><th>Direction</th><th>Data (hex)</th><th>Size (B)</th><th>Timestamp</th></tr>
+    </thead><tbody id="pinLogBody"><tr><td colspan="6" class="text-muted text-center">Select a PIN to view data log</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/pin';
+
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      document.getElementById('pinTotalNets').textContent = d.total_networks||0;
+      document.getElementById('pinActiveNets').textContent = d.active_networks||0;
+      document.getElementById('pinTotalElems').textContent = d.total_elements||0;
+      document.getElementById('pinConnElems').textContent = d.connected_elements||0;
+      document.getElementById('pinDataEvents').textContent = d.data_events||0;
+    }).catch(()=>{});
+  }
+
+  function loadNetworks(){
+    fetch(API+'/networks').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('pinNetsBody');
+      const items = d.items||[];
+      if(!items.length){ tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No PIN networks</td></tr>'; return; }
+      tb.innerHTML = items.map(n=>`<tr>
+        <td>${n.id}</td><td>${n.owner_imsi||''}</td><td>${n.name||''}</td><td>${n.description||''}</td>
+        <td>${n.gateway_imsi||'<em>none</em>'}</td>
+        <td><span class="badge bg-${n.status==='active'?'success':'secondary'}">${n.status}</span></td>
+        <td>${n.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0" onclick="pinDeleteNet(${n.id})">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  window.pinDeleteNet = function(id){
+    if(!confirm('Delete PIN '+id+'?')) return;
+    fetch(API+'/networks/'+id,{method:'DELETE'}).then(()=>{ loadNetworks(); loadStats(); });
+  };
+
+  document.getElementById('btnPinCreate').addEventListener('click', ()=>{
+    const body = {
+      owner_imsi: document.getElementById('pinOwnerImsi').value,
+      name: document.getElementById('pinName').value,
+      description: document.getElementById('pinDesc').value,
+      gateway_imsi: document.getElementById('pinGwImsi').value,
+    };
+    fetch(API+'/networks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(()=>{ loadNetworks(); loadStats(); });
+  });
+
+  // Elements
+  document.getElementById('btnPinLoadElems').addEventListener('click', ()=>{
+    const nid = document.getElementById('pinElemNetId').value;
+    if(!nid) return;
+    fetch(API+'/networks/'+nid+'/elements').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('pinElemsBody');
+      const items = d.items||[];
+      if(!items.length){ tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No elements</td></tr>'; return; }
+      tb.innerHTML = items.map(e=>`<tr>
+        <td>${e.id}</td><td>${e.element_id}</td><td>${e.element_type}</td><td>${e.protocol}</td>
+        <td>${e.name||''}</td>
+        <td><span class="badge bg-${e.status==='connected'?'success':e.status==='sleeping'?'warning':'secondary'}">${e.status}</span></td>
+        <td>${e.last_seen_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0" onclick="pinDeleteElem(${nid},${e.id})">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  });
+
+  window.pinDeleteElem = function(nid, eid){
+    fetch(API+'/networks/'+nid+'/elements/'+eid,{method:'DELETE'}).then(()=>{
+      document.getElementById('btnPinLoadElems').click(); loadStats();
+    });
+  };
+
+  document.getElementById('btnPinAddElem').addEventListener('click', ()=>{
+    const nid = document.getElementById('pinElemNetId').value;
+    if(!nid){ alert('Set PIN ID first'); return; }
+    const body = {
+      element_id: document.getElementById('pinElemId').value,
+      element_type: document.getElementById('pinElemType').value,
+      protocol: document.getElementById('pinElemProto').value,
+      name: document.getElementById('pinElemName').value,
+    };
+    fetch(API+'/networks/'+nid+'/elements',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(()=>{ document.getElementById('btnPinLoadElems').click(); loadStats(); });
+  });
+
+  // Relay
+  document.getElementById('btnPinRelay').addEventListener('click', ()=>{
+    const nid = document.getElementById('pinRelayNetId').value;
+    if(!nid){ alert('Set PIN ID'); return; }
+    const body = {
+      element_id: document.getElementById('pinRelayElemId').value,
+      data_hex: document.getElementById('pinRelayData').value,
+      direction: document.getElementById('pinRelayDir').value,
+    };
+    fetch(API+'/networks/'+nid+'/relay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(d=>{
+        document.getElementById('pinRelayResult').textContent = d.error ? 'Error: '+d.error : 'Relayed '+d.data_size+'B via PINGW '+(d.gateway_imsi||'none');
+        loadStats();
+      });
+  });
+
+  // Data Log
+  document.getElementById('btnPinLoadLog').addEventListener('click', ()=>{
+    const nid = document.getElementById('pinLogNetId').value;
+    if(!nid) return;
+    fetch(API+'/networks/'+nid+'/data-log').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('pinLogBody');
+      const items = d.items||[];
+      if(!items.length){ tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No data log entries</td></tr>'; return; }
+      tb.innerHTML = items.map(e=>`<tr>
+        <td>${e.id}</td><td>${e.element_id}</td>
+        <td><span class="badge bg-${e.direction==='UL'?'primary':'warning'}">${e.direction}</span></td>
+        <td><code>${(e.data_hex||'').substring(0,40)}${(e.data_hex||'').length>40?'...':''}</code></td>
+        <td>${e.data_size}</td><td>${e.timestamp||''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  });
+
+  loadStats();
+  loadNetworks();
+})();
+</script>

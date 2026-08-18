@@ -1,0 +1,355 @@
+<!-- templates/ue_dashboard.html -->
+<div class="accordion mb-4" id="ueDashAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="ueDashHeader">
+      <!-- ✅ FIX: manual toggle (no data-bs-toggle/data-bs-target) -->
+      <button
+        id="ueDashToggleBtn"
+        class="accordion-button bg-info text-white fw-bold d-flex justify-content-center"
+        type="button"
+        aria-expanded="true"
+        aria-controls="ueDashCollapse">
+        <div class="w-100 text-center">Configured UEs</div>
+      </button>
+    </h2>
+
+    <div id="ueDashCollapse" class="accordion-collapse collapse show" aria-labelledby="ueDashHeader" data-bs-parent="#ueDashAccordion">
+      <div class="accordion-body">
+
+        <div class="card p-3 shadow-sm">
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <div class="input-group w-auto">
+              <span class="input-group-text">Search</span>
+              <input id="ueSearch" class="form-control" placeholder="IMSI or MSISDN">
+            </div>
+
+            <div class="ms-auto d-flex flex-wrap gap-2">
+              <!-- ✅ FIX: type="button" -->
+              <button id="btnUeRefresh"   type="button" class="btn btn-outline-primary">Refresh</button>
+              <button id="btnUeLoadSel"   type="button" class="btn btn-primary">Load Selected</button>
+              <button id="btnUeCloneSel"  type="button" class="btn btn-outline-success">Clone Selected</button>
+              <button id="btnUeDeleteSel" type="button" class="btn btn-outline-danger">Delete Selected</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th style="width:32px;">
+                    <input id="ue_sel_all" type="checkbox" class="form-check-input">
+                  </th>
+                  <th>IMSI</th>
+                  <th>MSISDN</th>
+                  <th>Auth</th>
+                  <th>Sub</th>
+                  <th>Bindings</th>
+                  <th style="width:1%;"></th>
+                </tr>
+              </thead>
+              <tbody id="ue_table_body"></tbody>
+            </table>
+          </div>
+
+          <div id="ueDashStatus" class="mt-2"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Clone UE Modal -->
+<div class="modal fade" id="cloneUEModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Clone UE</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Source IMSI</label>
+          <input type="text" id="clone_source_imsi" class="form-control" placeholder="Existing IMSI">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">New IMSI</label>
+          <input type="text" id="clone_new_imsi" class="form-control" placeholder="New IMSI">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">New MSISDN</label>
+          <input type="text" id="clone_new_msisdn" class="form-control" placeholder="+15551234567" pattern="^\+\d+$" title="E.164 format: + followed by digits">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <!-- ✅ FIX: type="button" -->
+        <button id="btnDoCloneUE" type="button" class="btn btn-success">Clone</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const init = () => {
+    const $ = (id) => document.getElementById(id);
+    const statusBox = $("ueDashStatus");
+
+    // -------------------------------------------------------
+    // ✅ FIX: Manual collapse toggle so open + close always works
+    // -------------------------------------------------------
+    const dashToggleBtn = $("ueDashToggleBtn");
+    const dashCollapse  = $("ueDashCollapse");
+
+    if (dashToggleBtn && dashCollapse) {
+      let inst = null;
+
+      const syncBtnUI = () => {
+        const open = dashCollapse.classList.contains("show");
+        dashToggleBtn.classList.toggle("collapsed", !open);
+        dashToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+
+      const getInst = () => {
+        if (inst) return inst;
+
+        if (window.bootstrap && window.bootstrap.Collapse) {
+          inst = window.bootstrap.Collapse.getOrCreateInstance(dashCollapse, { toggle: false });
+          dashCollapse.addEventListener("shown.bs.collapse", syncBtnUI);
+          dashCollapse.addEventListener("hidden.bs.collapse", syncBtnUI);
+          return inst;
+        }
+
+        inst = { toggle: () => { dashCollapse.classList.toggle("show"); syncBtnUI(); } };
+        return inst;
+      };
+
+      if (!dashToggleBtn.dataset.bound) {
+        dashToggleBtn.dataset.bound = "1";
+        dashToggleBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          getInst().toggle();
+        });
+      }
+
+      syncBtnUI();
+    }
+
+    const note = (msg, type="info") => {
+      statusBox.innerHTML = msg
+        ? `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>`
+        : "";
+    };
+
+    function rowToTr(item){
+      const tr = document.createElement("tr");
+      const badge = (ok, label) =>
+        ok ? `<span class="badge text-bg-success">${label}</span>`
+          : `<span class="badge text-bg-secondary">${label}</span>`;
+
+      tr.innerHTML = `
+        <td><input type="checkbox" class="form-check-input ue_row_sel" data-imsi="${item.imsi}" data-msisdn="${item.msisdn||""}"></td>
+        <td class="font-monospace">${item.imsi}</td>
+        <td>${item.msisdn ? `<span class="font-monospace">${item.msisdn}</span>` : "—"}</td>
+        <td>${badge(item.has_auth, "yes")}</td>
+        <td>${badge(item.has_subscription, "yes")}</td>
+        <td>${item.bindings ?? 0}</td>
+        <td class="text-nowrap">
+          <button type="button" class="btn btn-sm btn-outline-primary me-1 btnLoad">Load</button>
+          <button type="button" class="btn btn-sm btn-outline-success me-1 btnClone">Clone</button>
+        </td>
+      `;
+
+      tr.querySelector(".btnLoad").addEventListener("click", () => loadIntoEditor(item.imsi, item.msisdn));
+      tr.querySelector(".btnClone").addEventListener("click", () => openCloneModal(item.imsi, null));
+      return tr;
+    }
+
+    function setEditorIds(imsi, msisdn){
+      const imsiEl = document.getElementById("ue_imsi");
+      const msisdnEl = document.getElementById("ue_msisdn");
+      if (imsiEl) imsiEl.value = imsi || "";
+      if (msisdnEl) msisdnEl.value = msisdn || "";
+    }
+
+    function broadcastLoadAll(){
+      try { document.dispatchEvent(new Event("ue:loadAll")); } catch(e) {}
+    }
+
+    function loadIntoEditor(imsi, msisdn){
+      if (!imsi) { note("No IMSI selected to load","warning"); return; }
+      setEditorIds(imsi, msisdn || "");
+      broadcastLoadAll();
+      note(`Loaded ${imsi} into editor`, "success");
+
+      // Open UE Config accordion and scroll to it
+      try {
+        const btn = document.getElementById("ueTopToggleBtn");
+        const collapse = document.getElementById("ueTopCollapse");
+        if (btn && collapse && !collapse.classList.contains("show")) btn.click();
+        // Scroll the UE Config section into view
+        const configSection = document.getElementById("ueConfigAccordion");
+        if (configSection) configSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch(e) {}
+    }
+
+    async function fetchUEs(){
+      const r = await fetch("/api/ue");
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || r.statusText);
+      return j.items || [];
+    }
+
+    function applyFilter(items){
+      const q = ($("ueSearch").value || "").trim().toLowerCase();
+      if (!q) return items;
+      return items.filter(it =>
+        String(it.imsi).toLowerCase().includes(q) ||
+        String(it.msisdn || "").toLowerCase().includes(q)
+      );
+    }
+
+    async function refreshTable(){
+      try{
+        note("Loading…");
+        const items = await fetchUEs();
+        const body = $("ue_table_body");
+        body.innerHTML = "";
+        applyFilter(items).forEach(i => body.appendChild(rowToTr(i)));
+        $("ue_sel_all").checked = false;
+        note("");
+      }catch(e){
+        note("Load failed: "+(e.message || e), "danger");
+      }
+    }
+
+    function selectedRows(){
+      return [...document.querySelectorAll(".ue_row_sel:checked")]
+        .map(cb => ({ imsi: cb.dataset.imsi, msisdn: cb.dataset.msisdn || "" }));
+    }
+
+    async function deleteOneUE(imsi){
+      try {
+        const r1 = await fetch(`/api/ue`, {
+          method: "DELETE",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ imsi })
+        });
+        if (r1.ok) return;
+        let t; try { t = await r1.json(); } catch { t = {}; }
+        if (r1.status !== 404) throw new Error(t.error || r1.statusText);
+      } catch(e) {}
+
+      const swallow = async (p) => { try { const r = await p; await r.text(); } catch {} };
+      await swallow(fetch(`/api/service-bindings`, {
+        method: "DELETE",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ imsi })
+      }));
+      await swallow(fetch(`/api/ue/subscription/${encodeURIComponent(imsi)}`, { method:"DELETE" }));
+      await swallow(fetch(`/api/ue/auth/${encodeURIComponent(imsi)}`, { method:"DELETE" }));
+    }
+
+    let cloneModal;
+    function ensureCloneModal(){
+      if (!cloneModal) {
+        const el = document.getElementById('cloneUEModal');
+        cloneModal = new bootstrap.Modal(el);
+        document.getElementById('btnDoCloneUE').addEventListener('click', doCloneUE);
+      }
+    }
+
+    function openCloneModal(sourceImsi = "", newImsi = ""){
+      ensureCloneModal();
+      $("clone_source_imsi").value = sourceImsi || "";
+      $("clone_new_imsi").value = newImsi || "";
+      $("clone_new_msisdn").value = "";
+      cloneModal.show();
+    }
+
+    async function doCloneUE(){
+      const source_imsi = $("clone_source_imsi").value.trim();
+      const new_imsi    = $("clone_new_imsi").value.trim();
+      const new_msisdn  = $("clone_new_msisdn").value.trim();
+      if (!source_imsi || !new_imsi) {
+        alert("Source IMSI and New IMSI are required");
+        return;
+      }
+      try{
+        const r = await fetch("/api/ue/clone", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ source_imsi, new_imsi, new_msisdn })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        note(`Cloned ${source_imsi} → ${new_imsi}`, "success");
+        cloneModal.hide();
+        await refreshTable();
+      } catch(e){
+        note("Clone failed: " + (e.message || e), "danger");
+      }
+    }
+
+    // Wire UI
+    $("btnUeRefresh").addEventListener("click", refreshTable);
+    $("ueSearch").addEventListener("input", refreshTable);
+
+    $("ue_sel_all").addEventListener("change", () => {
+      const c = $("ue_sel_all").checked;
+      document.querySelectorAll(".ue_row_sel").forEach(cb => cb.checked = c);
+    });
+
+    $("btnUeLoadSel").addEventListener("click", () => {
+      const sel = selectedRows();
+      if (sel.length !== 1) { note("Select exactly one UE to load","warning"); return; }
+      loadIntoEditor(sel[0].imsi, sel[0].msisdn);
+    });
+
+    $("btnUeCloneSel").addEventListener("click", () => {
+      const sel = selectedRows();
+      if (sel.length !== 1) { note("Select exactly one UE to clone","warning"); return; }
+      openCloneModal(sel[0].imsi, "");
+    });
+
+    $("btnUeDeleteSel").addEventListener("click", async () => {
+      const sel = selectedRows();
+      if (!sel.length) { note("Select at least one UE to delete","warning"); return; }
+      if (!confirm(`Delete ${sel.length} selected UE(s)? This will remove bindings, auth, and subscription.`)) return;
+      try {
+        for (const {imsi} of sel) await deleteOneUE(imsi);
+        note("Delete complete","success");
+        await refreshTable();
+      } catch(e){
+        note("Delete failed: "+(e.message || e), "danger");
+      }
+    });
+
+    // Auto-refresh when dashboard accordion is opened
+    const coll = document.getElementById("ueDashCollapse");
+    if (coll) {
+      coll.addEventListener("shown.bs.collapse", refreshTable);
+    }
+
+    // Also refresh when the UE Config tab becomes visible (sidebar tab switch)
+    const ueTab = document.querySelector('a[href="#ue-config"]');
+    if (ueTab) {
+      ueTab.addEventListener("shown.bs.tab", () => {
+        if (coll && coll.classList.contains("show")) refreshTable();
+      });
+    }
+
+    // Initial load
+    refreshTable().catch(e => console.warn('UE dashboard init:', e));
+  };
+
+  // ✅ init safe for partial includes
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

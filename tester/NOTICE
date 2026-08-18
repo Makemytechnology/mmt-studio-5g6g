@@ -1,0 +1,78 @@
+MMT Studio Core Tester (SA Tester)
+Copyright (c) 2026 MakeMyTechnology
+
+This product is licensed under the GNU Affero General Public License v3.0
+or later (AGPL-3.0-or-later) — see LICENSE for the full text.
+
+If you redistribute MMT Studio Core Tester, or run a modified version as a
+network service, AGPL-3.0 §13 requires that you make the corresponding
+source of your modifications available to users interacting with the
+service. Please also preserve this NOTICE file unmodified when bundling
+or forking.
+
+================================================================================
+THIRD-PARTY PYTHON PACKAGES (declared in requirements.txt and bundled in .venv)
+================================================================================
+
+Each package is fetched at install time from PyPI. Where the upstream
+provides a LICENSE file, that file is preserved in the resulting site-
+packages tree. Notable runtime dependencies:
+
+  Flask, Werkzeug, Jinja2, itsdangerous, click
+    License: BSD-3-Clause
+    Use:     Web UI / REST control plane.
+
+  pysctp
+    License: LGPL-2.1-or-later
+    Source:  https://github.com/p1sec/pysctp
+    Use:     Kernel SCTP sockets for NGAP / S1AP transport.
+
+  cryptography, pycryptodome
+    License: Apache-2.0 / BSD / Public domain (mixed; see upstream)
+    Use:     NAS / 5G AKA / IPsec primitives.
+
+  scapy
+    License: GPL-2.0
+    Use:     Packet crafting in select tests.
+
+  iperf3 (system binary, vendored under libs/)
+    License: BSD-3-Clause
+    Source:  https://github.com/esnet/iperf
+    Use:     Throughput measurement.
+
+================================================================================
+THIRD-PARTY NATIVE COMPONENTS (vendored under libs/ and dp-rust/)
+================================================================================
+
+  libsctp (lksctp-tools)
+    License: GPL-2.0 / LGPL-2.1
+    Source:  https://github.com/sctp/lksctp-tools
+    Use:     User-space helper library for kernel SCTP.
+
+  Rust crates pulled in by dp-rust/
+    License: see each crate's LICENSE under ~/.cargo/registry/
+    Use:     Optional Rust data-plane traffic generator.
+
+================================================================================
+3GPP / IETF SPECIFICATIONS (referenced under specs/)
+================================================================================
+
+The repository ships PDF / text copies of 3GPP Technical Specifications
+and IETF RFCs that this tester cites or extracts ASN.1 / TLV schemas
+from. These documents are NOT part of the licensed source code; they are
+included for build-time reference and operator convenience.
+
+  3GPP Technical Specifications (specs/3gpp/)
+    Copyright: © 3GPP. All rights reserved.
+    Terms:     The 3GPP Project permits redistribution of unmodified
+               specifications for academic, research, and reference use.
+               See https://www.3gpp.org/contact/3gpp-faqs for full terms.
+    Source:    https://www.3gpp.org/ftp/Specs/
+
+  IETF RFCs (specs/ietf/)
+    Copyright: © IETF Trust and the persons identified as the document
+               authors.
+    Terms:     IETF Trust Legal Provisions
+               (https://trustee.ietf.org/license-info). Plain-text
+               RFCs are freely redistributable.
+    Source:    https://www.rfc-editor.org/

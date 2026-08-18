@@ -1,0 +1,424 @@
+<!-- templates/ims.html -->
+
+<h5 class="mb-3">IP Multimedia Subsystem (IMS)</h5>
+
+<!-- IMS Status -->
+<div class="accordion mb-3" id="imsStatusAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsStatusToggle" class="accordion-button bg-dark text-white fw-bold" type="button">
+        <div class="w-100">IMS Status</div>
+      </button>
+    </h2>
+    <div id="imsStatusBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="imsStatsGrid" class="small">
+          <div class="text-muted">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMS Subscribers -->
+<div class="accordion mb-3" id="imsSubsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsSubsToggle" class="accordion-button bg-primary text-white fw-bold" type="button">
+        <div class="w-100">Subscribers <span id="imsSubCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="imsSubsBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="text-muted small mb-2">IMS subscribers are auto-created from UE Config. Add UEs there.</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle" style="font-size:12px;">
+            <thead><tr><th>IMPI</th><th>IMPU</th><th>S-CSCF</th></tr></thead>
+            <tbody id="imsSubsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMS Registrations -->
+<div class="accordion mb-3" id="imsRegAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsRegToggle" class="accordion-button bg-success text-white fw-bold" type="button">
+        <div class="w-100">Active Registrations <span id="imsRegCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="imsRegBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle" style="font-size:12px;">
+            <thead><tr><th>IMPU</th><th>Contact</th><th>S-CSCF</th><th>Expires</th></tr></thead>
+            <tbody id="imsRegTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMS Calls/Dialogs -->
+<div class="accordion mb-3" id="imsCallsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsCallsToggle" class="accordion-button bg-warning text-dark fw-bold" type="button">
+        <div class="w-100">Calls / Dialogs <span id="imsCallCount" class="badge bg-dark text-white ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="imsCallsBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle" style="font-size:12px;">
+            <thead><tr><th>Call-ID</th><th>From</th><th>To</th><th>State</th><th>Type</th></tr></thead>
+            <tbody id="imsCallsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMS Conferences (TS 24.147) -->
+<div class="accordion mb-3" id="imsConfAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsConfToggle" class="accordion-button bg-info text-white fw-bold" type="button">
+        <div class="w-100">Conferences <span id="imsConfCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="imsConfBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="d-flex gap-2 mb-2">
+          <button id="btnCreateConf" type="button" class="btn btn-success btn-sm">Create Conference</button>
+        </div>
+        <div id="imsConfCards" class="small">
+          <div class="text-muted">No active conferences</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MRFP Sessions (TS 23.228 §4.7.4) -->
+<div class="accordion mb-3" id="imsMrfpAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsMrfpToggle" class="accordion-button bg-secondary text-white fw-bold" type="button">
+        <div class="w-100">MRFP Media Sessions <span id="imsMrfpCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="imsMrfpBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="imsMrfpCards" class="small">
+          <div class="text-muted">No active mixer sessions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMS Config -->
+<div class="accordion mb-3" id="imsConfigAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="imsConfigToggle" class="accordion-button bg-info text-white fw-bold" type="button">
+        <div class="w-100">IMS Configuration</div>
+      </button>
+    </h2>
+    <div id="imsConfigBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="imsConfigGrid" class="small">
+          <div class="text-muted">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Refresh -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex gap-2">
+    <button id="btnImsRefresh" type="button" class="btn btn-primary btn-sm">Refresh All</button>
+    <button id="btnImsClearReg" type="button" class="btn btn-outline-warning btn-sm">Clear Registrations</button>
+  </div>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" id="imsAutoRefresh">
+    <label class="form-check-label small" for="imsAutoRefresh">Auto-refresh (5s)</label>
+  </div>
+  <small id="imsLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .ims-stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:6px 16px; font-size:13px; }
+  .ims-stat-item { display:flex; justify-content:space-between; padding:3px 8px; background:#f8f9fa; border-radius:4px; }
+  .ims-stat-label { font-weight:600; color:#555; }
+  .ims-stat-value { font-family:'Consolas','Courier New',monospace; color:#222; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+    /* ── Accordion toggles ── */
+    for (const [b,c] of [
+      ['imsStatusToggle','imsStatusBody'],['imsSubsToggle','imsSubsBody'],
+      ['imsRegToggle','imsRegBody'],['imsCallsToggle','imsCallsBody'],
+      ['imsConfToggle','imsConfBody'],['imsMrfpToggle','imsMrfpBody'],
+      ['imsConfigToggle','imsConfigBody'],
+    ]) {
+      const btn=document.getElementById(b), col=document.getElementById(c);
+      if(btn&&!btn.dataset.bound){btn.dataset.bound='1';
+        const inst=window.bootstrap.Collapse.getOrCreateInstance(col,{toggle:false});
+        btn.addEventListener('click',()=>inst.toggle());}
+    }
+
+    const esc=s=>{if(s==null)return'-';const d=document.createElement('span');d.textContent=String(s);return d.outerHTML;};
+
+    /* ── IMS Status ── */
+    const loadStatus = async () => {
+      try {
+        const [subs,regs,calls,confs,mrfp] = await Promise.all([
+          fetch('/api/ims/subscribers').then(r=>r.json()),
+          fetch('/api/ims/registrations').then(r=>r.json()),
+          fetch('/api/ims/calls').then(r=>r.json()),
+          fetch('/api/ims/conferences').then(r=>r.json()).catch(()=>({items:[]})),
+          fetch('/api/ims/mrfp/sessions').then(r=>r.json()).catch(()=>({items:{}})),
+        ]);
+        const subCount = (subs.items||[]).length;
+        const regCount = (regs.items||[]).length;
+        const callCount = (calls.items||[]).length;
+        const activeCalls = (calls.items||[]).filter(c=>c.state==='early'||c.state==='confirmed').length;
+        const confCount = (confs.items||[]).length;
+        const mrfpCount = Object.keys(mrfp.items||{}).length;
+
+        let html = '<div class="ims-stat-grid">';
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">Subscribers</span><span class="ims-stat-value">${subCount}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">Registrations</span><span class="ims-stat-value">${regCount}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">Active Calls</span><span class="ims-stat-value">${activeCalls}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">Conferences</span><span class="ims-stat-value">${confCount}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">MRFP Sessions</span><span class="ims-stat-value">${mrfpCount}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">Total Dialogs</span><span class="ims-stat-value">${callCount}</span></div>`;
+        html += '</div>';
+        document.getElementById('imsStatsGrid').innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsStatsGrid').innerHTML = '<div class="text-danger small">Failed to load</div>';
+      }
+    };
+
+    /* ── IMS Subscribers ── */
+    const loadSubscribers = async () => {
+      try {
+        const r = await fetch('/api/ims/subscribers');
+        const d = await r.json();
+        const items = d.items || [];
+        document.getElementById('imsSubCount').textContent = items.length;
+        const tb = document.getElementById('imsSubsTable');
+        if (!items.length) { tb.innerHTML = '<tr><td colspan="3" class="text-muted">No subscribers</td></tr>'; return; }
+        let html = '';
+        for (const s of items) {
+          html += '<tr>';
+          html += `<td><code>${esc(s.impi)}</code></td>`;
+          html += `<td><code>${esc(s.impu)}</code></td>`;
+          html += `<td>${esc(s.s_cscf_name || '-')}</td>`;
+          html += '</tr>';
+        }
+        tb.innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsSubsTable').innerHTML = '<tr><td colspan="3" class="text-danger">Failed</td></tr>';
+      }
+    };
+
+    /* ── IMS Registrations ── */
+    const loadRegistrations = async () => {
+      try {
+        const r = await fetch('/api/ims/registrations');
+        const d = await r.json();
+        const items = d.items || [];
+        document.getElementById('imsRegCount').textContent = items.length;
+        const tb = document.getElementById('imsRegTable');
+        if (!items.length) { tb.innerHTML = '<tr><td colspan="4" class="text-muted">No active registrations</td></tr>'; return; }
+        let html = '';
+        for (const reg of items) {
+          const exp = reg.expires_at ? new Date(reg.expires_at * 1000).toLocaleTimeString() : '-';
+          html += '<tr>';
+          html += `<td><code>${esc(reg.impu)}</code></td>`;
+          html += `<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${esc(reg.contact)}</td>`;
+          html += `<td>${esc(reg.scscf_name || '-')}</td>`;
+          html += `<td>${exp}</td>`;
+          html += '</tr>';
+        }
+        tb.innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsRegTable').innerHTML = '<tr><td colspan="4" class="text-danger">Failed</td></tr>';
+      }
+    };
+
+    /* ── IMS Calls ── */
+    const loadCalls = async () => {
+      try {
+        const r = await fetch('/api/ims/calls');
+        const d = await r.json();
+        const items = d.items || [];
+        document.getElementById('imsCallCount').textContent = items.length;
+        const tb = document.getElementById('imsCallsTable');
+        if (!items.length) { tb.innerHTML = '<tr><td colspan="5" class="text-muted">No active calls</td></tr>'; return; }
+        let html = '';
+        for (const c of items) {
+          const stColor = c.state === 'confirmed' ? 'success' : c.state === 'early' ? 'warning' : 'secondary';
+          html += '<tr>';
+          html += `<td><code style="font-size:11px">${esc((c.call_id||'').substring(0,20))}</code></td>`;
+          html += `<td>${esc(c.from_uri || c.caller)}</td>`;
+          html += `<td>${esc(c.to_uri || c.callee)}</td>`;
+          html += `<td><span class="badge bg-${stColor}">${esc(c.state)}</span></td>`;
+          html += `<td>${esc(c.call_type || 'voice')}</td>`;
+          html += '</tr>';
+        }
+        tb.innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsCallsTable').innerHTML = '<tr><td colspan="5" class="text-danger">Failed</td></tr>';
+      }
+    };
+
+    /* ── IMS Conferences ── */
+    const loadConferences = async () => {
+      try {
+        const r = await fetch('/api/ims/conferences');
+        const d = await r.json();
+        const items = d.items || [];
+        document.getElementById('imsConfCount').textContent = items.length;
+        const container = document.getElementById('imsConfCards');
+        if (!items.length) { container.innerHTML = '<div class="text-muted">No active conferences</div>'; return; }
+        let html = '';
+        for (const c of items) {
+          const pList = Object.values(c.participants || {}).map(p =>
+            `<span class="badge ${p.state==='connected'?'bg-success':'bg-secondary'} me-1">${esc(p.impu)}</span>`
+          ).join('');
+          html += `<div class="card mb-2"><div class="card-body py-2">`;
+          html += `<div class="d-flex justify-content-between align-items-center mb-1">`;
+          html += `<strong>${esc(c.conf_uri)}</strong>`;
+          html += `<span class="badge bg-${c.state==='active'?'success':'secondary'}">${esc(c.state)}</span>`;
+          html += `<button class="btn btn-outline-danger btn-sm py-0" onclick="endConf('${c.conf_id}')">End</button>`;
+          html += `</div>`;
+          html += `<div>Participants (${c.participant_count}/${c.max_participants}): ${pList || '<span class="text-muted">none</span>'}</div>`;
+          html += `<div class="text-muted" style="font-size:11px">Created: ${new Date(c.created_at*1000).toLocaleString()}</div>`;
+          html += `</div></div>`;
+        }
+        container.innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsConfCards').innerHTML = '<div class="text-danger small">Failed</div>';
+      }
+    };
+
+    /* ── MRFP Sessions ── */
+    const loadMrfp = async () => {
+      try {
+        const r = await fetch('/api/ims/mrfp/sessions');
+        const d = await r.json();
+        const items = d.items || {};
+        const keys = Object.keys(items);
+        document.getElementById('imsMrfpCount').textContent = keys.length;
+        const container = document.getElementById('imsMrfpCards');
+        if (!keys.length) { container.innerHTML = '<div class="text-muted">No active mixer sessions</div>'; return; }
+        let html = '';
+        for (const cid of keys) {
+          const s = items[cid];
+          const parts = (s.participants || []).map(p => `<code>${esc(p)}</code>`).join(', ');
+          html += `<div class="card mb-2"><div class="card-body py-2">`;
+          html += `<div><strong>Conference:</strong> ${esc(cid)}</div>`;
+          html += `<div><strong>Participants:</strong> ${parts || 'none'}</div>`;
+          html += `<div><strong>Active Speaker:</strong> ${esc(s.active_speaker || 'none')}</div>`;
+          html += `</div></div>`;
+        }
+        container.innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsMrfpCards').innerHTML = '<div class="text-danger small">Failed</div>';
+      }
+    };
+
+    /* ── Conference actions ── */
+    window.endConf = async (confId) => {
+      if (!confirm('End this conference?')) return;
+      try {
+        await fetch('/api/ims/conferences/' + confId, {method: 'DELETE'});
+        refreshAll();
+      } catch(e) { alert('Failed'); }
+    };
+    document.getElementById('btnCreateConf').addEventListener('click', async () => {
+      try {
+        const r = await fetch('/api/ims/conferences', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({media_types: ['audio', 'video']})
+        });
+        const d = await r.json();
+        if (d.ok) { alert('Conference created: ' + d.conference.conf_uri); refreshAll(); }
+        else alert(d.error || 'Failed');
+      } catch(e) { alert('Failed: ' + e.message); }
+    });
+
+    /* ── IMS Config ── */
+    const loadConfig = async () => {
+      try {
+        const r = await fetch('/api/network-config');
+        const d = await r.json();
+        const cfg = d.config || d;
+        const mcc = cfg.mcc || '001';
+        const mnc = cfg.mnc || '01';
+        const domain = `ims.mnc${(mnc||'').padStart(3,'0')}.mcc${mcc}.3gppnetwork.org`;
+        const pcscf = cfg.amf_ip || '0.0.0.0';
+
+        let html = '<div class="ims-stat-grid">';
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">IMS Domain</span><span class="ims-stat-value">${esc(domain)}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">P-CSCF</span><span class="ims-stat-value">${esc(pcscf)}:5060</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">MCC</span><span class="ims-stat-value">${esc(mcc)}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">MNC</span><span class="ims-stat-value">${esc(mnc)}</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">IPsec</span><span class="ims-stat-value">hmac-md5-96 + cipher_null</span></div>`;
+        html += `<div class="ims-stat-item"><span class="ims-stat-label">Auth</span><span class="ims-stat-value">Digest-AKAv1-MD5</span></div>`;
+        html += '</div>';
+        document.getElementById('imsConfigGrid').innerHTML = html;
+      } catch(e) {
+        document.getElementById('imsConfigGrid').innerHTML = '<div class="text-danger small">Failed to load</div>';
+      }
+    };
+
+    /* ── Buttons ── */
+    document.getElementById('btnImsClearReg').addEventListener('click', async () => {
+      if (!confirm('Clear all IMS registrations?')) return;
+      try {
+        const r = await fetch('/api/admin/clear-ims-registrations', {method: 'POST'});
+        const d = await r.json();
+        alert(d.message || d.error || 'Done');
+        refreshAll();
+      } catch(e) { alert('Failed: ' + e.message); }
+    });
+
+    /* ── Refresh ── */
+    const refreshAll = async () => {
+      await Promise.all([loadStatus(), loadSubscribers(), loadRegistrations(), loadCalls(),
+                          loadConferences(), loadMrfp(), loadConfig()]);
+      document.getElementById('imsLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+    document.getElementById('btnImsRefresh').addEventListener('click', refreshAll);
+
+    let autoTimer = null;
+    document.getElementById('imsAutoRefresh').addEventListener('change', function() {
+      if (this.checked) { autoTimer = setInterval(refreshAll, 5000); }
+      else { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+    });
+
+    /* ── Tab activation ── */
+    const tabPane = document.getElementById('ims-tab');
+    if (tabPane) {
+      const obs = new MutationObserver(() => { if (tabPane.classList.contains('active')) refreshAll(); });
+      obs.observe(tabPane, {attributes: true, attributeFilter: ['class']});
+    }
+    refreshAll();
+  };
+
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>

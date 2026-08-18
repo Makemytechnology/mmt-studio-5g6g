@@ -1,0 +1,675 @@
+<!-- ue_subscription.html -->
+<div class="accordion mb-4" id="ueSubsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="ueSubsHeader">
+      <button
+        id="ueSubsToggleBtn"
+        class="accordion-button bg-secondary text-white fw-bold d-flex justify-content-center text-center"
+        type="button"
+        aria-expanded="true"
+        aria-controls="ueSubsCollapse">
+        <div class="w-100">UE Subscription</div>
+      </button>
+    </h2>
+
+    <div id="ueSubsCollapse" class="accordion-collapse collapse show" aria-labelledby="ueSubsHeader">
+      <div class="accordion-body">
+
+        <!-- AMBR row -->
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">UE AMBR DL (Kbps)</label>
+            <input id="subs_ambr_dl" type="number" class="form-control" min="1" step="1" placeholder="1000000">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">UE AMBR UL (Kbps)</label>
+            <input id="subs_ambr_ul" type="number" class="form-control" min="1" step="1" placeholder="1000000">
+          </div>
+          <div class="col-md-4"></div>
+        </div>
+        <p class="small text-muted mb-0 mt-1">
+          <strong>Note:</strong> UE-AMBR is enforced by the (R)AN, not the core. The AMF
+          forwards this value to the gNB as the
+          <code>UEAggregateMaximumBitRate</code> IE in PDU Session Resource Setup
+          (TS 23.501 §5.7.1.6 / §5.7.2.6, TS 38.413 §9.3.1.6). Per-session and
+          per-flow rate limits are enforced at the UPF via Session-AMBR + QER MBR
+          (TS 23.501 §5.7.1.6 / TS 29.244 §5.4).
+        </p>
+
+        <hr class="my-3">
+
+        <!-- Subscribed S-NSSAIs + nested DNN + Services -->
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="m-0">Subscribed S-NSSAIs</h6>
+          <button id="btnAddSlice" type="button" class="btn btn-sm btn-outline-success">+ Add Slice</button>
+        </div>
+        <p class="small text-muted mb-2">
+          Each slice must have at least one DNN (default). For each DNN+Slice, configure default and dedicated bearers.
+        </p>
+        <div id="sliceContainer"></div>
+
+        <div class="mt-3">
+          <label class="form-label d-none">Subscription API Output</label>
+          <textarea id="subs_output" class="form-control d-none" rows="8" readonly></textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const init = () => {
+    const id = s => document.getElementById(s);
+
+    // -- Accordion toggle --
+    const toggleBtn  = id("ueSubsToggleBtn");
+    const collapseEl = id("ueSubsCollapse");
+    if (toggleBtn && collapseEl) {
+      let inst = null;
+      const syncBtnUI = () => {
+        const open = collapseEl.classList.contains("show");
+        toggleBtn.classList.toggle("collapsed", !open);
+        toggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+      const getInst = () => {
+        if (inst) return inst;
+        if (window.bootstrap && window.bootstrap.Collapse) {
+          inst = window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+          collapseEl.addEventListener("shown.bs.collapse", syncBtnUI);
+          collapseEl.addEventListener("hidden.bs.collapse", syncBtnUI);
+          return inst;
+        }
+        inst = { toggle: () => { collapseEl.classList.toggle("show"); syncBtnUI(); } };
+        return inst;
+      };
+      if (!toggleBtn.dataset.bound) {
+        toggleBtn.dataset.bound = "1";
+        toggleBtn.addEventListener("click", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          getInst().toggle();
+        });
+      }
+      syncBtnUI();
+    }
+
+    const out = id("subs_output");
+    const log = m => { out.value += (out.value ? "\n" : "") + m; out.scrollTop = out.scrollHeight; };
+
+    function getImsi() {
+      try {
+        const hook = (window.__ue_get_ids && window.__ue_get_ids()) || {};
+        if (hook.imsi && hook.imsi.trim()) return hook.imsi.trim();
+      } catch {}
+      const el = document.getElementById("ue_imsi");
+      return (el && el.value && el.value.trim()) ? el.value.trim() : "";
+    }
+
+    // -- Catalogs (populated from new catalog APIs) --
+    let nssaiCatalog = [];         // [{id, sst, sd, name}, ...]
+    let dnnCatalog   = [];         // [{apn_name, ...}, ...]
+    let serviceCatalog = new Map(); // name -> {name, resource_type, fiveqi, ...}
+    let sliceModel   = [];         // [{nssai_id, sst, sd, name, is_default, dnns:[...]}]
+
+    const hex2 = (x, pad=2) => (x == null ? "" : String(x)).toUpperCase().padStart(pad, "0");
+    const sliceLabel = (sst, sd) => `SST ${hex2(sst)} / SD ${hex2(sd,6)}`;
+
+    // -- Fetch catalogs from new API endpoints --
+    async function fetchNssaiCatalog() {
+      try {
+        const r = await fetch("/api/catalog/nssai");
+        const j = await r.json();
+        nssaiCatalog = j.items || [];
+      } catch (e) {
+        log("Could not load NSSAI catalog: " + e.message);
+        nssaiCatalog = [];
+      }
+    }
+
+    async function fetchDnnCatalog() {
+      try {
+        const r = await fetch("/api/catalog/dnn");
+        const j = await r.json();
+        dnnCatalog = j.items || [];
+      } catch (e) {
+        log("Could not load DNN catalog: " + e.message);
+        dnnCatalog = [];
+      }
+    }
+
+    async function fetchServiceCatalog() {
+      try {
+        const r = await fetch("/api/catalog/services");
+        const j = await r.json();
+        serviceCatalog.clear();
+        (j.items || []).forEach(it => {
+          const name = it.name || "";
+          if (name) serviceCatalog.set(name, {
+            name,
+            resource_type: (it.resource_type || "NonGBR"),
+            fiveqi: it.fiveqi
+          });
+        });
+      } catch (e) {
+        log("Could not load service catalog: " + e.message);
+      }
+    }
+
+    function dnnNames() {
+      return dnnCatalog.map(d => d.apn_name).filter(Boolean);
+    }
+    function nonGbrNames() {
+      return [...serviceCatalog.entries()]
+        .filter(([, s]) => s.resource_type.toUpperCase() !== 'GBR')
+        .map(([n]) => n).sort();
+    }
+    function allSvcNames() { return [...serviceCatalog.keys()].sort(); }
+
+    // -- Load subscription tree from new API --
+    async function loadSliceModel(imsi) {
+      sliceModel = [];
+      if (!imsi) return;
+
+      const r = await fetch(`/api/subscriber/${encodeURIComponent(imsi)}/subscription`);
+      if (!r.ok) {
+        if (r.status !== 404) {
+          const j = await r.json();
+          log("Load error: " + (j.error || r.statusText));
+        }
+        return;
+      }
+      const j = await r.json();
+      for (const slice of (j.slices || [])) {
+        const modelSlice = {
+          nssai_id: slice.nssai_id,
+          sst: hex2(slice.sst),
+          sd: hex2(slice.sd, 6),
+          name: slice.name || "",
+          is_default: !!slice.is_default,
+          dnns: []
+        };
+        for (const dItem of (slice.dnns || [])) {
+          const defSvc = (dItem.services || []).find(s => s.is_default);
+          const dedSvcs = (dItem.services || []).filter(s => !s.is_default);
+          modelSlice.dnns.push({
+            dnn: dItem.dnn,
+            is_default: !!dItem.is_default,
+            services: {
+              defaultSvc: defSvc ? defSvc.service_name : "",
+              dedicated: dedSvcs.map(s => s.service_name)
+            }
+          });
+        }
+        sliceModel.push(modelSlice);
+      }
+    }
+
+    // -- Render --
+    const container = id("sliceContainer");
+
+    function renderAll() {
+      container.innerHTML = "";
+      if (!sliceModel.length) {
+        container.innerHTML = '<p class="text-muted small">No slices configured. Click "+ Add Slice" to add one.</p>';
+        return;
+      }
+      sliceModel.forEach((slice, si) => {
+        container.appendChild(renderSliceCard(slice, si));
+      });
+    }
+
+    function renderSliceCard(slice, si) {
+      const card = document.createElement("div");
+      card.className = "card mb-3 border-primary";
+
+      const header = document.createElement("div");
+      header.className = "card-header bg-primary bg-opacity-10 d-flex align-items-center gap-2";
+
+      // Slice selector: always dropdown from nssai_catalog
+      const sliceSelectorHtml = `
+        <div class="input-group input-group-sm" style="max-width:300px">
+          <span class="input-group-text">Slice</span>
+          <select class="form-select nssai-catalog-pick"></select>
+        </div>
+      `;
+
+      header.innerHTML = `
+        <div class="d-flex align-items-center gap-2 flex-grow-1">
+          ${sliceSelectorHtml}
+          <div class="form-check form-check-inline ms-2">
+            <input class="form-check-input default-check" type="checkbox" ${slice.is_default ? "checked" : ""}>
+            <label class="form-check-label small">Default</label>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-success btn-add-dnn">+ DNN</button>
+        <button type="button" class="btn btn-sm btn-outline-danger btn-del-slice">Remove</button>
+      `;
+
+      // Wire slice dropdown from nssai_catalog
+      const nssaiPick = header.querySelector(".nssai-catalog-pick");
+      if (!nssaiCatalog.length) {
+        const o = document.createElement("option");
+        o.value = ""; o.textContent = "(No slices in catalog — add via Slices page)";
+        nssaiPick.appendChild(o);
+      }
+      nssaiCatalog.forEach(cat => {
+        const o = document.createElement("option");
+        o.value = cat.id;
+        const label = `SST ${hex2(cat.sst)} / SD ${hex2(cat.sd, 6)}` +
+                      (cat.name ? ` (${cat.name})` : '');
+        o.textContent = label;
+        if (slice.nssai_id && cat.id === slice.nssai_id) {
+          o.selected = true;
+        } else if (!slice.nssai_id && hex2(cat.sst) === slice.sst && hex2(cat.sd,6) === slice.sd) {
+          o.selected = true;
+        }
+        nssaiPick.appendChild(o);
+      });
+      nssaiPick.addEventListener("change", () => {
+        const selected = nssaiCatalog.find(c => c.id === parseInt(nssaiPick.value));
+        if (selected) {
+          slice.nssai_id = selected.id;
+          slice.sst = hex2(selected.sst);
+          slice.sd = hex2(selected.sd, 6);
+          slice.name = selected.name || "";
+        }
+      });
+      if (!slice.nssai_id && nssaiPick.value) {
+        const sel = nssaiCatalog.find(c => c.id === parseInt(nssaiPick.value));
+        if (sel) slice.nssai_id = sel.id;
+      }
+
+      header.querySelector(".default-check").addEventListener("change", e => {
+        slice.is_default = e.target.checked;
+      });
+      header.querySelector(".btn-del-slice").addEventListener("click", () => {
+        sliceModel.splice(si, 1);
+        renderAll();
+      });
+
+      const body = document.createElement("div");
+      body.className = "card-body p-2";
+
+      slice.dnns.forEach((dnnItem, di) => {
+        body.appendChild(renderDnnRow(slice, si, dnnItem, di));
+      });
+
+      if (!slice.dnns.length) {
+        const empty = document.createElement("p");
+        empty.className = "text-muted small mb-0";
+        empty.textContent = "No DNNs configured. Click '+ DNN' to add one.";
+        body.appendChild(empty);
+      }
+
+      header.querySelector(".btn-add-dnn").addEventListener("click", () => {
+        const isFirst = slice.dnns.length === 0;
+        const usedDnns = new Set(slice.dnns.map(d => d.dnn));
+        const names = dnnNames();
+        const nextDnn = names.find(n => !usedDnns.has(n)) || names[0] || "";
+        const firstNonGbr = nonGbrNames()[0] || "";
+        slice.dnns.push({
+          dnn: nextDnn,
+          is_default: isFirst,
+          services: { defaultSvc: firstNonGbr, dedicated: [] }
+        });
+        renderAll();
+      });
+
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    function renderDnnRow(slice, si, dnnItem, di) {
+      const row = document.createElement("div");
+      row.className = "card mb-2 " + (dnnItem.is_default ? "border-success" : "");
+
+      // DNN selector: always dropdown from apn_config catalog
+      const names = dnnNames();
+
+      row.innerHTML = `
+        <div class="row g-0">
+          <!-- DNN box -->
+          <div class="col-md-3 border-end p-2">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="fw-bold small text-muted">DNN</span>
+              <div class="d-flex gap-1">
+                <div class="form-check form-check-inline m-0">
+                  <input class="form-check-input dnn-default-radio" type="radio"
+                         name="dnnDefault_${si}" ${dnnItem.is_default ? "checked" : ""}>
+                  <label class="form-check-label small text-success fw-bold">Default</label>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 btn-del-dnn"
+                        title="Remove DNN">&times;</button>
+              </div>
+            </div>
+            <select class="form-select form-select-sm dnn-select"></select>
+          </div>
+
+          <!-- Bearers box -->
+          <div class="col-md-9 p-2">
+            <span class="fw-bold small text-muted">Bearers</span>
+            <div class="row g-2 mt-0">
+              <!-- Default Bearer box -->
+              <div class="col-md-5">
+                <div class="card bg-light border-success p-2 h-100">
+                  <label class="form-label mb-1 small fw-semibold">
+                    <span class="badge text-bg-success">Default</span>
+                    <span class="text-muted">(NonGBR)</span>
+                  </label>
+                  <select class="form-select form-select-sm svc-default-pick"></select>
+                </div>
+              </div>
+              <!-- Dedicated Bearers box -->
+              <div class="col-md-7">
+                <div class="card bg-light p-2 h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label mb-0 small fw-semibold">
+                      <span class="badge text-bg-primary">Dedicated</span>
+                    </label>
+                    <div class="d-flex gap-1" style="max-width:200px">
+                      <select class="form-select form-select-sm svc-ded-pick py-0" style="font-size:0.8em"></select>
+                      <button class="btn btn-outline-success btn-sm py-0 px-1 btn-add-ded" type="button">+</button>
+                    </div>
+                  </div>
+                  <div class="ded-tags-container"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // DNN selector — always dropdown from apn_config
+      const dnnSel = row.querySelector(".dnn-select");
+      if (!names.length) {
+        const o = document.createElement("option");
+        o.value = ""; o.textContent = "(No DNNs configured — add via Network Config)";
+        dnnSel.appendChild(o);
+      }
+      names.forEach(n => {
+        const o = document.createElement("option");
+        o.value = o.textContent = n;
+        if (n === dnnItem.dnn) o.selected = true;
+        dnnSel.appendChild(o);
+      });
+      dnnSel.addEventListener("change", () => { dnnItem.dnn = dnnSel.value; });
+
+      // Default DNN radio
+      row.querySelector(".dnn-default-radio").addEventListener("change", () => {
+        slice.dnns.forEach(d => d.is_default = false);
+        dnnItem.is_default = true;
+        renderAll();
+      });
+
+      // Default bearer (NonGBR only, required)
+      const defPick = row.querySelector(".svc-default-pick");
+      const ngbr = nonGbrNames();
+      if (!ngbr.length) {
+        const o = document.createElement("option");
+        o.value = ""; o.textContent = "(No NonGBR services configured)";
+        defPick.appendChild(o);
+      } else {
+        ngbr.forEach(n => {
+          const o = document.createElement("option");
+          o.value = o.textContent = n;
+          if (n === dnnItem.services.defaultSvc) o.selected = true;
+          defPick.appendChild(o);
+        });
+      }
+      if (!dnnItem.services.defaultSvc && ngbr.length) {
+        dnnItem.services.defaultSvc = ngbr[0];
+      }
+      defPick.addEventListener("change", () => { dnnItem.services.defaultSvc = defPick.value; });
+
+      // Dedicated bearers
+      const dedPick = row.querySelector(".svc-ded-pick");
+      const allNames = allSvcNames();
+      if (!allNames.length) {
+        const o = document.createElement("option");
+        o.value = ""; o.textContent = "(No services)";
+        dedPick.appendChild(o);
+      } else {
+        allNames.forEach(n => {
+          const o = document.createElement("option");
+          o.value = o.textContent = n;
+          dedPick.appendChild(o);
+        });
+      }
+
+      const dedTagsEl = row.querySelector(".ded-tags-container");
+
+      function renderDedTags() {
+        dedTagsEl.innerHTML = "";
+        if (!dnnItem.services.dedicated.length) {
+          dedTagsEl.innerHTML = '<span class="text-muted small fst-italic">None</span>';
+          return;
+        }
+        dnnItem.services.dedicated.forEach((name, idx) => {
+          const svc = serviceCatalog.get(name);
+          const rtype = (svc?.resource_type || 'NonGBR').toUpperCase();
+          const tag = document.createElement("span");
+          tag.className = rtype === 'GBR'
+            ? "badge text-bg-info me-1 mb-1" : "badge text-bg-secondary me-1 mb-1";
+          tag.innerHTML = `${name} <span class="badge ${rtype === 'GBR' ? 'text-bg-warning' : 'text-bg-light text-dark'} ms-1" style="font-size:0.7em">${rtype}</span>`;
+          const x = document.createElement("button");
+          x.type = "button";
+          x.className = "btn-close btn-close-white btn-sm ms-2";
+          x.style.verticalAlign = "middle";
+          x.addEventListener("click", () => {
+            dnnItem.services.dedicated.splice(idx, 1);
+            renderDedTags();
+          });
+          tag.appendChild(x);
+          dedTagsEl.appendChild(tag);
+        });
+      }
+      renderDedTags();
+
+      row.querySelector(".btn-add-ded").addEventListener("click", () => {
+        const sel = dedPick.value;
+        if (sel && !dnnItem.services.dedicated.includes(sel)) {
+          dnnItem.services.dedicated.push(sel);
+          renderDedTags();
+        }
+      });
+
+      // Delete DNN
+      row.querySelector(".btn-del-dnn").addEventListener("click", () => {
+        slice.dnns.splice(di, 1);
+        if (dnnItem.is_default && slice.dnns.length) {
+          slice.dnns[0].is_default = true;
+        }
+        renderAll();
+      });
+
+      return row;
+    }
+
+    // -- Add Slice --
+    id("btnAddSlice").addEventListener("click", () => {
+      let sst = "01", sd = "000001", nssai_id = null, name = "";
+      if (nssaiCatalog.length) {
+        // Pick first catalog entry not already used
+        const usedIds = new Set(sliceModel.map(s => s.nssai_id));
+        const next = nssaiCatalog.find(c => !usedIds.has(c.id)) || nssaiCatalog[0];
+        if (next) {
+          nssai_id = next.id;
+          sst = hex2(next.sst);
+          sd = hex2(next.sd, 6);
+          name = next.name || "";
+        }
+      }
+      const defaultDnn = dnnNames()[0] || "internet";
+      const firstNonGbr = nonGbrNames()[0] || "";
+      sliceModel.push({
+        nssai_id, sst, sd, name,
+        is_default: sliceModel.length === 0,
+        dnns: [{
+          dnn: defaultDnn,
+          is_default: true,
+          services: { defaultSvc: firstNonGbr, dedicated: [] }
+        }]
+      });
+      renderAll();
+    });
+
+    // -- Build subscription tree for save --
+    function collectTree() {
+      const slices = [];
+      for (const s of sliceModel) {
+        const dnns = [];
+        for (const d of s.dnns) {
+          const services = [];
+          if (d.services.defaultSvc) {
+            services.push({ service_name: d.services.defaultSvc, is_default: true });
+          }
+          for (const name of (d.services.dedicated || [])) {
+            if (name && name !== d.services.defaultSvc) {
+              services.push({ service_name: name, is_default: false });
+            }
+          }
+          dnns.push({
+            dnn: d.dnn,
+            is_default: d.is_default,
+            services
+          });
+        }
+        slices.push({
+          nssai_id: s.nssai_id || undefined,
+          sst: s.sst,
+          sd: s.sd,
+          is_default: s.is_default,
+          dnns
+        });
+      }
+      return { slices };
+    }
+
+    function payload() {
+      return {
+        imsi: getImsi(),
+        ambr: {
+          downlink_kbps: parseInt(id("subs_ambr_dl").value || "0", 10) || 0,
+          uplink_kbps:   parseInt(id("subs_ambr_ul").value || "0", 10) || 0
+        }
+      };
+    }
+
+    function fillForm(obj) {
+      if (!obj) return;
+      id("subs_ambr_dl").value = obj.ambr?.downlink_kbps ?? "";
+      id("subs_ambr_ul").value = obj.ambr?.uplink_kbps ?? "";
+    }
+
+    // -- Load --
+    async function loadSubs() {
+      out.value = "";
+      const imsi = getImsi();
+      if (!imsi) { log("Enter IMSI first"); return; }
+
+      await Promise.all([fetchNssaiCatalog(), fetchDnnCatalog(), fetchServiceCatalog()]);
+      await loadSliceModel(imsi);
+      renderAll();
+
+      try {
+        const r = await fetch(`/api/ue/subscription/${encodeURIComponent(imsi)}`);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        fillForm(j);
+        log("Loaded subscription");
+      } catch (e) {
+        log("" + e.message);
+      }
+    }
+
+    function clearSubs() {
+      id("subs_ambr_dl").value = "";
+      id("subs_ambr_ul").value = "";
+      sliceModel = [];
+      renderAll();
+      out.value = "";
+    }
+
+    // -- Save --
+    async function saveSubs() {
+      out.value = "";
+      const p = payload();
+      if (!p.imsi) { log("Enter IMSI first"); return; }
+
+      // Validate
+      if (!sliceModel.length) {
+        log("At least one subscribed slice is required");
+        return;
+      }
+      for (const s of sliceModel) {
+        if (!s.dnns.length) {
+          log(`Slice ${sliceLabel(s.sst, s.sd)} must have at least one DNN`);
+          return;
+        }
+        if (!s.dnns.some(d => d.is_default)) {
+          log(`Slice ${sliceLabel(s.sst, s.sd)} must have a default DNN`);
+          return;
+        }
+        for (const d of s.dnns) {
+          if (!d.services.defaultSvc) {
+            log(`DNN '${d.dnn}' in slice ${sliceLabel(s.sst, s.sd)} must have a default bearer`);
+            return;
+          }
+        }
+      }
+
+      // Save AMBR
+      try {
+        const r = await fetch("/api/ue/subscription", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(p)
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        log("Saved subscription AMBR");
+      } catch (e) {
+        log("AMBR save error: " + e.message);
+        return;
+      }
+
+      // Save full subscription tree (atomic — TS 29.505 §5.2)
+      const tree = collectTree();
+      try {
+        const r = await fetch(`/api/subscriber/${encodeURIComponent(p.imsi)}/subscription`, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(tree)
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        log(`Saved subscription tree: ${j.counts?.slices || 0} slices, ${j.counts?.dnns || 0} DNNs, ${j.counts?.bindings || 0} bindings`);
+      } catch (e) {
+        log("Save error: " + e.message);
+      }
+    }
+
+    // -- Init --
+    (async () => {
+      await Promise.all([fetchNssaiCatalog(), fetchDnnCatalog(), fetchServiceCatalog()]);
+      const imsi = getImsi();
+      if (imsi) {
+        await loadSliceModel(imsi);
+      }
+      renderAll();
+    })();
+
+    document.addEventListener("ue:loadAll", () => loadSubs());
+    document.addEventListener("ue:clearAll", () => clearSubs());
+    document.addEventListener("ue:saveAll", () => saveSubs());
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

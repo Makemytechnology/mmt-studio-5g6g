@@ -1,0 +1,157 @@
+<!-- Emergency Services (TS 23.501 §5.16, TS 23.167) -->
+<h5>Emergency Services <small class="text-muted">TS 23.501 §5.16</small></h5>
+
+<!-- Stats -->
+<div class="row mb-3">
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Emergency</div>
+    <span class="fs-5 fw-bold" id="em-enabled">-</span>
+  </div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Active Sessions</div>
+    <span class="fs-4 fw-bold text-danger" id="em-active">-</span>
+  </div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Auth Required</div>
+    <span class="fs-5 fw-bold" id="em-auth">-</span>
+  </div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">PSAP</div>
+    <span class="fs-5 fw-bold" id="em-psap">-</span>
+  </div></div></div>
+</div>
+
+<!-- Configuration -->
+<div class="card mb-3">
+  <div class="card-header">Configuration</div>
+  <div class="card-body">
+    <div class="row g-2">
+      <div class="col-md-2"><div class="form-check form-switch mt-4">
+        <input class="form-check-input" type="checkbox" id="em-cfg-enabled" checked>
+        <label class="form-check-label" for="em-cfg-enabled">Enabled</label>
+      </div></div>
+      <div class="col-md-2"><div class="form-check form-switch mt-4">
+        <input class="form-check-input" type="checkbox" id="em-cfg-auth">
+        <label class="form-check-label" for="em-cfg-auth">Auth Required</label>
+      </div></div>
+      <div class="col-md-2"><label class="form-label small">Emergency DNN</label>
+        <input type="text" class="form-control form-control-sm" id="em-cfg-dnn" value="sos"></div>
+      <div class="col-md-3"><label class="form-label small">IPv4 Pool</label>
+        <input type="text" class="form-control form-control-sm" id="em-cfg-pool" value="10.99.0.0/24"></div>
+      <div class="col-md-3"><label class="form-label small">IPv6 Pool</label>
+        <input type="text" class="form-control form-control-sm" id="em-cfg-pool6" value=""></div>
+    </div>
+    <div class="row g-2 mt-1">
+      <div class="col-md-3"><label class="form-label small">PSAP SIP URI</label>
+        <input type="text" class="form-control form-control-sm" id="em-cfg-psap-uri" placeholder="sip:psap@emergency.local"></div>
+      <div class="col-md-2"><label class="form-label small">PSAP IP</label>
+        <input type="text" class="form-control form-control-sm" id="em-cfg-psap-ip" placeholder="10.0.0.100"></div>
+      <div class="col-md-1"><label class="form-label small">PSAP Port</label>
+        <input type="number" class="form-control form-control-sm" id="em-cfg-psap-port" value="5060"></div>
+      <div class="col-md-1"><label class="form-label small">Emerg QFI</label>
+        <input type="number" class="form-control form-control-sm" id="em-cfg-eqfi" value="5"></div>
+      <div class="col-md-1"><label class="form-label small">Voice QFI</label>
+        <input type="number" class="form-control form-control-sm" id="em-cfg-vqfi" value="1"></div>
+      <div class="col-md-1"><label class="form-label small">ARP</label>
+        <input type="number" class="form-control form-control-sm" id="em-cfg-arp" value="1" min="1" max="15"></div>
+      <div class="col-md-1"><label class="form-label small">Max Sess</label>
+        <input type="number" class="form-control form-control-sm" id="em-cfg-max" value="100"></div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="emSaveConfig()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Active Emergency Sessions -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Active Emergency Sessions
+    <button class="btn btn-outline-secondary btn-sm" onclick="emLoadSessions()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>IMEI</th><th>IMSI</th><th>IP</th><th>gNB</th><th>TAC</th><th>Number</th><th>Started</th><th>Status</th><th></th></tr></thead>
+      <tbody id="em-sessions"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function emApi(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('/api/emergency' + path, opts).then(r => r.json());
+}
+
+function emLoadAll() { emLoadStats(); emLoadConfig(); emLoadSessions(); }
+
+function emLoadStats() {
+  emApi('GET', '/stats').then(d => {
+    document.getElementById('em-enabled').textContent = d.enabled ? 'Enabled' : 'Disabled';
+    document.getElementById('em-enabled').className = 'fs-5 fw-bold ' + (d.enabled ? 'text-success' : 'text-danger');
+    document.getElementById('em-active').textContent = d.active_sessions || 0;
+    document.getElementById('em-auth').textContent = d.auth_required ? 'Yes' : 'No';
+    document.getElementById('em-psap').textContent = d.psap_configured ? 'Configured' : 'Not Set';
+    document.getElementById('em-psap').className = 'fs-5 fw-bold ' + (d.psap_configured ? 'text-success' : 'text-warning');
+  }).catch(() => {});
+}
+
+function emLoadConfig() {
+  emApi('GET', '/config').then(c => {
+    document.getElementById('em-cfg-enabled').checked = !!c.enabled;
+    document.getElementById('em-cfg-auth').checked = !!c.auth_required;
+    document.getElementById('em-cfg-dnn').value = c.emergency_dnn || 'sos';
+    document.getElementById('em-cfg-pool').value = c.ip_pool_v4 || '';
+    document.getElementById('em-cfg-pool6').value = c.ip_pool_v6 || '';
+    document.getElementById('em-cfg-psap-uri').value = c.psap_sip_uri || '';
+    document.getElementById('em-cfg-psap-ip').value = c.psap_ip || '';
+    document.getElementById('em-cfg-psap-port').value = c.psap_port || 5060;
+    document.getElementById('em-cfg-eqfi').value = c.emergency_qfi || 5;
+    document.getElementById('em-cfg-vqfi').value = c.voice_qfi || 1;
+    document.getElementById('em-cfg-arp').value = c.arp_priority || 1;
+    document.getElementById('em-cfg-max').value = c.max_sessions || 100;
+  }).catch(() => {});
+}
+
+function emSaveConfig() {
+  emApi('POST', '/config', {
+    enabled: document.getElementById('em-cfg-enabled').checked ? 1 : 0,
+    auth_required: document.getElementById('em-cfg-auth').checked ? 1 : 0,
+    emergency_dnn: document.getElementById('em-cfg-dnn').value,
+    ip_pool_v4: document.getElementById('em-cfg-pool').value,
+    ip_pool_v6: document.getElementById('em-cfg-pool6').value,
+    psap_sip_uri: document.getElementById('em-cfg-psap-uri').value,
+    psap_ip: document.getElementById('em-cfg-psap-ip').value,
+    psap_port: parseInt(document.getElementById('em-cfg-psap-port').value) || 5060,
+    emergency_qfi: parseInt(document.getElementById('em-cfg-eqfi').value) || 5,
+    voice_qfi: parseInt(document.getElementById('em-cfg-vqfi').value) || 1,
+    arp_priority: parseInt(document.getElementById('em-cfg-arp').value) || 1,
+    max_sessions: parseInt(document.getElementById('em-cfg-max').value) || 100,
+  }).then(() => emLoadAll());
+}
+
+function emLoadSessions() {
+  emApi('GET', '/sessions').then(sessions => {
+    const tb = document.getElementById('em-sessions');
+    if (!sessions.length) { tb.innerHTML = '<tr><td colspan="9" class="text-muted text-center">No active emergency sessions</td></tr>'; return; }
+    tb.innerHTML = '';
+    sessions.forEach(s => {
+      const t = new Date(s.start_time * 1000).toLocaleString();
+      tb.innerHTML += `<tr>
+        <td><code>${s.imei||'-'}</code></td><td>${s.imsi||'-'}</td>
+        <td><code>${s.ip_addr||'-'}</code></td><td>${s.gnb_ip||'-'}</td>
+        <td>${s.tac||'-'}</td><td>${s.called_number||'-'}</td>
+        <td>${t}</td><td><span class="badge bg-danger">${s.status}</span></td>
+        <td><button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="emRelease(${s.id})">Release</button></td>
+      </tr>`;
+    });
+  });
+}
+
+function emRelease(id) {
+  emApi('POST', '/sessions/' + id + '/release').then(() => emLoadAll());
+}
+
+document.querySelector('[href="#emergency-tab"]')?.addEventListener('shown.bs.tab', emLoadAll);
+</script>

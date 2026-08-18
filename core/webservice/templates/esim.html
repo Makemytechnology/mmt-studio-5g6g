@@ -1,0 +1,194 @@
+<!-- templates/esim.html — eSIM Profile Management (GSMA SGP.22) -->
+
+<style>
+.esim-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.esim-card .e-val { font-size: 1.6rem; font-weight: 700; }
+.esim-card .e-lbl { font-size: 0.78rem; opacity: 0.9; }
+.ec-avail { background: #28a745; }
+.ec-downloaded { background: #0d6efd; }
+.ec-installed { background: #6f42c1; }
+.ec-total { background: #495057; }
+.esim-prof { border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; background: #f8f9fa; }
+.esim-prof .ep-iccid { font-family: monospace; font-size: 0.85rem; color: #0d6efd; }
+.esim-prof .ep-state { float: right; }
+.esim-prof .ep-detail { font-size: 0.82rem; color: #555; margin-top: 4px; }
+.esim-prof .ep-detail span { margin-right: 14px; }
+.esim-ac { font-family: monospace; font-size: 0.78rem; background: #e9ecef; padding: 4px 8px; border-radius: 4px; word-break: break-all; }
+</style>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3" id="esimSummary">
+  <div class="col"><div class="esim-card ec-total"><div class="e-val" id="esimTotal">--</div><div class="e-lbl">Total Profiles</div></div></div>
+  <div class="col"><div class="esim-card ec-avail"><div class="e-val" id="esimAvail">--</div><div class="e-lbl">Available</div></div></div>
+  <div class="col"><div class="esim-card ec-downloaded"><div class="e-val" id="esimDownloaded">--</div><div class="e-lbl">Downloaded</div></div></div>
+  <div class="col"><div class="esim-card ec-installed"><div class="e-val" id="esimInstalled">--</div><div class="e-lbl">Installed</div></div></div>
+</div>
+
+<!-- Order New Profile -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Order eSIM Profile</strong>
+  </div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label form-label-sm">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="esimOrderImsi" placeholder="001011234567001">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm">Profile Name</label>
+        <input type="text" class="form-control form-control-sm" id="esimOrderName" value="SA Core" placeholder="SA Core">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm">SM-DP+ Address</label>
+        <input type="text" class="form-control form-control-sm" id="esimOrderAddr" value="smdp.sacore.local">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-primary w-100" onclick="esimOrder()">Generate Profile</button>
+      </div>
+    </div>
+    <div id="esimOrderResult" class="mt-2" style="display:none">
+      <div class="alert alert-success py-2">
+        <strong>Profile Ready</strong>
+        <div class="mt-1"><small>ICCID: <span id="esimResIccid" class="ep-iccid"></span></small></div>
+        <div><small>Activation Code:</small></div>
+        <div class="esim-ac mt-1" id="esimResAC"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Profile List -->
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h6 class="fw-bold mb-0">Profiles</h6>
+  <div>
+    <select class="form-select form-select-sm d-inline-block" style="width:auto" id="esimFilterState" onchange="esimLoad()">
+      <option value="">All States</option>
+      <option value="available">Available</option>
+      <option value="downloaded">Downloaded</option>
+      <option value="installed">Installed</option>
+      <option value="enabled">Enabled</option>
+      <option value="disabled">Disabled</option>
+      <option value="deleted">Deleted</option>
+    </select>
+    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="esimLoad()">Refresh</button>
+  </div>
+</div>
+<div id="esimProfiles"></div>
+
+<!-- eUICC Devices -->
+<h6 class="fw-bold mt-3 mb-2">Registered eUICCs</h6>
+<div id="esimEuiccs"><small class="text-muted">No eUICCs registered yet</small></div>
+
+<!-- Recent Notifications -->
+<h6 class="fw-bold mt-3 mb-2">Recent Notifications</h6>
+<div id="esimNotifs"><small class="text-muted">No notifications</small></div>
+
+<script>
+function esimLoad() {
+  const state = document.getElementById('esimFilterState').value;
+  const qs = state ? `?state=${state}` : '';
+
+  fetch('/api/esim/profiles' + qs).then(r => r.json()).then(d => {
+    if (!d.ok) return;
+    const profs = d.profiles || [];
+
+    // Summary
+    const counts = {available:0, downloaded:0, installed:0, enabled:0, disabled:0, deleted:0};
+    // If filtered, fetch all for counts
+    if (!state) {
+      profs.forEach(p => { counts[p.profile_state] = (counts[p.profile_state]||0) + 1; });
+    }
+    document.getElementById('esimTotal').textContent = profs.length;
+    document.getElementById('esimAvail').textContent = counts.available || '--';
+    document.getElementById('esimDownloaded').textContent = counts.downloaded || '--';
+    document.getElementById('esimInstalled').textContent = (counts.installed + counts.enabled) || '--';
+
+    // Profile list
+    const div = document.getElementById('esimProfiles');
+    if (!profs.length) { div.innerHTML = '<small class="text-muted">No profiles</small>'; return; }
+
+    div.innerHTML = profs.map(p => {
+      const badge = {
+        available: '<span class="badge bg-success">Available</span>',
+        reserved: '<span class="badge bg-info">Reserved</span>',
+        downloaded: '<span class="badge bg-primary">Downloaded</span>',
+        installed: '<span class="badge bg-dark">Installed</span>',
+        enabled: '<span class="badge bg-purple" style="background:#6f42c1">Enabled</span>',
+        disabled: '<span class="badge bg-secondary">Disabled</span>',
+        deleted: '<span class="badge bg-danger">Deleted</span>',
+      }[p.profile_state] || '<span class="badge bg-secondary">' + p.profile_state + '</span>';
+
+      const ts = p.created_at ? new Date(p.created_at * 1000).toLocaleString() : '--';
+      const ac = p.activation_code || '';
+      const acShort = ac.length > 50 ? ac.substring(0,25) + '...' + ac.slice(-15) : ac;
+
+      return `<div class="esim-prof">
+        <span class="ep-iccid">${p.iccid}</span> <span class="ep-state">${badge}</span>
+        <div class="ep-detail">
+          <span>IMSI: ${p.imsi}</span>
+          <span>EID: ${p.eid || 'Not bound'}</span>
+          <span>${ts}</span>
+        </div>
+        ${ac ? '<div class="esim-ac mt-1" title="'+ac+'">' + acShort + '</div>' : ''}
+        ${p.profile_state === 'available' ? '<button class="btn btn-sm btn-outline-danger mt-1" onclick="esimRelease(\''+p.iccid+'\')">Release</button>' : ''}
+      </div>`;
+    }).join('');
+  }).catch(() => {});
+
+  // eUICCs
+  fetch('/api/esim/euiccs').then(r => r.json()).then(d => {
+    const div = document.getElementById('esimEuiccs');
+    if (!d.ok || !d.euiccs.length) { div.innerHTML = '<small class="text-muted">No eUICCs registered</small>'; return; }
+    div.innerHTML = d.euiccs.map(e => {
+      const ts = e.last_contact ? new Date(e.last_contact * 1000).toLocaleString() : '--';
+      return `<div class="esim-prof"><span class="ep-iccid">${e.eid}</span><div class="ep-detail"><span>Current: ${e.current_iccid||'None'}</span><span>LPA: ${e.lpa_version||'--'}</span><span>Last: ${ts}</span></div></div>`;
+    }).join('');
+  }).catch(() => {});
+
+  // Notifications
+  fetch('/api/esim/notifications?limit=10').then(r => r.json()).then(d => {
+    const div = document.getElementById('esimNotifs');
+    if (!d.ok || !d.notifications.length) { div.innerHTML = '<small class="text-muted">No notifications</small>'; return; }
+    div.innerHTML = '<table class="table table-sm table-striped mb-0"><thead><tr><th>ICCID</th><th>Event</th><th>EID</th><th>Time</th></tr></thead><tbody>'
+      + d.notifications.map(n => {
+        const ts = new Date(n.timestamp * 1000).toLocaleString();
+        return `<tr><td class="ep-iccid">${n.iccid}</td><td>${n.event_type}</td><td>${n.eid||'--'}</td><td>${ts}</td></tr>`;
+      }).join('') + '</tbody></table>';
+  }).catch(() => {});
+}
+
+function esimOrder() {
+  const imsi = document.getElementById('esimOrderImsi').value.trim();
+  if (!imsi) { alert('IMSI required'); return; }
+  const name = document.getElementById('esimOrderName').value.trim() || 'SA Core';
+  const addr = document.getElementById('esimOrderAddr').value.trim() || 'smdp.sacore.local';
+
+  fetch('/api/esim/order', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({imsi, profile_name: name, smdp_address: addr}),
+  }).then(r => r.json()).then(d => {
+    if (d.ok && d.profile) {
+      document.getElementById('esimResIccid').textContent = d.profile.iccid;
+      document.getElementById('esimResAC').textContent = d.profile.activation_code;
+      document.getElementById('esimOrderResult').style.display = '';
+      esimLoad();
+    } else {
+      alert('Failed: ' + (d.error || 'Unknown error'));
+    }
+  }).catch(e => alert('Error: ' + e));
+}
+
+function esimRelease(iccid) {
+  if (!confirm('Release profile ' + iccid + '?')) return;
+  fetch('/api/esim/profile/' + iccid + '/release', {method:'POST'})
+    .then(r => r.json()).then(d => {
+      if (d.ok) esimLoad();
+      else alert('Failed: ' + (d.error || ''));
+    });
+}
+
+// Load on tab activation
+document.querySelector('a[href="#esim-tab"]')?.addEventListener('shown.bs.tab', esimLoad);
+</script>

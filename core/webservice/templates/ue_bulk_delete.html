@@ -1,0 +1,99 @@
+<!-- templates/ue_bulk_delete.html
+     Sits directly below Bulk Clone UEs. Walks `count` IMSIs starting
+     at start_imsi and removes each via the same cascade as the
+     single-UE delete (auth / nssai / slice_dnn / service_bindings).
+     POST /api/ue/delete/range. Idempotent — missing IMSIs are skipped. -->
+<div class="accordion mb-4" id="ueBulkDeleteAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="ueBulkDeleteHeader">
+      <button
+        class="accordion-button collapsed bg-danger text-white fw-bold d-flex justify-content-center text-center"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#ueBulkDeleteCollapse"
+        aria-expanded="false"
+        aria-controls="ueBulkDeleteCollapse">
+        <div class="w-100">Bulk Delete UEs</div>
+      </button>
+    </h2>
+    <div id="ueBulkDeleteCollapse" class="accordion-collapse collapse" aria-labelledby="ueBulkDeleteHeader">
+      <div class="accordion-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <label class="form-label">Start IMSI</label>
+            <input id="bulk_del_start_imsi" type="text" class="form-control" placeholder="001011234560002">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Count</label>
+            <input id="bulk_del_count" type="number" class="form-control" min="1" max="10000" value="127">
+          </div>
+          <div class="col-md-3">
+            <button id="bulk_del_btn" type="button" class="btn btn-danger w-100">Delete</button>
+          </div>
+        </div>
+        <div class="form-text mt-1">
+          Removes <code>count</code> sequential IMSIs starting at the given
+          IMSI (same numeric increment as Bulk Clone). Cascades into auth,
+          subscribed NSSAI, slice-DNN authorisations, and service bindings.
+          Missing IMSIs are silently skipped.
+        </div>
+        <div id="bulk_del_status" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const init = () => {
+    const startEl = document.getElementById("bulk_del_start_imsi");
+    const cntEl   = document.getElementById("bulk_del_count");
+    const btn     = document.getElementById("bulk_del_btn");
+    const status  = document.getElementById("bulk_del_status");
+    if (!btn) return;
+
+    const note = (msg, type) => {
+      status.style.display = "";
+      status.innerHTML = `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>`;
+    };
+
+    btn.addEventListener("click", async () => {
+      const start_imsi = (startEl.value || "").trim();
+      const count      = parseInt(cntEl.value || "0", 10);
+      if (!start_imsi)   return note("Start IMSI required", "warning");
+      if (!(count > 0))  return note("Count must be > 0", "warning");
+      // Bulk delete is destructive — confirm before firing the request.
+      // Single confirm() is fine here; the operator already opened the
+      // accordion and clicked the red button.
+      if (!confirm(`Delete ${count} UEs starting at ${start_imsi}?\n\nThis cascades into auth / NSSAI / service bindings and cannot be undone.`)) return;
+
+      btn.disabled = true;
+      note(`Deleting ${count} UEs starting at ${start_imsi}…`, "info");
+      try {
+        const r = await fetch("/api/ue/delete/range", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ start_imsi, count })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        note(`✔ Deleted ${j.deleted} UE(s) — refresh the Configured UEs table below to see the change.`, "success");
+        // Mirror Bulk Clone: trigger the dashboard refresh button if it
+        // exists in this DOM (same page).
+        const refreshBtn = document.getElementById("btnUeRefresh");
+        if (refreshBtn) refreshBtn.click();
+      } catch (e) {
+        note(e.message || "Delete failed", "danger");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

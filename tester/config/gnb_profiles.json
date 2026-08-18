@@ -1,0 +1,36 @@
+[
+  {
+    "gnb_name": "tester-gnb-00",
+    "gnb_id": "0x500000",
+    "gnb_ip": "172.30.0.30",
+    "interface": "eth0",
+    "amf_ip": "172.30.0.10",
+    "amf_port": 38412,
+    "mcc": "001",
+    "mnc": "01",
+    "tac": "0001",
+    "paging_drx": "v128",
+    "slices": [
+      { "sd": "0x000001", "sst": 1 },
+      { "sd": "0x000002", "sst": 2 },
+      { "sd": "0x000003", "sst": 3 }
+    ]
+  },
+  {
+    "gnb_name": "tester-gnb-01",
+    "gnb_id": "0x500001",
+    "gnb_ip": "172.30.0.31",
+    "interface": "eth0",
+    "amf_ip": "172.30.0.10",
+    "amf_port": 38412,
+    "mcc": "001",
+    "mnc": "01",
+    "tac": "0001",
+    "paging_drx": "v128",
+    "slices": [
+      { "sd": "0x000001", "sst": 1 },
+      { "sd": "0x000002", "sst": 2 },
+      { "sd": "0x000003", "sst": 3 }
+    ]
+  }
+]

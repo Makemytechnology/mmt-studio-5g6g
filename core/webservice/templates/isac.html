@@ -1,0 +1,179 @@
+<!-- templates/isac.html — Integrated Sensing and Communication (TS 22.137, Rel-19) -->
+
+<!-- ISAC Status Overview -->
+<div class="row g-2 mb-3" id="isacStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="isacTotalSessions">0</div><div class="small text-muted">Total Sessions</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="isacActiveSessions">0</div><div class="small text-muted">Active</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="isacDataPoints">0</div><div class="small text-muted">Data Points</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="isacConsumers">0</div><div class="small text-muted">Consumers</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #20c997"><div class="fw-bold fs-4" id="isacSubscriptions">0</div><div class="small text-muted">Subscriptions</div></div></div>
+</div>
+
+<!-- Sensing Sessions -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#isacSessionCollapse"><div class="w-100 text-center">Sensing Sessions (TS 22.137)</div></button></h2>
+  <div id="isacSessionCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Type</th><th>Target Area</th><th>Resolution</th><th>Interval (s)</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="isacSessionBody"><tr><td colspan="8" class="text-muted text-center">No sessions</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Sensing Type</label><select id="isacSensingType" class="form-select form-select-sm" style="width:200px"><option value="presence_detection">Presence Detection</option><option value="object_tracking">Object Tracking</option><option value="environment_monitoring">Environment Monitoring</option><option value="gesture_recognition">Gesture Recognition</option><option value="intrusion_detection">Intrusion Detection</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Target Area</label><input id="isacTargetArea" class="form-control form-control-sm" style="width:160px" placeholder="Zone A"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Resolution</label><input id="isacResolution" class="form-control form-control-sm" style="width:100px" placeholder="high"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Interval (s)</label><input id="isacInterval" class="form-control form-control-sm" style="width:70px" type="number" value="1"></div>
+      <div class="col-auto"><button id="btnIsacAddSession" class="btn btn-success btn-sm">+ Create</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Sensing Data -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#isacDataCollapse"><div class="w-100 text-center">Sensing Data (Detected Objects)</div></button></h2>
+  <div id="isacDataCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Session</label><select id="isacDataSession" class="form-select form-select-sm" style="width:200px"></select></div>
+      <div class="col-auto"><button id="btnIsacRefreshData" class="btn btn-outline-primary btn-sm">Refresh</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Timestamp</th><th>Detected Objects</th><th>Environmental</th></tr>
+    </thead><tbody id="isacDataBody"><tr><td colspan="4" class="text-muted text-center">Select a session</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Consumer Management -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#isacConsumerCollapse"><div class="w-100 text-center">Consumer Management</div></button></h2>
+  <div id="isacConsumerCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>Callback URL</th><th>API Key</th><th>Created</th><th></th></tr>
+    </thead><tbody id="isacConsumerBody"><tr><td colspan="6" class="text-muted text-center">No consumers</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="isacConsumerName" class="form-control form-control-sm" style="width:160px" placeholder="App Name"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Callback URL</label><input id="isacConsumerCallback" class="form-control form-control-sm" style="width:250px" placeholder="https://app.example.com/sensing"></div>
+      <div class="col-auto"><button id="btnIsacAddConsumer" class="btn btn-success btn-sm">+ Register</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Subscription Config -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#isacSubCollapse"><div class="w-100 text-center">Subscription Configuration</div></button></h2>
+  <div id="isacSubCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Consumer</label><select id="isacSubConsumer" class="form-select form-select-sm" style="width:200px"></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Session</label><select id="isacSubSession" class="form-select form-select-sm" style="width:200px"></select></div>
+      <div class="col-auto"><button id="btnIsacSubscribe" class="btn btn-success btn-sm">Subscribe</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Consumer</th><th>Session</th><th>Active</th><th>Created</th><th></th></tr>
+    </thead><tbody id="isacSubBody"><tr><td colspan="6" class="text-muted text-center">No subscriptions</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/isac';
+
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const s=d.stats;
+      document.getElementById('isacTotalSessions').textContent=s.total_sessions;
+      document.getElementById('isacActiveSessions').textContent=s.active_sessions;
+      document.getElementById('isacDataPoints').textContent=s.data_points;
+      document.getElementById('isacConsumers').textContent=s.consumers;
+      document.getElementById('isacSubscriptions').textContent=s.active_subscriptions;
+    }).catch(()=>{});
+  }
+
+  function loadSessions(){
+    fetch(API+'/sessions').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('isacSessionBody');
+      if(!d.sessions.length){tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No sessions</td></tr>';return;}
+      tb.innerHTML=d.sessions.map(s=>`<tr>
+        <td>${s.id}</td><td>${s.sensing_type}</td><td>${s.target_area||''}</td>
+        <td>${s.resolution||''}</td><td>${s.report_interval_s}</td>
+        <td><span class="badge bg-${s.status==='active'?'success':s.status==='created'?'primary':s.status==='completed'?'secondary':'danger'}">${s.status}</span></td>
+        <td>${s.created_at||''}</td>
+        <td>${s.status==='created'?`<button class="btn btn-sm btn-outline-success" onclick="isacActivate(${s.id})">Activate</button>`:''} ${s.status==='active'||s.status==='created'?`<button class="btn btn-sm btn-outline-danger" onclick="isacCancel(${s.id})">Cancel</button>`:''} <button class="btn btn-sm btn-outline-secondary" onclick="isacDeleteSession(${s.id})">Del</button></td>
+      </tr>`).join('');
+      // populate session selects
+      const opts=d.sessions.map(s=>`<option value="${s.id}">#${s.id} ${s.sensing_type}</option>`).join('');
+      ['isacDataSession','isacSubSession'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
+    }).catch(()=>{});
+  }
+
+  function loadConsumers(){
+    fetch(API+'/consumers').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('isacConsumerBody');
+      if(!d.consumers.length){tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No consumers</td></tr>';return;}
+      tb.innerHTML=d.consumers.map(c=>`<tr>
+        <td>${c.id}</td><td>${c.name}</td><td>${c.callback_url||''}</td>
+        <td><code class="small">${c.api_key||''}</code></td><td>${c.created_at||''}</td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="isacDeleteConsumer(${c.id})">Del</button></td>
+      </tr>`).join('');
+      const opts=d.consumers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      const el=document.getElementById('isacSubConsumer');if(el)el.innerHTML=opts;
+    }).catch(()=>{});
+  }
+
+  function loadSubscriptions(){
+    fetch(API+'/subscribe?all=1').then(r=>r.json()).catch(()=>({ok:false})).then(()=>{
+      // subscriptions listed via session data — simplified
+    });
+  }
+
+  window.isacActivate=function(id){fetch(API+'/sessions/'+id+'/activate',{method:'POST'}).then(()=>{loadSessions();loadStats();});};
+  window.isacCancel=function(id){fetch(API+'/sessions/'+id+'/cancel',{method:'POST'}).then(()=>{loadSessions();loadStats();});};
+  window.isacDeleteSession=function(id){fetch(API+'/sessions/'+id,{method:'DELETE'}).then(()=>{loadSessions();loadStats();});};
+  window.isacDeleteConsumer=function(id){fetch(API+'/consumers/'+id,{method:'DELETE'}).then(()=>{loadConsumers();loadStats();});};
+
+  document.getElementById('btnIsacAddSession').addEventListener('click',()=>{
+    fetch(API+'/sessions',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sensing_type:document.getElementById('isacSensingType').value,
+        target_area:document.getElementById('isacTargetArea').value,
+        resolution:document.getElementById('isacResolution').value,
+        report_interval_s:parseInt(document.getElementById('isacInterval').value)||1})
+    }).then(()=>{loadSessions();loadStats();});
+  });
+
+  document.getElementById('btnIsacAddConsumer').addEventListener('click',()=>{
+    fetch(API+'/consumers',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:document.getElementById('isacConsumerName').value,
+        callback_url:document.getElementById('isacConsumerCallback').value})
+    }).then(()=>{loadConsumers();loadStats();});
+  });
+
+  document.getElementById('btnIsacSubscribe').addEventListener('click',()=>{
+    const cid=document.getElementById('isacSubConsumer').value;
+    const sid=document.getElementById('isacSubSession').value;
+    if(!cid||!sid) return;
+    fetch(API+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({consumer_id:parseInt(cid),session_id:parseInt(sid)})
+    }).then(()=>{loadStats();});
+  });
+
+  document.getElementById('btnIsacRefreshData').addEventListener('click',()=>{
+    const sid=document.getElementById('isacDataSession').value;
+    if(!sid) return;
+    fetch(API+'/data/'+sid).then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('isacDataBody');
+      if(!d.data||!d.data.length){tb.innerHTML='<tr><td colspan="4" class="text-muted text-center">No data</td></tr>';return;}
+      tb.innerHTML=d.data.map(r=>`<tr>
+        <td>${r.id}</td><td>${r.timestamp||''}</td>
+        <td><code class="small">${r.detected_objects||'[]'}</code></td>
+        <td><code class="small">${r.environmental||'{}'}</code></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  });
+
+  // Tab observer
+  const tab=document.getElementById('isac-tab');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active')){loadStats();loadSessions();loadConsumers();}});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  // Initial load if active
+  if(tab&&tab.classList.contains('active')){loadStats();loadSessions();loadConsumers();}
+})();
+</script>

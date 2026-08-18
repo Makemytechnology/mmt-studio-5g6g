@@ -1,0 +1,704 @@
+<!-- templates/contexts.html -->
+
+<!-- Core Context -->
+<div class="accordion mb-3" id="utilsAmfAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="utilsAmfHeader">
+      <button id="utilsAmfToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="utilsAmfCollapse">
+        <div class="w-100">Core Context</div>
+      </button>
+    </h2>
+    <div id="utilsAmfCollapse" class="accordion-collapse collapse show" aria-labelledby="utilsAmfHeader">
+      <div class="accordion-body py-2" id="amfContextBody">
+        <div class="text-muted small">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- gNB Contexts -->
+<div class="accordion mb-3" id="utilsGnbAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="utilsGnbHeader">
+      <button id="utilsGnbToggleBtn"
+        class="accordion-button bg-success text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="utilsGnbCollapse">
+        <div class="w-100">gNB Contexts <span id="gnbCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="utilsGnbCollapse" class="accordion-collapse collapse show" aria-labelledby="utilsGnbHeader">
+      <div class="accordion-body py-2" id="gnbContextBody">
+        <div class="text-muted small">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UE Contexts -->
+<div class="accordion mb-3" id="utilsUeAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="utilsUeHeader">
+      <button id="utilsUeToggleBtn"
+        class="accordion-button bg-info text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="utilsUeCollapse">
+        <div class="w-100">UE Contexts <span id="ueCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="utilsUeCollapse" class="accordion-collapse collapse show" aria-labelledby="utilsUeHeader">
+      <div class="accordion-body py-2">
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Filter by IMSI</label>
+            <input id="utilsUeImsi" type="text" class="form-control form-control-sm"
+                   placeholder="e.g. 001010000000001">
+          </div>
+          <div class="col-auto">
+            <button id="btnUeFilter" type="button" class="btn btn-sm btn-outline-primary">Filter</button>
+            <button id="btnUeFilterClear" type="button" class="btn btn-sm btn-outline-secondary">Show All</button>
+          </div>
+        </div>
+        <div id="ueContextBody">
+          <div class="text-muted small">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Refresh -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <button id="btnUtilsRefresh" type="button" class="btn btn-primary">Refresh All</button>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" id="utilsAutoRefresh">
+    <label class="form-check-label" for="utilsAutoRefresh">Auto-refresh (5s)</label>
+  </div>
+  <small id="utilsLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .ctx-card {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;
+    padding: 10px 14px; margin-bottom: 8px;
+  }
+  .ctx-card .ctx-title {
+    font-weight: 700; font-size: 14px; margin-bottom: 6px;
+    border-bottom: 1px solid #dee2e6; padding-bottom: 4px;
+  }
+  .ctx-cols {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px 20px; font-size: 13px;
+  }
+  .ctx-cols .ctx-item { display: flex; gap: 6px; }
+  .ctx-cols .ctx-label { color: #666; font-weight: 600; white-space: nowrap; }
+  .ctx-cols .ctx-label::after { content: ':'; }
+  .ctx-cols .ctx-value { color: #222; font-family: 'Consolas','Courier New',monospace; word-break: break-all; }
+  /* Same visual treatment for .ctx-item used standalone (outside the grid) —
+     needed so full-width rows like GUAMI don't reflow into two lines. */
+  .ctx-item { display: flex; gap: 6px; font-size: 13px; }
+  .ctx-item > .ctx-label { color: #666; font-weight: 600; white-space: nowrap; }
+  .ctx-item > .ctx-label::after { content: ':'; }
+  .ctx-item > .ctx-value { color: #222; font-family: 'Consolas','Courier New',monospace; }
+  .ctx-badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+  .ctx-badge-row .badge { font-size: 13px; padding: 5px 10px; letter-spacing: 0.3px; font-family: 'Consolas','Courier New',monospace; }
+  .slice-badge { background: #e8f0fe !important; color: #1a56db !important; border: 1px solid #b6d4fe; }
+  .pdu-table { font-size: 12px; }
+  .pdu-table th { font-weight: 600; background: #e9ecef; }
+  .sec-ok { color: #198754; font-weight: 700; }
+  .sec-no { color: #dc3545; font-weight: 700; }
+  .sec-pending { color: #fd7e14; font-weight: 700; }
+
+  /* QoS Hierarchy Tree */
+  .qos-tree { font-size: 12px; margin-top: 6px; }
+  .qos-toggle { cursor: pointer; color: #0d6efd; font-weight: 600; font-size: 12px; user-select: none; }
+  .qos-toggle:hover { text-decoration: underline; }
+  .qos-section { margin-left: 16px; margin-top: 4px; }
+  .qos-section-title { font-weight: 700; font-size: 12px; color: #495057; margin-top: 6px; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
+  .qos-section-title .badge { font-size: 10px; }
+  .qos-rule { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px 8px; margin: 2px 0; font-family: 'Consolas','Courier New',monospace; }
+  .qos-rule .rl { color: #666; font-weight: 600; }
+  .qos-rule .rv { color: #222; }
+  .qos-sdf { color: #6610f2; font-style: italic; font-size: 11px; margin-left: 12px; }
+  .qos-svc { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 4px 8px; margin: 2px 0; }
+  .qos-svc .svc-name { font-weight: 700; color: #2e7d32; }
+  .qos-svc .svc-default { font-size: 10px; background: #2e7d32; color: #fff; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+  .qos-tunnel { color: #0d47a1; font-size: 11px; margin-left: 12px; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+
+    /* ── Accordion toggles ── */
+    const accordions = [
+      ['utilsAmfToggleBtn','utilsAmfCollapse'],
+      ['utilsGnbToggleBtn','utilsGnbCollapse'],
+      ['utilsUeToggleBtn','utilsUeCollapse'],
+    ];
+    for (const [btnId, colId] of accordions) {
+      const btn = document.getElementById(btnId);
+      const col = document.getElementById(colId);
+      if (btn && !btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(col, {toggle:false});
+        btn.addEventListener('click', () => inst.toggle());
+      }
+    }
+
+    const esc = (s) => {
+      if (s == null) return '<span class="text-muted">-</span>';
+      const d = document.createElement('span');
+      d.textContent = String(s);
+      return d.outerHTML;
+    };
+
+    const item = (label, value) =>
+      `<div class="ctx-item"><span class="ctx-label">${label}</span><span class="ctx-value">${esc(value)}</span></div>`;
+
+    /* Format SD value as 0x-prefixed uppercase hex (6 hex digits).
+       Handles: number (16777215), hex string ("000001"/"FFFFFF"), null */
+    const fmtSd = (sd) => {
+      if (sd == null || sd === '') return '';
+      let hex;
+      if (typeof sd === 'number') {
+        /* Integer from UE context (e.g. 16777215 → FFFFFF) */
+        hex = sd.toString(16).toUpperCase();
+      } else {
+        const raw = String(sd).replace(/^0x/i, '');
+        if (/^[0-9a-fA-F]+$/.test(raw) && /[a-fA-F]/.test(raw)) {
+          /* Contains a-f so definitely hex string (e.g. "FFFFFF", "00AB01") */
+          hex = raw.toUpperCase();
+        } else if (/^[0-9]+$/.test(raw) && raw.length <= 8) {
+          /* Pure digits — treat as decimal number */
+          hex = parseInt(raw, 10).toString(16).toUpperCase();
+        } else {
+          /* Hex string with only digits (e.g. "000001") — 4+ chars = hex */
+          hex = raw.length >= 4 ? raw.toUpperCase() : parseInt(raw, 10).toString(16).toUpperCase();
+        }
+      }
+      return '0x' + hex.padStart(6, '0');
+    };
+
+    /* Format SST: number stays as-is, hex byte string ("01") → decimal */
+    const fmtSst = (sst) => {
+      if (sst == null || sst === '') return '?';
+      if (typeof sst === 'number') return sst;
+      const s = String(sst);
+      /* Only treat as hex if it has leading zero (byte-like: "01","0A") */
+      if (/^0[0-9a-fA-F]$/.test(s)) return parseInt(s, 16);
+      return s;
+    };
+
+    /* Format a slice badge string from SST + SD */
+    const sliceBadge = (sst, sd) => {
+      const sdStr = fmtSd(sd);
+      return 'SST:' + fmtSst(sst) + (sdStr ? '  SD:' + sdStr : '');
+    };
+
+    /* ── Core Context — AMF config + IP Allocation ── */
+    const loadAmfCtx = async () => {
+      try {
+        const [amfRes, ipRes] = await Promise.all([
+          fetch('/api/utils/amf-context'),
+          fetch('/api/utils/ip-allocator'),
+        ]);
+        const d = await amfRes.json();
+        const ipData = await ipRes.json();
+
+        if (d.error) { document.getElementById('amfContextBody').innerHTML = `<div class="text-danger">${esc(d.error)}</div>`; return; }
+        let html = '<div class="ctx-cols">';
+        html += item('AMF Name', d.amf_name);
+        html += item('Capacity', d.capacity);
+        html += '</div>';
+        /* GUAMI row is emitted outside ctx-cols so the full value stays on
+         * one line even when the container is wider than a single grid cell. */
+        for (const g of (d.guami_list || [])) {
+          const amfi = g.amfi || `${(g.amf_region_id ?? 0).toString(16).padStart(2,'0').toUpperCase()}:`
+                              + `${(g.amf_set_id ?? 0).toString(16).padStart(3,'0').toUpperCase()}:`
+                              + `${(g.amf_pointer ?? 0).toString(16).padStart(2,'0').toUpperCase()}`;
+          html += `<div class="ctx-item mt-1"><span class="ctx-label">GUAMI</span><span class="ctx-value">${esc(g.plmn_id + ' — AMFI=' + amfi)}</span></div>`;
+        }
+        if (d.plmn_support && d.plmn_support.length) {
+          html += '<div class="ctx-badge-row mt-2"><span class="small fw-bold me-1">Slices:</span>';
+          for (const p of d.plmn_support) {
+            for (const s of (p.slices || [])) {
+              html += `<span class="badge slice-badge">${esc(sliceBadge(s.sst, s.sd))}</span>`;
+            }
+          }
+          html += '</div>';
+        }
+        // IP Allocation per DNN
+        const pools = ipData.pools || {};
+        const dnnKeys = Object.keys(pools);
+        if (dnnKeys.length) {
+          html += '<hr class="my-2"><div class="small fw-bold mb-1">IP Allocation (per DNN)</div>';
+          html += '<div class="ctx-cols">';
+          for (const dnn of dnnKeys) {
+            const pool = pools[dnn];
+            html += item(dnn, pool.count + ' allocated' + (pool.addresses && pool.addresses.length ? ' — ' + pool.addresses.join(', ') : ''));
+          }
+          html += '</div>';
+        }
+        document.getElementById('amfContextBody').innerHTML = html;
+      } catch(e) { document.getElementById('amfContextBody').innerHTML = '<div class="text-danger">Failed to load</div>'; }
+    };
+
+    /* ── gNB Contexts — multi-column per gNB ── */
+    const loadGnbs = async () => {
+      try {
+        const r = await fetch('/api/utils/gnb-contexts');
+        const d = await r.json();
+        document.getElementById('gnbCount').textContent = d.total || 0;
+        if (!d.gnbs || d.gnbs.length === 0) {
+          document.getElementById('gnbContextBody').innerHTML = '<div class="text-muted small">No gNBs connected</div>';
+          return;
+        }
+        let html = '';
+        for (const g of d.gnbs) {
+          const connClass = g.Connected ? 'badge bg-success' : 'badge bg-danger';
+          const connText = g.Connected ? 'CONNECTED' : 'DISCONNECTED';
+          html += '<div class="ctx-card">';
+          html += '<div class="ctx-title">' + esc(g['gNB Name'] || 'Unknown') +
+                  ' <span class="text-muted fw-normal">(' + esc(g['gNB IP Address']) + ')</span>' +
+                  ` <span class="${connClass} ms-2">${connText}</span></div>`;
+          html += '<div class="ctx-cols">';
+          html += item('gNB ID', JSON.stringify(g['gNB ID']));
+          html += item('PLMN', g['PLMN Identity']);
+          html += item('TAC', g['Tracking Area Code (TAC)']);
+          html += item('Paging DRX', g['Paging DRX']);
+          html += item('Active UEs', g.active_ues);
+          html += '</div>';
+          if (g['Supported Slices'] && Array.isArray(g['Supported Slices']) && g['Supported Slices'].length) {
+            html += '<div class="ctx-badge-row mt-1"><span class="small fw-bold me-1">Slices:</span>';
+            for (const s of g['Supported Slices']) {
+              let txt;
+              if (typeof s === 'object' && s !== null) {
+                /* ASN.1 structure: {'s-NSSAI': {'sST': '01', 'sD': '000001'}} or flat */
+                const snssai = s['s-NSSAI'] || s;
+                const sst = snssai.sST ?? snssai.SST ?? snssai.sst ?? s.sST ?? s.SST ?? s.sst ?? '';
+                const sd = snssai.sD ?? snssai.SD ?? snssai.sd ?? s.sD ?? s.SD ?? s.sd ?? '';
+                txt = sliceBadge(sst, sd);
+              } else {
+                txt = String(s);
+              }
+              html += `<span class="badge slice-badge">${esc(txt)}</span>`;
+            }
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+        document.getElementById('gnbContextBody').innerHTML = html;
+      } catch(e) { document.getElementById('gnbContextBody').innerHTML = '<div class="text-danger">Failed to load</div>'; }
+    };
+
+    /* ── UE Contexts ── */
+    let ueImsiFilter = '';
+    /* Remember which Services & UPF Rules sections the operator opened so the
+     * 5s auto-refresh doesn't re-collapse them. The inline onclick pipes
+     * through togglePduKey() which maintains the Set. */
+    const openPduKeys = new Set();
+    window.togglePduKey = (key) => {
+      const el = document.getElementById(key);
+      if (!el) return;
+      /* Treat anything that isn't explicitly 'block' as closed — inline
+       * style may be '' before the first toggle runs on a freshly-replaced
+       * DOM element. */
+      const opening = el.style.display !== 'block';
+      el.style.display = opening ? 'block' : 'none';
+      if (opening) openPduKeys.add(key); else openPduKeys.delete(key);
+    };
+    const loadUes = async () => {
+      try {
+        const params = ueImsiFilter ? '?imsi=' + encodeURIComponent(ueImsiFilter) : '';
+        const r = await fetch('/api/utils/ue-contexts' + params);
+        const d = await r.json();
+        /* Capture current expansion state from the live DOM before we replace
+         * it — a safety net in case a click happened but openPduKeys didn't
+         * see it (e.g. stale event target during a prior render). */
+        document.querySelectorAll('#ueContextBody .qos-tree').forEach(el => {
+          if (el.id && el.style.display === 'block') openPduKeys.add(el.id);
+        });
+        document.getElementById('ueCount').textContent = d.total || 0;
+        if (!d.ues || d.ues.length === 0) {
+          document.getElementById('ueContextBody').innerHTML = '<div class="text-muted small">No active UE contexts</div>';
+          return;
+        }
+        let html = '';
+        for (const ue of d.ues) {
+          const sec = ue.security || {};
+          // UE lifecycle label comes from the GMM FSM (DEREGISTERED /
+          // AUTHENTICATION / SECURITY_MODE / REGISTERED_INITIATED /
+          // REGISTERED / DEREGISTRATION_INITIATED / MT_DEREG_PENDING).
+          // Pre-FSM code here surfaced `sec.auth_done` as "AUTHENTICATED"
+          // and never ticked over to REGISTERED — fixed by reading
+          // gmm_state directly.
+          const gmmState = ue.gmm_state || (sec.auth_done ? 'AUTHENTICATED' : 'NOT AUTH');
+          const authClass = (gmmState === 'REGISTERED') ? 'sec-ok'
+            : (gmmState.endsWith('_PENDING') || gmmState === 'AUTHENTICATION' || gmmState === 'SECURITY_MODE' || gmmState === 'IDENTIFICATION') ? 'sec-pending'
+            : 'sec-no';
+          const authText = gmmState;
+          const ciphLabels = {0:'NEA0 - Null', 1:'NEA1 - SNOW3G', 2:'NEA2 - AES', 3:'NEA3 - ZUC'};
+          const integLabels = {0:'NIA0 - Null', 1:'NIA1 - SNOW3G', 2:'NIA2 - AES', 3:'NIA3 - ZUC'};
+          const secText = sec.has_kamf ? `${ciphLabels[sec.eea] || 'NEA'+sec.eea} / ${integLabels[sec.eia] || 'NIA'+sec.eia}` : 'No NAS Security';
+
+          html += '<div class="ctx-card">';
+          html += '<div class="ctx-title d-flex justify-content-between align-items-center">';
+          html += '<div>';
+          html += `IMSI: ${esc(ue.imsi || 'Unknown')} `;
+          html += `<span class="${authClass} small">[${authText}]</span> `;
+          html += `<span class="text-muted fw-normal small ms-2">AMF-ID:${ue.amf_ue_ngap_id} RAN-ID:${ue.ran_ue_ngap_id}</span>`;
+          html += '</div>';
+          html += `<button class="btn btn-sm btn-outline-danger btn-dereg" data-imsi="${esc(ue.imsi || '')}" data-amfid="${ue.amf_ue_ngap_id}" title="Network Deregister">Deregister</button>`;
+          html += '</div>';
+
+          html += '<div class="ctx-cols">';
+          html += item('PLMN', ue.plmn_id ? (ue.plmn_id.MCC || '') + (ue.plmn_id.MNC || '') : null);
+          html += item('gNB', (ue.gnb_name || '-') + ' (' + (ue.gnb_ip || '-') + ')');
+          html += item('IMEISV', ue.imeisv);
+          html += item('5G-GUTI', ue.guti);
+          html += item('NAS Security', secText);
+          html += item('NAS UL Count', sec.ul_nas_count);
+          html += item('NAS DL Count', sec.dl_nas_count);
+          html += item('K_AMF', sec.has_kamf ? 'Derived' : 'Not set');
+          html += item('K_gNB', sec.has_kgnb ? 'Derived' : 'Not set');
+          html += '</div>';
+
+          // ── Hierarchy: Slice → DNN → Bearers → Services → UPF Rules ──
+          // Group PDU sessions by slice (SST+SD), then by DNN within each slice.
+          // Data comes entirely from the running UE context, not from DB.
+
+          // Build slice map from allowed_nssai + PDU sessions
+          const sliceMap = new Map(); // key="sst:sd" → {sst, sd, dnns: Map<dnn, [pdu sessions]>}
+          const sliceKey = (sst, sd) => `${sst}:${sd ?? ''}`;
+
+          // Seed from allowed NSSAI (shows slices even without active PDU sessions)
+          for (const n of (ue.allowed_nssai || [])) {
+            const k = sliceKey(n.sst, n.sd);
+            if (!sliceMap.has(k)) sliceMap.set(k, {sst: n.sst, sd: n.sd, dnns: new Map()});
+          }
+
+          // Group PDU sessions into slices → DNNs
+          for (const p of (ue.pdu_sessions || [])) {
+            const k = sliceKey(p.sst, p.sd);
+            if (!sliceMap.has(k)) sliceMap.set(k, {sst: p.sst, sd: p.sd, dnns: new Map()});
+            const slice = sliceMap.get(k);
+            const dnn = p.dnn || 'unknown';
+            if (!slice.dnns.has(dnn)) slice.dnns.set(dnn, []);
+            slice.dnns.get(dnn).push(p);
+          }
+
+          if (sliceMap.size === 0) {
+            html += '<div class="text-muted small mt-1">No slices / PDU sessions</div>';
+          }
+
+          for (const [sk, slice] of sliceMap) {
+            const nPdu = [...slice.dnns.values()].reduce((a, b) => a + b.length, 0);
+            // ── Slice card ──
+            html += '<div class="ctx-card mt-2" style="border-left:3px solid #1a56db;">';
+            html += '<div class="ctx-title d-flex align-items-center gap-2" style="border-bottom:none;padding-bottom:0;">';
+            html += `<span class="badge slice-badge" style="font-size:13px;">${esc(sliceBadge(slice.sst, slice.sd))}</span>`;
+            html += `<span class="text-muted small">${nPdu} PDU session${nPdu !== 1 ? 's' : ''}</span>`;
+            html += '</div>';
+
+            if (slice.dnns.size === 0) {
+              html += '<div class="text-muted small ms-3 mb-1">No active PDU sessions on this slice</div>';
+            }
+
+            for (const [dnn, pdus] of slice.dnns) {
+              // ── DNN (APN) sub-card ──
+              html += '<div class="ctx-card mt-1 ms-2" style="border-left:3px solid #0d6efd; background:#fff;">';
+              html += '<div class="ctx-title d-flex align-items-center gap-2" style="border-bottom:none;padding-bottom:0;font-size:13px;">';
+              html += `<span class="badge bg-primary">DNN</span> <strong>${esc(dnn)}</strong>`;
+              html += `<span class="text-muted small">${pdus.length} session${pdus.length !== 1 ? 's' : ''}</span>`;
+              html += '</div>';
+
+              for (const p of pdus) {
+                const stClass = p.state === 'active' ? 'text-success fw-bold' : '';
+                const pduKey = `pdu_${ue.amf_ue_ngap_id}_${p.pdu_session_id}`;
+
+                // ── PDU Session header ──
+                html += '<div class="ms-2 mt-1" style="border-left:2px solid #dee2e6; padding-left:8px;">';
+                html += '<div class="d-flex align-items-center gap-2" style="font-size:12px;">';
+                html += `<span class="badge bg-secondary">PDU ${p.pdu_session_id}</span>`;
+                html += `<code>${esc(p.ip_addr)}</code>`;
+                html += `<span class="${stClass}">${esc(p.state)}</span>`;
+                /* UPF anchor for this PDU session (TS 23.501 §6.3.3 — SMF
+                 * picks UPF per S-NSSAI/DNN). With multi-anchor PFCP the
+                 * value is upf-embb / upf-miot / etc. */
+                if(p.upf_id) html += `<span class="badge" style="background:#fef3c7;color:#92400e;" title="N3 IP: ${esc(p.upf_n3_ip||'')}">UPF=${esc(p.upf_id)}</span>`;
+                // AMBR=0 means "no rate limit" per TS 23.501 §5.7.2.6 —
+                // render "unlimited" so operators don't read it as a
+                // zero-throughput cap. Same convention as upf.html.
+                const _fmtAmbr = (v) => (v > 0 ? v + ' kbps' : 'unlimited');
+                html += `<span class="text-muted">AMBR: DL ${_fmtAmbr(p.ambr_dl)} / UL ${_fmtAmbr(p.ambr_ul)}</span>`;
+                html += '</div>';
+
+                // ── Bearers table ──
+                const flows = (p.qos_flows && p.qos_flows.length)
+                  ? p.qos_flows
+                  : [{qfi: p.qfi, fiveqi: p.fiveqi, is_default: true, bearer_type: 'default',
+                      service_names: ['default'], mbr_dl_kbps: p.ambr_dl, mbr_ul_kbps: p.ambr_ul}];
+                const nDed = flows.filter(f => !f.is_default).length;
+
+                html += '<table class="table table-sm table-bordered mt-1 mb-0 pdu-table">';
+                html += '<thead><tr>';
+                html += '<th>Bearer</th><th>QFI</th><th>5QI</th><th>Type</th><th>ARP</th>';
+                html += '<th>UPF UL TEID</th><th>gNB DL TEID</th><th>gNB Addr</th>';
+                html += '<th>MBR DL/UL</th><th>GBR DL/UL</th>';
+                html += '</tr></thead><tbody>';
+
+                // 0 means "no rate limit" (TS 23.501 §5.7.2.6) — render
+                // as "unlimited" so operators don't read it as a hard
+                // zero-throughput cap. null/undefined still falls back
+                // to "-" for "field not reported".
+                const _fmtBr = (v) => v == null ? '-' : (v > 0 ? v : 'unlimited');
+                for (const flow of flows) {
+                  const flowType = flow.resource_type === 'GBR' ? 'GBR' : 'NonGBR';
+                  const bearerLabel = flow.is_default ? 'DEFAULT' : 'DEDICATED';
+                  const bearerBg = flow.is_default ? 'bg-success' : 'bg-warning text-dark';
+                  const mbrDl = _fmtBr(flow.mbr_dl_kbps ?? p.ambr_dl);
+                  const mbrUl = _fmtBr(flow.mbr_ul_kbps ?? p.ambr_ul);
+                  const gbrDl = _fmtBr(flow.gbr_dl_kbps);
+                  const gbrUl = _fmtBr(flow.gbr_ul_kbps);
+                  const gbrCell = flowType === 'GBR' ? `${gbrDl}/${gbrUl} kbps` : '-';
+
+                  html += '<tr>';
+                  html += `<td><span class="badge ${bearerBg}">${bearerLabel}</span></td>`;
+                  html += `<td><strong>${flow.qfi}</strong></td>`;
+                  html += `<td>${flow.fiveqi}</td>`;
+                  html += `<td>${flowType}</td>`;
+                  html += `<td>${flow.arp_priority ?? '-'}</td>`;
+                  html += `<td><code>${esc(p.upf_ul_teid)}</code></td>`;
+                  html += `<td><code>${esc(p.gnb_dl_teid)}</code></td>`;
+                  html += `<td>${esc(p.gnb_addr)}</td>`;
+                  html += `<td>${mbrDl}/${mbrUl} kbps</td>`;
+                  html += `<td>${gbrCell}</td>`;
+                  html += '</tr>';
+                }
+                html += '</tbody></table>';
+
+                // ── Collapsible: Services → UPF Rules per bearer ──
+                const hasRules = p.upf_rules && (p.upf_rules.pdrs?.length || p.upf_rules.fars?.length);
+                const hasSvc = p.services && p.services.length;
+                if (flows.length || hasRules || hasSvc) {
+                  html += `<div style="padding:2px 0;">`;
+                  const initOpen = openPduKeys.has(pduKey);
+                  html += `<span class="qos-toggle" onclick="togglePduKey('${pduKey}')">`;
+                  html += `&#9654; Services &amp; UPF Rules (1 default + ${nDed} dedicated)</span>`;
+                  html += `<div id="${pduKey}" class="qos-tree" style="display:${initOpen ? 'block' : 'none'};">`;
+
+                  const pdrsForQfi = (qfi) => (p.upf_rules?.pdrs || []).filter(r => r.qfi === qfi);
+                  const qerForQfi = (qfi) => (p.upf_rules?.qers || []).find(r => r.qfi === qfi);
+                  const fmtBytes = (b) => b > 1048576 ? (b/1048576).toFixed(1) + ' MB' : b > 1024 ? (b/1024).toFixed(1) + ' KB' : b + ' B';
+
+                  for (const flow of flows) {
+                    const flowType = flow.resource_type === 'GBR' ? 'GBR' : 'Non-GBR';
+                    const bearerLabel = flow.is_default ? 'DEFAULT BEARER' : 'DEDICATED BEARER';
+                    const bearerClass = flow.is_default ? 'svc-default' : 'badge bg-warning text-dark';
+                    html += `<div class="qos-section-title" style="font-size:13px; margin-top:8px; border-bottom:1px solid #ccc; padding-bottom:2px;">`;
+                    html += `<span class="${bearerClass}" style="font-size:10px;padding:1px 5px;border-radius:3px;">${bearerLabel}</span> `;
+                    html += `QFI=${flow.qfi} 5QI=${flow.fiveqi} ${esc(flowType)} ARP:${flow.arp_priority ?? '-'}`;
+                    html += `</div>`;
+                    html += '<div class="qos-section">';
+
+                    // Services bound to this bearer
+                    const svcNames = flow.service_names || [];
+                    const allSvcs = p.services || [];
+                    for (const svcName of svcNames) {
+                      const svc = allSvcs.find(s => s.name === svcName);
+                      if (svc) {
+                        html += '<div class="qos-svc">';
+                        html += `<span class="rl">Service:</span> <span class="svc-name">${esc(svc.name)}</span>`;
+                        if (svc.mbr_ul_kbps != null || svc.mbr_dl_kbps != null)
+                          html += ` MBR:${_fmtBr(svc.mbr_ul_kbps)}/${_fmtBr(svc.mbr_dl_kbps)} kbps`;
+                        if (flowType === 'GBR' && (svc.gbr_ul_kbps != null || svc.gbr_dl_kbps != null))
+                          html += ` GBR:${_fmtBr(svc.gbr_ul_kbps)}/${_fmtBr(svc.gbr_dl_kbps)} kbps`;
+                        if (svc.flow_json) {
+                          try {
+                            const sdfList = JSON.parse(svc.flow_json);
+                            if (Array.isArray(sdfList) && sdfList.length) {
+                              for (const f of sdfList) html += `<div class="qos-sdf">SDF: ${esc(typeof f === 'string' ? f : JSON.stringify(f))}</div>`;
+                            }
+                          } catch(e) {}
+                        }
+                        html += '</div>';
+                      }
+                    }
+
+                    // PDRs for this QFI
+                    const flowPdrs = pdrsForQfi(flow.qfi);
+                    if (flowPdrs.length) {
+                      for (const pdr of flowPdrs) {
+                        html += '<div class="qos-rule">';
+                        html += `<span class="rl">PDR-${pdr.pdr_id}</span> `;
+                        html += `<span class="rv">${esc(pdr.source)}</span> `;
+                        html += `prec:${pdr.precedence} `;
+                        html += `&rarr; FAR-${pdr.far_id}`;
+                        if (pdr.qer_id) html += ` QER-${pdr.qer_id}`;
+                        if (pdr.urr_id) html += ` URR-${pdr.urr_id}`;
+                        if (pdr.sdf_filters?.length) {
+                          for (const sdf of pdr.sdf_filters) html += `<div class="qos-sdf">${esc(sdf)}</div>`;
+                        }
+                        html += '</div>';
+                      }
+                    }
+
+                    // QER for this QFI
+                    const qer = qerForQfi(flow.qfi);
+                    if (qer) {
+                      html += '<div class="qos-rule">';
+                      html += `<span class="rl">QER-${qer.qer_id}</span> `;
+                      html += `Gate UL:${esc(qer.gate_ul)} DL:${esc(qer.gate_dl)} `;
+                      html += `MBR:${_fmtBr(qer.mbr_ul_kbps)}/${_fmtBr(qer.mbr_dl_kbps)} kbps`;
+                      if (qer.gbr_ul_kbps || qer.gbr_dl_kbps)
+                        html += ` GBR:${_fmtBr(qer.gbr_ul_kbps)}/${_fmtBr(qer.gbr_dl_kbps)} kbps`;
+                      html += '</div>';
+                    }
+
+                    // URR for this bearer
+                    const flowIdx = flows.indexOf(flow);
+                    const urr = (p.upf_rules?.urrs || [])[flowIdx];
+                    if (urr) {
+                      html += '<div class="qos-rule">';
+                      html += `<span class="rl">URR-${urr.urr_id}</span> `;
+                      html += `${esc(urr.measurement)} `;
+                      html += `Vol UL:${fmtBytes(urr.vol_ul)} DL:${fmtBytes(urr.vol_dl)} `;
+                      html += `Pkts UL:${urr.pkt_ul} DL:${urr.pkt_dl}`;
+                      html += '</div>';
+                    }
+
+                    html += '</div>'; // qos-section
+                  }
+
+                  // Shared FARs
+                  if (p.upf_rules?.fars?.length) {
+                    html += '<div class="qos-section-title" style="margin-top:6px;">FARs <span class="badge bg-primary">' + p.upf_rules.fars.length + '</span></div>';
+                    html += '<div class="qos-section">';
+                    for (const far of p.upf_rules.fars) {
+                      html += '<div class="qos-rule">';
+                      html += `<span class="rl">FAR-${far.far_id}</span> `;
+                      html += `${esc(far.action)} &rarr; ${esc(far.dst_iface)}`;
+                      if (far.tunnel) {
+                        html += `<div class="qos-tunnel">GTP-U Tunnel: TEID=${esc(far.tunnel.teid)} Peer=${esc(far.tunnel.peer_addr)}:${far.tunnel.peer_port}</div>`;
+                      }
+                      html += '</div>';
+                    }
+                    html += '</div>';
+                  }
+
+                  // BAR
+                  if (p.upf_rules?.bar) {
+                    const bar = p.upf_rules.bar;
+                    html += '<div class="qos-section-title">BAR (Buffering Action)</div>';
+                    html += '<div class="qos-section">';
+                    html += `<div class="qos-rule"><span class="rl">BAR-${bar.bar_id}</span> Notify CP:${bar.notify_cp} Buf Pkts:${bar.buf_pkt_count}</div>`;
+                    html += '</div>';
+                  }
+
+                  html += '</div></div>'; // qos-tree + toggle wrapper
+                }
+
+                html += '</div>'; // PDU session border-left div
+              }
+
+              html += '</div>'; // DNN ctx-card
+            }
+
+            html += '</div>'; // Slice ctx-card
+          }
+
+          html += '</div>';
+        }
+        document.getElementById('ueContextBody').innerHTML = html;
+
+        // Attach deregister button handlers
+        document.querySelectorAll('.btn-dereg').forEach(btn => {
+          btn.addEventListener('click', async (ev) => {
+            ev.stopPropagation();
+            const imsi = btn.dataset.imsi;
+            const amfid = btn.dataset.amfid;
+            const label = imsi || ('AMF-ID ' + amfid);
+            if (!confirm(`Deregister UE ${label}?\n\nThis will release all PDU sessions and remove the UE from the network.`)) return;
+            btn.disabled = true;
+            btn.textContent = 'Deregistering...';
+            try {
+              const body = {amf_ue_ngap_id: parseInt(amfid)};
+              if (imsi) body.imsi = imsi;
+              const resp = await fetch('/api/utils/deregister', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body),
+              });
+              const result = await resp.json();
+              if (resp.ok) {
+                btn.textContent = 'Done';
+                btn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+                setTimeout(loadUes, 500);
+              } else {
+                alert('Deregistration failed: ' + (result.error || 'Unknown error'));
+                btn.disabled = false;
+                btn.textContent = 'Deregister';
+              }
+            } catch(err) {
+              alert('Deregistration error: ' + err.message);
+              btn.disabled = false;
+              btn.textContent = 'Deregister';
+            }
+          });
+        });
+
+      } catch(e) { document.getElementById('ueContextBody').innerHTML = '<div class="text-danger">Failed to load</div>'; }
+    };
+
+    document.getElementById('btnUeFilter').addEventListener('click', () => {
+      ueImsiFilter = document.getElementById('utilsUeImsi').value.trim();
+      loadUes();
+    });
+    document.getElementById('btnUeFilterClear').addEventListener('click', () => {
+      ueImsiFilter = '';
+      document.getElementById('utilsUeImsi').value = '';
+      loadUes();
+    });
+
+    /* ── Refresh All ── */
+    const refreshAll = async () => {
+      await Promise.all([loadAmfCtx(), loadGnbs(), loadUes()]);
+      document.getElementById('utilsLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+
+    document.getElementById('btnUtilsRefresh').addEventListener('click', refreshAll);
+
+    /* ── Auto-refresh ── */
+    let autoTimer = null;
+    const autoCheck = document.getElementById('utilsAutoRefresh');
+    autoCheck.addEventListener('change', () => {
+      if (autoCheck.checked) {
+        autoTimer = setInterval(refreshAll, 5000);
+      } else {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+      }
+    });
+
+    /* ── Tab visibility — only refresh when active ── */
+    const tabPane = document.getElementById('utils');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        const isActive = tabPane.classList.contains('active');
+        if (isActive) { refreshAll(); }
+      });
+      observer.observe(tabPane, {attributes: true, attributeFilter: ['class']});
+    }
+
+    /* ── Initial load ── */
+    refreshAll();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

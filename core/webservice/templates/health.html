@@ -1,0 +1,143 @@
+<!-- templates/health.html — System Health Dashboard -->
+
+<style>
+.health-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.health-card .h-val { font-size: 1.6rem; font-weight: 700; }
+.health-card .h-lbl { font-size: 0.78rem; opacity: 0.9; }
+.hc-healthy { background: #28a745; }
+.hc-degraded { background: #fd7e14; }
+.hc-unhealthy { background: #dc3545; }
+.hc-info { background: #0d6efd; }
+.hc-muted { background: #6c757d; }
+.nf-row { border-left: 4px solid #ccc; padding: 10px 14px; margin-bottom: 8px; border-radius: 4px; background: #f8f9fa; }
+.nf-row.nf-healthy { border-left-color: #28a745; }
+.nf-row.nf-degraded { border-left-color: #fd7e14; }
+.nf-row.nf-unhealthy { border-left-color: #dc3545; }
+.nf-row.nf-not_started { border-left-color: #6c757d; }
+.nf-name { font-weight: 600; font-size: 0.95rem; text-transform: uppercase; }
+.nf-status { font-size: 0.8rem; float: right; }
+.nf-detail { font-size: 0.82rem; color: #555; margin-top: 4px; }
+.nf-detail span { margin-right: 14px; }
+</style>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3" id="healthSummary">
+  <div class="col"><div class="health-card" id="hcOverall"><div class="h-val" id="hcOverallVal">--</div><div class="h-lbl">Overall</div></div></div>
+  <div class="col"><div class="health-card hc-info"><div class="h-val" id="hcUptime">--</div><div class="h-lbl">Uptime</div></div></div>
+  <div class="col"><div class="health-card hc-info"><div class="h-val" id="hcGnbs">--</div><div class="h-lbl">Connected gNBs</div></div></div>
+  <div class="col"><div class="health-card hc-info"><div class="h-val" id="hcUes">--</div><div class="h-lbl">Registered UEs</div></div></div>
+  <div class="col"><div class="health-card hc-info"><div class="h-val" id="hcSessions">--</div><div class="h-lbl">PDU Sessions</div></div></div>
+  <div class="col"><div class="health-card hc-muted"><div class="h-val" id="hcMemory">--</div><div class="h-lbl">Memory (MB)</div></div></div>
+</div>
+
+<!-- NF Status -->
+<h6 class="fw-bold mb-2">Network Functions</h6>
+<div id="healthNFs"></div>
+
+<!-- Resource Details -->
+<div class="row g-3 mt-2">
+  <div class="col-md-6">
+    <h6 class="fw-bold mb-2">Database</h6>
+    <div id="healthDB" class="nf-row nf-healthy">
+      <div class="nf-detail">Loading...</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <h6 class="fw-bold mb-2">Resources</h6>
+    <div id="healthRes" class="nf-row" style="border-left-color:#0d6efd">
+      <div class="nf-detail">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="text-end mt-2">
+  <small class="text-muted" id="healthTs">Last updated: --</small>
+  <button class="btn btn-sm btn-outline-secondary ms-2" onclick="loadHealth()">Refresh</button>
+</div>
+
+<script>
+function loadHealth() {
+  fetch('/api/health').then(r => r.json()).then(h => {
+    // Overall
+    const oc = document.getElementById('hcOverall');
+    oc.className = 'health-card hc-' + h.status;
+    document.getElementById('hcOverallVal').textContent = h.status.charAt(0).toUpperCase() + h.status.slice(1);
+
+    // Uptime
+    const up = h.uptime_sec || 0;
+    const hrs = Math.floor(up / 3600), mins = Math.floor((up % 3600) / 60);
+    document.getElementById('hcUptime').textContent = hrs + 'h ' + mins + 'm';
+
+    // Summary from NFs
+    const amf = h.nfs.amf || {};
+    const smf = h.nfs.smf || {};
+    document.getElementById('hcGnbs').textContent = amf.connected_gnbs ?? '--';
+    document.getElementById('hcUes').textContent = amf.registered_ues ?? '--';
+    document.getElementById('hcSessions').textContent = smf.active_sessions ?? '--';
+
+    // Memory
+    const res = h.resources || {};
+    document.getElementById('hcMemory').textContent = res.memory_mb ?? '--';
+
+    // NF cards
+    const nfDiv = document.getElementById('healthNFs');
+    nfDiv.innerHTML = '';
+    const nfNames = {amf: 'AMF', smf: 'SMF', upf: 'UPF', ims: 'IMS', db: 'Database'};
+    for (const [key, label] of Object.entries(nfNames)) {
+      const nf = h.nfs[key] || {};
+      const st = nf.status || 'unknown';
+      const cls = st === 'healthy' ? 'nf-healthy' : st === 'degraded' ? 'nf-degraded' : st === 'not_started' ? 'nf-not_started' : 'nf-unhealthy';
+      const badge = st === 'healthy' ? '<span class="badge bg-success">Healthy</span>'
+                  : st === 'degraded' ? '<span class="badge bg-warning text-dark">Degraded</span>'
+                  : st === 'not_started' ? '<span class="badge bg-secondary">Not Started</span>'
+                  : '<span class="badge bg-danger">Unhealthy</span>';
+
+      let details = '';
+      if (key === 'amf') {
+        details = `<span>gNBs: ${nf.connected_gnbs ?? '-'}</span><span>Active UEs: ${nf.active_ues ?? '-'}</span><span>Registered: ${nf.registered_ues ?? '-'}</span>`;
+      } else if (key === 'smf') {
+        details = `<span>Sessions: ${nf.active_sessions ?? '-'}</span>`;
+        if (nf.ip_pools) {
+          for (const [dnn, cnt] of Object.entries(nf.ip_pools)) {
+            details += `<span>${dnn}: ${cnt} IPs</span>`;
+          }
+        }
+      } else if (key === 'upf') {
+        details = `<span>Sessions: ${nf.sessions ?? '-'}</span><span>I/O Thread: ${nf.io_thread_alive ? 'Running' : 'Stopped'}</span>`;
+      } else if (key === 'ims') {
+        details = `<span>Active Registrations: ${nf.active_registrations ?? '-'}</span>`;
+      } else if (key === 'db') {
+        details = `<span>Tables: ${nf.tables ?? '-'}</span><span>Size: ${nf.size_kb ?? '-'} KB</span><span>Integrity: ${nf.integrity ?? '-'}</span>`;
+      }
+      if (nf.error) details = `<span class="text-danger">${nf.error}</span>`;
+
+      nfDiv.innerHTML += `<div class="nf-row ${cls}"><span class="nf-name">${label}</span><span class="nf-status">${badge}</span><div class="nf-detail">${details}</div></div>`;
+    }
+
+    // DB detail
+    const db = h.nfs.db || {};
+    document.getElementById('healthDB').innerHTML = `<div class="nf-detail"><span>Tables: ${db.tables ?? '-'}</span><span>Size: ${db.size_kb ?? '-'} KB</span><span>Integrity: ${db.integrity ?? '-'}</span></div>`;
+    document.getElementById('healthDB').className = 'nf-row ' + (db.status === 'healthy' ? 'nf-healthy' : 'nf-unhealthy');
+
+    // Resources
+    document.getElementById('healthRes').innerHTML = `<div class="nf-detail"><span>Memory: ${res.memory_mb ?? '-'} MB</span><span>User CPU: ${res.user_time_sec ?? '-'}s</span><span>Sys CPU: ${res.sys_time_sec ?? '-'}s</span></div>`;
+
+    // Timestamp
+    const ts = new Date(h.timestamp * 1000);
+    document.getElementById('healthTs').textContent = 'Last updated: ' + ts.toLocaleTimeString();
+  }).catch(e => {
+    document.getElementById('hcOverall').className = 'health-card hc-unhealthy';
+    document.getElementById('hcOverallVal').textContent = 'Unreachable';
+  });
+}
+
+// Auto-refresh every 15 seconds when tab is active
+let healthInterval = null;
+document.querySelector('a[href="#health-tab"]')?.addEventListener('shown.bs.tab', () => {
+  loadHealth();
+  healthInterval = setInterval(loadHealth, 15000);
+});
+document.querySelector('a[href="#health-tab"]')?.addEventListener('hidden.bs.tab', () => {
+  if (healthInterval) { clearInterval(healthInterval); healthInterval = null; }
+});
+</script>

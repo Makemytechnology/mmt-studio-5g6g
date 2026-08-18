@@ -1,0 +1,409 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# 5GMM messages — TS 24.501 clause 8.2.
+# Each message mirrors the IE table in the spec. Where a message has many
+# rarely-populated optional IEs, this file captures the commonly used subset
+# and trims the long tail; add rows as needed.
+
+messages:
+
+  # -----------------------------------------------------------------
+  # Registration procedure (§8.2.6 – 8.2.10)
+  # -----------------------------------------------------------------
+
+  - name: RegistrationRequest
+    description: "Registration request — TS 24.501 Table 8.2.6.1.1"
+    epd: 0x7E
+    message_type: 0x41
+    direction: ue_to_network
+    ies:
+      - {name: RegistrationType5GS, iei: null, presence: M, format: V,     length: "1/2",   type_ref: RegistrationType5GS}
+      - {name: NgKSI,              iei: null, presence: M, format: V,     length: "1/2",   type_ref: NASKeySetIdentifier}
+      - {name: MobileIdentity5GS,   iei: null, presence: M, format: LV-E,  length: "6-n",   type_ref: MobileIdentity5GS}
+      - {name: NonCurrentNativeNASKSI, iei: "C-", presence: O, format: TV,   length: "1",    type_ref: NASKeySetIdentifier}
+      - {name: MMCapability5G,      iei: "10", presence: O, format: TLV,   length: "4-15",  type_ref: MMCapability5G}
+      - {name: UESecurityCapability, iei: "2E", presence: O, format: TLV,   length: "4-10",  type_ref: UESecurityCapability}
+      - {name: RequestedNSSAI,      iei: "2F", presence: O, format: TLV,   length: "4-74",  type_ref: NSSAI}
+      - {name: LastVisitedRegisteredTAI, iei: "52", presence: O, format: TV, length: "7",    type_ref: TrackingAreaIdentity5GS}
+      - {name: S1UENetworkCapability, iei: "17", presence: O, format: TLV, length: "4-15",  type_ref: S1UENetworkCapability}
+      - {name: UplinkDataStatus,    iei: "40", presence: O, format: TLV,   length: "4-34",  type_ref: UplinkDataStatus}
+      - {name: PDUSessionStatus,    iei: "50", presence: O, format: TLV,   length: "4-34",  type_ref: PDUSessionStatus}
+      - {name: MICOIndication,      iei: "B-", presence: O, format: TV,    length: "1",     type_ref: MICOIndication}
+      - {name: UEStatus,            iei: "2B", presence: O, format: TLV,   length: "3",     type_ref: UEStatus}
+      - {name: AdditionalGUTI,      iei: "77", presence: O, format: TLV-E, length: "14",    type_ref: MobileIdentity5GS}
+      - {name: AllowedPDUSessionStatus, iei: "25", presence: O, format: TLV, length: "4-34", type_ref: AllowedPDUSessionStatus}
+      - {name: UEUsageSetting,      iei: "18", presence: O, format: TLV,   length: "3",     type_ref: UEUsageSetting}
+      - {name: RequestedDRXParameters, iei: "51", presence: O, format: TLV, length: "3",    type_ref: DRXParameters5GS}
+      - {name: EPSNASMessageContainer, iei: "70", presence: O, format: TLV-E, length: "4-n", type_ref: EPSNASMessageContainer}
+      - {name: LADNIndication,      iei: "74", presence: O, format: TLV-E, length: "3-811", type_ref: LADNIndication}
+      - {name: PayloadContainerType, iei: "8-", presence: O, format: TV,   length: "1",     type_ref: PayloadContainerType}
+      - {name: PayloadContainer,    iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: PayloadContainer}
+      - {name: NetworkSlicingIndication, iei: "9-", presence: O, format: TV, length: "1",  type_ref: NetworkSlicingIndication}
+      - {name: UEParametersUpdateStatus, iei: "53", presence: O, format: TLV, length: "3", type_ref: UEParametersUpdate}
+      - {name: UERadioCapabilityID, iei: "67", presence: O, format: TLV,   length: "3-n",   type_ref: UERadioCapabilityID}
+      - {name: RequestedMappedNSSAI, iei: "35", presence: O, format: TLV,  length: "3-42",  type_ref: NSSAI}
+      - {name: AdditionalInformationRequested, iei: "48", presence: O, format: TLV, length: "3", type_ref: AdditionalInformationRequested}
+      - {name: NASMessageContainer, iei: "71", presence: O, format: TLV-E, length: "4-n",   type_ref: NASMessageContainer}
+      - {name: EPSBearerContextStatus, iei: "60", presence: O, format: TLV, length: "4",    type_ref: EPSBearerContextStatus}
+
+  - name: RegistrationAccept
+    description: "Registration accept — TS 24.501 Table 8.2.7.1.1"
+    epd: 0x7E
+    message_type: 0x42
+    direction: network_to_ue
+    ies:
+      - {name: RegistrationResult, iei: null, presence: M, format: LV, length: "2", type_ref: FiveGMMCause}
+      - {name: GUTI5G,             iei: "77", presence: O, format: TLV-E, length: "14",  type_ref: MobileIdentity5GS}
+      - {name: EquivalentPLMNs,    iei: "4A", presence: O, format: TLV,   length: "5-47", type_ref: EquivalentPLMNs}
+      - {name: TAIList,            iei: "54", presence: O, format: TLV,   length: "9-114", type_ref: ServiceAreaList}
+      - {name: AllowedNSSAI,       iei: "15", presence: O, format: TLV,   length: "4-74", type_ref: NSSAI}
+      - {name: RejectedNSSAI,      iei: "11", presence: O, format: TLV,   length: "4-42", type_ref: RejectedNSSAI}
+      - {name: ConfiguredNSSAI,    iei: "31", presence: O, format: TLV,   length: "4-146", type_ref: NSSAI}
+      - {name: NetworkFeatureSupport, iei: "21", presence: O, format: TLV, length: "3-5", type_ref: FiveGSNetworkFeatureSupport}
+      - {name: PDUSessionStatus,   iei: "50", presence: O, format: TLV,   length: "4-34", type_ref: PDUSessionStatus}
+      - {name: PDUSessionReactivationResult, iei: "26", presence: O, format: TLV, length: "4-34", type_ref: PDUSessionReactivationResult}
+      - {name: PDUSessionReactivationResultErrorCause, iei: "72", presence: O, format: TLV-E, length: "5-515", type_ref: PDUSessionReactivationResultErrorCause}
+      - {name: LADNInformation,    iei: "79", presence: O, format: TLV-E, length: "12-1707", type_ref: LADNInformation}
+      - {name: MICOIndication,     iei: "B-", presence: O, format: TV,    length: "1", type_ref: MICOIndication}
+      - {name: NetworkSlicingIndication, iei: "9-", presence: O, format: TV, length: "1", type_ref: NetworkSlicingIndication}
+      - {name: ServiceAreaList,    iei: "27", presence: O, format: TLV,   length: "6-114", type_ref: ServiceAreaList}
+      - {name: T3512Value,         iei: "5E", presence: O, format: TLV,   length: "3", type_ref: GPRSTimer3}
+      - {name: Non3GPPDeregistrationTimerValue, iei: "5D", presence: O, format: TLV, length: "3", type_ref: GPRSTimer2}
+      - {name: T3502Value,         iei: "16", presence: O, format: TLV,   length: "3", type_ref: GPRSTimer2}
+      - {name: EmergencyNumberList, iei: "34", presence: O, format: TLV,  length: "5-50", type_ref: EmergencyNumberList}
+      - {name: ExtendedEmergencyNumberList, iei: "7A", presence: O, format: TLV-E, length: "7-65538", type_ref: ExtendedEmergencyNumberList}
+      - {name: SORTransparentContainer, iei: "73", presence: O, format: TLV-E, length: "20-n", type_ref: SORTransparentContainer}
+      - {name: EAPMessage,         iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: NSSAIInclusionMode, iei: "A-", presence: O, format: TV,    length: "1", type_ref: AccessType}
+      - {name: OperatorDefinedAccessCategoryDefinitions, iei: "76", presence: O, format: TLV-E, length: "3-8000", type_ref: OperatorDefinedAccessCategoryDefinitions}
+      - {name: NegotiatedDRXParameters, iei: "51", presence: O, format: TLV, length: "3", type_ref: DRXParameters5GS}
+      - {name: Non3GPPNWProvidedPolicies, iei: "D-", presence: O, format: TV, length: "1", type_ref: Non3GPPNWProvidedPolicies}
+      - {name: EPSBearerContextStatus, iei: "60", presence: O, format: TLV, length: "4", type_ref: EPSBearerContextStatus}
+      - {name: NegotiatedExtendedDRXParameters, iei: "6E", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: T3447Value,         iei: "6C", presence: O, format: TLV,   length: "3", type_ref: GPRSTimer3}
+      - {name: T3448Value,         iei: "6B", presence: O, format: TLV,   length: "3", type_ref: GPRSTimer3}
+      - {name: T3324Value,         iei: "6A", presence: O, format: TLV,   length: "3", type_ref: GPRSTimer3}
+      - {name: UERadioCapabilityID, iei: "67", presence: O, format: TLV,  length: "3-n", type_ref: UERadioCapabilityID}
+      - {name: UERadioCapabilityIDDeletionIndication, iei: "E-", presence: O, format: TV, length: "1", type_ref: UERadioCapabilityIDDeletionIndication}
+      - {name: PendingNSSAI,       iei: "39", presence: O, format: TLV,   length: "4-146", type_ref: NSSAI}
+      - {name: CipheringKeyData,   iei: "74", presence: O, format: TLV-E, length: "34-n", type_ref: CAGInformationList}
+      - {name: CAGInformationList, iei: "75", presence: O, format: TLV-E, length: "3-n", type_ref: CAGInformationList}
+      - {name: TruncatedGUTI5GSTMSIConfiguration, iei: "1B", presence: O, format: TLV, length: "3", type_ref: TruncatedGUTI5G}
+      - {name: WUSAssistanceInformation, iei: "1C", presence: O, format: TLV, length: "3-n", type_ref: WUSAssistanceInformation}
+
+  - name: RegistrationComplete
+    description: "Registration complete — TS 24.501 Table 8.2.8.1.1"
+    epd: 0x7E
+    message_type: 0x43
+    direction: ue_to_network
+    ies:
+      - {name: SORTransparentContainer, iei: "73", presence: O, format: TLV-E, length: "20-n", type_ref: SORTransparentContainer}
+
+  - name: RegistrationReject
+    description: "Registration reject — TS 24.501 Table 8.2.9.1.1"
+    epd: 0x7E
+    message_type: 0x44
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GMM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGMMCause}
+      - {name: T3346Value, iei: "5F", presence: O, format: TLV, length: "3", type_ref: GPRSTimer2}
+      - {name: T3502Value, iei: "16", presence: O, format: TLV, length: "3", type_ref: GPRSTimer2}
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: RejectedNSSAI, iei: "69", presence: O, format: TLV, length: "4-42", type_ref: RejectedNSSAI}
+      - {name: CAGInformationList, iei: "75", presence: O, format: TLV-E, length: "3-n", type_ref: CAGInformationList}
+
+  # -----------------------------------------------------------------
+  # Deregistration procedure (§8.2.11 – 8.2.14)
+  # -----------------------------------------------------------------
+
+  - name: DeregistrationRequestUEOriginating
+    description: "Deregistration request (UE originating) — TS 24.501 Table 8.2.12.1.1"
+    epd: 0x7E
+    message_type: 0x45
+    direction: ue_to_network
+    ies:
+      - {name: NgKSI,             iei: null, presence: M, format: V,    length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: DeregistrationType, iei: null, presence: M, format: V,    length: "1/2", type_ref: RegistrationType5GS}
+      - {name: MobileIdentity5GS,  iei: null, presence: M, format: LV-E, length: "6-n", type_ref: MobileIdentity5GS}
+
+  - name: DeregistrationAcceptUEOriginating
+    description: "Deregistration accept (UE originating) — TS 24.501 Table 8.2.13.1.1"
+    epd: 0x7E
+    message_type: 0x46
+    direction: network_to_ue
+    ies: []
+
+  - name: DeregistrationRequestUETerminated
+    description: "Deregistration request (UE terminated) — TS 24.501 Table 8.2.14.1.1"
+    epd: 0x7E
+    message_type: 0x47
+    direction: network_to_ue
+    ies:
+      - {name: DeregistrationType, iei: null, presence: M, format: V,   length: "1",   type_ref: FiveGMMCause}
+      - {name: Cause5GMM,          iei: "58", presence: O, format: TV,  length: "2",   type_ref: FiveGMMCause}
+      - {name: T3346Value,         iei: "5F", presence: O, format: TLV, length: "3",   type_ref: GPRSTimer2}
+      - {name: RejectedNSSAI,      iei: "6D", presence: O, format: TLV, length: "4-42", type_ref: RejectedNSSAI}
+      - {name: CAGInformationList, iei: "75", presence: O, format: TLV-E, length: "3-n", type_ref: CAGInformationList}
+
+  - name: DeregistrationAcceptUETerminated
+    description: "Deregistration accept (UE terminated) — TS 24.501 Table 8.2.15.1.1"
+    epd: 0x7E
+    message_type: 0x48
+    direction: ue_to_network
+    ies: []
+
+  # -----------------------------------------------------------------
+  # Service procedure (§8.2.16 – 8.2.18)
+  # -----------------------------------------------------------------
+
+  - name: ServiceRequest
+    description: "Service request — TS 24.501 Table 8.2.16.1.1"
+    epd: 0x7E
+    message_type: 0x4C
+    direction: ue_to_network
+    ies:
+      - {name: NgKSI,       iei: null, presence: M, format: V,     length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: ServiceType, iei: null, presence: M, format: V,     length: "1/2", type_ref: ServiceType}
+      - {name: STMSI5G,     iei: null, presence: M, format: LV-E,  length: "3-n", type_ref: MobileIdentity5GS}
+      - {name: UplinkDataStatus,  iei: "40", presence: O, format: TLV,   length: "4-34", type_ref: UplinkDataStatus}
+      - {name: PDUSessionStatus,  iei: "50", presence: O, format: TLV,   length: "4-34", type_ref: PDUSessionStatus}
+      - {name: AllowedPDUSessionStatus, iei: "25", presence: O, format: TLV, length: "4-34", type_ref: AllowedPDUSessionStatus}
+      - {name: NASMessageContainer, iei: "71", presence: O, format: TLV-E, length: "4-n", type_ref: NASMessageContainer}
+
+  - name: ServiceAccept
+    description: "Service accept — TS 24.501 Table 8.2.17.1.1"
+    epd: 0x7E
+    message_type: 0x4E
+    direction: network_to_ue
+    ies:
+      - {name: PDUSessionStatus, iei: "50", presence: O, format: TLV, length: "4-34", type_ref: PDUSessionStatus}
+      - {name: PDUSessionReactivationResult, iei: "26", presence: O, format: TLV, length: "4-34", type_ref: PDUSessionReactivationResult}
+      - {name: PDUSessionReactivationResultErrorCause, iei: "72", presence: O, format: TLV-E, length: "5-515", type_ref: PDUSessionReactivationResultErrorCause}
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: T3448Value, iei: "6B", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+
+  - name: ServiceReject
+    description: "Service reject — TS 24.501 Table 8.2.18.1.1"
+    epd: 0x7E
+    message_type: 0x4D
+    direction: network_to_ue
+    ies:
+      - {name: Cause5GMM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGMMCause}
+      - {name: PDUSessionStatus, iei: "50", presence: O, format: TLV, length: "4-34", type_ref: PDUSessionStatus}
+      - {name: T3346Value, iei: "5F", presence: O, format: TLV, length: "3", type_ref: GPRSTimer2}
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: T3448Value, iei: "6B", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: CAGInformationList, iei: "75", presence: O, format: TLV-E, length: "3-n", type_ref: CAGInformationList}
+
+  # -----------------------------------------------------------------
+  # Configuration update (§8.2.19 – 8.2.20)
+  # -----------------------------------------------------------------
+
+  - name: ConfigurationUpdateCommand
+    description: "Configuration update command — TS 24.501 Table 8.2.19.1.1"
+    epd: 0x7E
+    message_type: 0x54
+    direction: network_to_ue
+    ies:
+      - {name: ConfigurationUpdateIndication, iei: "D-", presence: O, format: TV, length: "1", type_ref: ConfigurationUpdateIndication}
+      - {name: GUTI5G, iei: "77", presence: O, format: TLV-E, length: "14", type_ref: MobileIdentity5GS}
+      - {name: TAIList, iei: "54", presence: O, format: TLV, length: "9-114", type_ref: ServiceAreaList}
+      - {name: AllowedNSSAI, iei: "15", presence: O, format: TLV, length: "4-74", type_ref: NSSAI}
+      - {name: ServiceAreaList, iei: "27", presence: O, format: TLV, length: "6-114", type_ref: ServiceAreaList}
+      - {name: FullNameForNetwork, iei: "43", presence: O, format: TLV, length: "3-n", type_ref: NetworkName}
+      - {name: ShortNameForNetwork, iei: "45", presence: O, format: TLV, length: "3-n", type_ref: NetworkName}
+      - {name: LocalTimeZone, iei: "46", presence: O, format: TV, length: "2", type_ref: TimeZone}
+      - {name: UniversalTimeAndLocalTimeZone, iei: "47", presence: O, format: TV, length: "8", type_ref: TimeZoneAndTime}
+      - {name: NetworkDaylightSavingTime, iei: "49", presence: O, format: TLV, length: "3", type_ref: DaylightSavingTime}
+      - {name: LADNInformation, iei: "79", presence: O, format: TLV-E, length: "3-1707", type_ref: LADNInformation}
+      - {name: MICOIndication, iei: "B-", presence: O, format: TV, length: "1", type_ref: MICOIndication}
+      - {name: NetworkSlicingIndication, iei: "9-", presence: O, format: TV, length: "1", type_ref: NetworkSlicingIndication}
+      - {name: ConfiguredNSSAI, iei: "31", presence: O, format: TLV, length: "4-146", type_ref: NSSAI}
+      - {name: RejectedNSSAI, iei: "11", presence: O, format: TLV, length: "4-42", type_ref: RejectedNSSAI}
+      - {name: OperatorDefinedAccessCategoryDefinitions, iei: "76", presence: O, format: TLV-E, length: "3-8000", type_ref: OperatorDefinedAccessCategoryDefinitions}
+      - {name: SMSIndication, iei: "F-", presence: O, format: TV, length: "1", type_ref: Non3GPPNWProvidedPolicies}
+      - {name: T3447Value, iei: "6C", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: CAGInformationList, iei: "75", presence: O, format: TLV-E, length: "3-n", type_ref: CAGInformationList}
+      - {name: UERadioCapabilityID, iei: "67", presence: O, format: TLV, length: "3-n", type_ref: UERadioCapabilityID}
+      - {name: UERadioCapabilityIDDeletionIndication, iei: "E-", presence: O, format: TV, length: "1", type_ref: UERadioCapabilityIDDeletionIndication}
+      - {name: FivegsTrackingAreaIdentity, iei: "52", presence: O, format: TV, length: "7", type_ref: TrackingAreaIdentity5GS}
+
+  - name: ConfigurationUpdateComplete
+    description: "Configuration update complete — TS 24.501 Table 8.2.20.1.1"
+    epd: 0x7E
+    message_type: 0x55
+    direction: ue_to_network
+    ies: []
+
+  # -----------------------------------------------------------------
+  # Authentication procedure (§8.2.1 – 8.2.5)
+  # -----------------------------------------------------------------
+
+  - name: AuthenticationRequest
+    description: "Authentication request — TS 24.501 Table 8.2.1.1.1"
+    epd: 0x7E
+    message_type: 0x56
+    direction: network_to_ue
+    ies:
+      - {name: NgKSI,           iei: null, presence: M, format: V,   length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: Spare,           iei: null, presence: M, format: V,   length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: ABBA,            iei: null, presence: M, format: LV,  length: "3-n", type_ref: ABBA}
+      - {name: AuthenticationParameterRAND, iei: "21", presence: O, format: TV, length: "17", type_ref: AuthenticationParameterRAND}
+      - {name: AuthenticationParameterAUTN, iei: "20", presence: O, format: TLV, length: "18", type_ref: AuthenticationParameterAUTN}
+      - {name: EAPMessage,      iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+
+  - name: AuthenticationResponse
+    description: "Authentication response — TS 24.501 Table 8.2.2.1.1"
+    epd: 0x7E
+    message_type: 0x57
+    direction: ue_to_network
+    ies:
+      - {name: AuthenticationResponseParameter, iei: "2D", presence: O, format: TLV, length: "6-18", type_ref: AuthenticationResponseParameter}
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+
+  - name: AuthenticationResult
+    description: "Authentication result — TS 24.501 Table 8.2.3.1.1"
+    epd: 0x7E
+    message_type: 0x5A
+    direction: network_to_ue
+    ies:
+      - {name: NgKSI,      iei: null, presence: M, format: V,     length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: Spare,      iei: null, presence: M, format: V,     length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: EAPMessage, iei: null, presence: M, format: LV-E,  length: "6-1502", type_ref: EAPMessage}
+      - {name: ABBA,       iei: "38", presence: O, format: TLV,   length: "4-n", type_ref: ABBA}
+
+  - name: AuthenticationFailure
+    description: "Authentication failure — TS 24.501 Table 8.2.4.1.1"
+    epd: 0x7E
+    message_type: 0x59
+    direction: ue_to_network
+    ies:
+      - {name: Cause5GMM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGMMCause}
+      - {name: AuthenticationFailureParameter, iei: "30", presence: O, format: TLV, length: "16", type_ref: AuthenticationFailureParameter}
+
+  - name: AuthenticationReject
+    description: "Authentication reject — TS 24.501 Table 8.2.5.1.1"
+    epd: 0x7E
+    message_type: 0x58
+    direction: network_to_ue
+    ies:
+      - {name: EAPMessage, iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+
+  # -----------------------------------------------------------------
+  # Identification procedure (§8.2.21 – 8.2.22)
+  # -----------------------------------------------------------------
+
+  - name: IdentityRequest
+    description: "Identity request — TS 24.501 Table 8.2.21.1.1"
+    epd: 0x7E
+    message_type: 0x5B
+    direction: network_to_ue
+    ies:
+      - {name: IdentityType, iei: null, presence: M, format: V, length: "1/2", type_ref: ServiceType}
+      - {name: Spare,        iei: null, presence: M, format: V, length: "1/2", type_ref: NASKeySetIdentifier}
+
+  - name: IdentityResponse
+    description: "Identity response — TS 24.501 Table 8.2.22.1.1"
+    epd: 0x7E
+    message_type: 0x5C
+    direction: ue_to_network
+    ies:
+      - {name: MobileIdentity5GS, iei: null, presence: M, format: LV-E, length: "3-n", type_ref: MobileIdentity5GS}
+
+  # -----------------------------------------------------------------
+  # Security mode control (§8.2.25 – 8.2.27)
+  # -----------------------------------------------------------------
+
+  - name: SecurityModeCommand
+    description: "Security mode command — TS 24.501 Table 8.2.25.1.1"
+    epd: 0x7E
+    message_type: 0x5D
+    direction: network_to_ue
+    ies:
+      - {name: SelectedNASSecurityAlgorithms, iei: null, presence: M, format: V, length: "1", type_ref: NASSecurityAlgorithms}
+      - {name: NgKSI,                         iei: null, presence: M, format: V, length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: Spare,                         iei: null, presence: M, format: V, length: "1/2", type_ref: NASKeySetIdentifier}
+      - {name: ReplayedUESecurityCapabilities, iei: null, presence: M, format: LV, length: "3-9", type_ref: ReplayedUESecurityCapabilities}
+      - {name: IMEISVRequest,                 iei: "E-", presence: O, format: TV, length: "1", type_ref: IMEISVRequest}
+      - {name: SelectedEPSNASSecurityAlgorithms, iei: "57", presence: O, format: TV, length: "2", type_ref: NASSecurityAlgorithms}
+      - {name: Additional5GSecurityInformation, iei: "36", presence: O, format: TLV, length: "3", type_ref: Additional5GSecurityInformation}
+      - {name: EAPMessage,                    iei: "78", presence: O, format: TLV-E, length: "7-1503", type_ref: EAPMessage}
+      - {name: ABBA,                          iei: "38", presence: O, format: TLV, length: "4-n", type_ref: ABBA}
+      - {name: ReplayedS1UENetworkCapability, iei: "19", presence: O, format: TLV, length: "4-15", type_ref: ReplayedS1UENetworkCapability}
+
+  - name: SecurityModeComplete
+    description: "Security mode complete — TS 24.501 Table 8.2.26.1.1"
+    epd: 0x7E
+    message_type: 0x5E
+    direction: ue_to_network
+    ies:
+      - {name: IMEISV,            iei: "77", presence: O, format: TLV-E, length: "12", type_ref: MobileIdentity5GS}
+      - {name: NASMessageContainer, iei: "71", presence: O, format: TLV-E, length: "4-n", type_ref: NASMessageContainer}
+      - {name: NonIMEISVPEI,      iei: "78", presence: O, format: TLV-E, length: "7-n", type_ref: MobileIdentity5GS}
+
+  - name: SecurityModeReject
+    description: "Security mode reject — TS 24.501 Table 8.2.27.1.1"
+    epd: 0x7E
+    message_type: 0x5F
+    direction: ue_to_network
+    ies:
+      - {name: Cause5GMM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGMMCause}
+
+  # -----------------------------------------------------------------
+  # 5GMM status, notification, transport (§8.2.23 – 8.2.24, 8.2.28 – 8.2.31)
+  # -----------------------------------------------------------------
+
+  - name: FivegmmStatus
+    description: "5GMM status — TS 24.501 Table 8.2.23.1.1"
+    epd: 0x7E
+    message_type: 0x64
+    direction: both
+    ies:
+      - {name: Cause5GMM, iei: null, presence: M, format: V, length: "1", type_ref: FiveGMMCause}
+
+  - name: Notification
+    description: "Notification — TS 24.501 Table 8.2.28.1.1"
+    epd: 0x7E
+    message_type: 0x65
+    direction: network_to_ue
+    ies:
+      - {name: AccessType, iei: null, presence: M, format: V, length: "1/2", type_ref: AccessType}
+      - {name: Spare,      iei: null, presence: M, format: V, length: "1/2", type_ref: NASKeySetIdentifier}
+
+  - name: NotificationResponse
+    description: "Notification response — TS 24.501 Table 8.2.29.1.1"
+    epd: 0x7E
+    message_type: 0x66
+    direction: ue_to_network
+    ies:
+      - {name: PDUSessionStatus, iei: "50", presence: O, format: TLV, length: "4-34", type_ref: PDUSessionStatus}
+
+  - name: ULNASTransport
+    description: "UL NAS transport — TS 24.501 Table 8.2.10.1.1"
+    epd: 0x7E
+    message_type: 0x67
+    direction: ue_to_network
+    ies:
+      - {name: PayloadContainerType, iei: null, presence: M, format: V,    length: "1/2",     type_ref: PayloadContainerType}
+      - {name: Spare,                iei: null, presence: M, format: V,    length: "1/2",     type_ref: NASKeySetIdentifier}
+      - {name: PayloadContainer,     iei: null, presence: M, format: LV-E, length: "3-65537", type_ref: PayloadContainer}
+      - {name: PDUSessionID,         iei: "12", presence: O, format: TV,   length: "2",       type_ref: FiveGMMCause}
+      - {name: OldPDUSessionID,      iei: "59", presence: O, format: TV,   length: "2",       type_ref: FiveGMMCause}
+      - {name: RequestType,          iei: "8-", presence: O, format: TV,   length: "1",       type_ref: RequestType}
+      - {name: SNSSAI,               iei: "22", presence: O, format: TLV,  length: "3-10",    type_ref: SNSSAI}
+      - {name: DNN,                  iei: "25", presence: O, format: TLV,  length: "3-102",   type_ref: DNN}
+      - {name: AdditionalInformation, iei: "24", presence: O, format: TLV, length: "3-n",     type_ref: AdditionalInformation}
+
+  - name: DLNASTransport
+    description: "DL NAS transport — TS 24.501 Table 8.2.11.1.1"
+    epd: 0x7E
+    message_type: 0x68
+    direction: network_to_ue
+    ies:
+      - {name: PayloadContainerType, iei: null, presence: M, format: V,    length: "1/2",     type_ref: PayloadContainerType}
+      - {name: Spare,                iei: null, presence: M, format: V,    length: "1/2",     type_ref: NASKeySetIdentifier}
+      - {name: PayloadContainer,     iei: null, presence: M, format: LV-E, length: "3-65537", type_ref: PayloadContainer}
+      - {name: PDUSessionID,         iei: "12", presence: O, format: TV,   length: "2",       type_ref: FiveGMMCause}
+      - {name: AdditionalInformation, iei: "24", presence: O, format: TLV, length: "3-n",     type_ref: AdditionalInformation}
+      - {name: Cause5GMM,            iei: "58", presence: O, format: TV,   length: "2",       type_ref: FiveGMMCause}
+      - {name: BackOffTimerValue,    iei: "37", presence: O, format: TLV,  length: "3",       type_ref: GPRSTimer3}

@@ -1,0 +1,561 @@
+<!-- templates/slices.html — Network Slicing (TS 23.501 §5.15) -->
+
+<!-- Slice Overview Cards (dynamically rendered from configured slices) -->
+<div class="row g-3 mb-3" id="sliceCards">
+  <div class="col-12 text-muted small">Loading slice stats...</div>
+</div>
+
+<!-- Slice Catalog — single source of truth for S-NSSAIs (TS 23.501
+     §5.15.2.1 — S-NSSAI = SST + optional SD). PLMN advertisements,
+     UPF anchor bindings, and per-UE subscribed NSSAIs all reference
+     nssai_catalog.id, so add/edit/delete here propagates by FK. -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      Slice Catalog
+      <small class="text-muted ms-2">TS 23.501 §5.15.2.1 — managed here, referenced by PLMN, UPF, subscribers</small>
+    </div>
+    <button class="btn btn-sm btn-primary" onclick="sliceCatAddOpen()">+ Add slice</button>
+  </div>
+  <div class="card-body">
+    <!-- SST options below come from TS 23.501 v19.7.0 Table 5.15.2.2-1
+         (Standardised SST values). 1..6 are spec-defined; 7..127 are
+         operator-specific (within standardised range); 128..255 are
+         operator-specific outside the standardised range. The Custom
+         entry switches the SST field to a free-form number input so
+         operators can use their own assignments. Picking a spec entry
+         auto-fills the Name field if the user hasn't typed one yet. -->
+    <div id="sliceCatForm" style="display:none;" class="border rounded p-3 bg-light mb-3">
+      <input type="hidden" id="sliceCatId">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small mb-0">SST <small class="text-muted">(TS 23.501 §5.15.2.2)</small></label>
+          <select id="sliceCatSstSel" class="form-select form-select-sm" onchange="sliceCatSstSelChanged()">
+            <option value="1">1 — eMBB (enhanced Mobile Broadband)</option>
+            <option value="2">2 — URLLC (Ultra-Reliable Low-Latency)</option>
+            <option value="3">3 — MIoT (massive IoT)</option>
+            <option value="4">4 — V2X (Vehicle-to-Everything)</option>
+            <option value="5">5 — HMTC (High-Performance MTC)</option>
+            <option value="6">6 — HDLLC (High-perf Distributed LLC)</option>
+            <option value="custom">Custom (operator-specific, 7-255)</option>
+          </select>
+          <input id="sliceCatSst" type="number" min="1" max="255" placeholder="custom SST"
+                 class="form-control form-control-sm mt-1" style="display:none;">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-0">SD <small class="text-muted">(6 hex, optional)</small></label>
+          <input id="sliceCatSd" type="text" class="form-control form-control-sm font-monospace" placeholder="000001" maxlength="6">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-0">Name</label>
+          <input id="sliceCatName" type="text" class="form-control form-control-sm" placeholder="auto-filled from SST">
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button class="btn btn-sm btn-success" onclick="sliceCatSave()">Save</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="sliceCatFormClose()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>SST</th><th>SD</th><th>Name</th><th>Used by PLMN</th><th>Anchored on UPF</th><th style="width:1%">Actions</th></tr>
+      </thead>
+      <tbody id="sliceCatBody">
+        <tr><td colspan="6" class="text-muted text-center">Loading...</td></tr>
+      </tbody>
+    </table>
+    <div class="form-text mt-1">
+      Deleting a slice cascades into <code>plmn_nssai</code>, <code>upf_supported_nssai</code>,
+      <code>ue_subscribed_nssai</code>, and <code>service_bindings</code> (FK <code>ON DELETE CASCADE</code>).
+    </div>
+  </div>
+</div>
+
+<!-- Slice ↔ UPF anchor mapping (TS 23.501 §6.3.3 — SMF UPF selection per
+     S-NSSAI/DNN). Read-only view that joins /api/plmn/supported (configured
+     slices) with /api/admin/upf-instances (registered UPFs filtered by
+     supported_sst). Helps operators confirm that each S-NSSAI is anchored
+     on a real UPF before sessions try to establish. -->
+<div class="card mb-3">
+  <div class="card-header">
+    Slice ↔ UPF anchor mapping
+    <small class="text-muted ms-2">TS 23.501 §6.3.3 — SMF picks UPF per S-NSSAI/DNN</small>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>SST</th><th>Slice</th><th>SD</th><th>UPF DNNs</th><th>Anchored on</th></tr>
+      </thead>
+      <tbody id="sliceUpfMapBody">
+        <tr><td colspan="5" class="text-muted text-center">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Per-Slice UE Distribution -->
+<div class="accordion mb-3" id="sliceUeAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="sliceUeToggleBtn"
+        class="accordion-button bg-info text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="sliceUeCollapse">
+        <div class="w-100">UE Distribution per Slice</div>
+      </button>
+    </h2>
+    <div id="sliceUeCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2" id="sliceUeBody">
+        <div class="text-muted small">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex gap-2 align-items-center">
+    <button id="btnSliceRefresh" type="button" class="btn btn-primary btn-sm">Refresh</button>
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input" type="checkbox" id="sliceAutoRefresh">
+      <label class="form-check-label" for="sliceAutoRefresh">Live</label>
+    </div>
+    <div class="input-group input-group-sm" style="width:130px;">
+      <input type="number" class="form-control" id="slicePollInterval" value="3" min="1" max="60" step="1">
+      <span class="input-group-text">sec</span>
+    </div>
+  </div>
+  <small id="sliceLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .slice-card { border-top: 3px solid #dee2e6; }
+  .slice-embb  { border-top-color: #0d6efd; }
+  .slice-urllc { border-top-color: #dc3545; }
+  .slice-miot  { border-top-color: #198754; }
+  .ss-item { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; }
+  .ss-lbl { color: #666; font-weight: 600; }
+  .ss-val { font-family: 'Consolas','Courier New',monospace; font-weight: 700; color: #222; }
+  .slice-ue-row { font-size: 12px; }
+  .slice-ue-row td { vertical-align: middle; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+    const esc = (s) => { if(s==null) return ''; const el=document.createElement('span'); el.textContent=String(s); return el.innerHTML; };
+    const fmtB = (b) => { if(b>=1e9) return (b/1e9).toFixed(2)+' GB'; if(b>=1e6) return (b/1e6).toFixed(2)+' MB'; if(b>=1e3) return (b/1e3).toFixed(1)+' KB'; return b+' B'; };
+    const fmtP = (n) => { if(n>=1e6) return (n/1e6).toFixed(2)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); };
+    const $ = (id) => document.getElementById(id);
+    const sstNames = {'01':'eMBB','1':'eMBB','02':'URLLC','2':'URLLC','03':'mIoT','3':'mIoT'};
+    const sstColors = {'01':'primary','1':'primary','02':'danger','2':'danger','03':'success','3':'success'};
+    /* Accordion toggle for UE distribution */
+    for (const [b,c] of [['sliceUeToggleBtn','sliceUeCollapse']]) {
+      const btn=$(b), col=$(c);
+      if(btn&&col&&!btn.dataset.bound){ btn.dataset.bound='1'; const inst=bootstrap.Collapse.getOrCreateInstance(col,{toggle:false}); btn.addEventListener('click',()=>inst.toggle()); }
+    }
+
+    /* Slice type metadata */
+    const sliceMeta = {
+      1: {name:'eMBB',  color:'primary', border:'#0d6efd', desc:'High throughput, moderate latency — video streaming, web browsing'},
+      2: {name:'URLLC', color:'danger',  border:'#dc3545', desc:'Ultra-low latency, high reliability — industrial automation, remote surgery'},
+      3: {name:'mIoT',  color:'success', border:'#198754', desc:'High density, low power — sensors, meters, wearables'},
+    };
+
+    /* ── Poll slice stats — merges network config + UPF live stats ── */
+    const pollSliceStats = async () => {
+      try {
+        const [rPlmn, rStats] = await Promise.all([
+          fetch('/api/plmn/supported'),
+          fetch('/api/upf/slice-stats'),
+        ]);
+        const plmns = await rPlmn.json();
+        const statsData = await rStats.json();
+        const container = $('sliceCards');
+
+        // Get configured S-NSSAIs from all PLMNs, deduplicate by SST
+        const seenSst = new Set();
+        const uniqueSlices = [];
+        for (const p of plmns) {
+          for (const n of (p.nssai || [])) {
+            const sst = n.sst;
+            if (sst && !seenSst.has(sst)) { seenSst.add(sst); uniqueSlices.push(sst); }
+          }
+        }
+
+        if (!uniqueSlices.length) {
+          container.innerHTML = '<div class="col-12"><div class="alert alert-info py-2 mb-0">No slices configured — add S-NSSAIs in PLMN Support tab</div></div>';
+          return;
+        }
+
+        // Map live UPF stats by SST
+        const liveBySST = {};
+        for (const s of (statsData.slices || [])) {
+          const sst = s.sst || (s.slice_id + 1);
+          liveBySST[sst] = s;
+        }
+
+        const colSize = uniqueSlices.length <= 2 ? 6 : 4;
+        let html = '';
+        for (const sst of uniqueSlices) {
+          const meta = sliceMeta[sst] || {name:'SST='+sst, color:'secondary', border:'#6c757d', desc:'Custom slice'};
+          const s = liveBySST[sst];  // may be undefined if UPF slices disabled
+          const active = !!s;
+          const statusBadge = active
+            ? '<span class="badge bg-success ms-2">Active</span>'
+            : '<span class="badge bg-secondary ms-2">Configured</span>';
+
+          html += `<div class="col-md-${colSize}">`;
+          html += `<div class="card h-100" style="border-top:3px solid ${meta.border}">`;
+          html += '<div class="card-body">';
+          html += `<div class="d-flex justify-content-between align-items-start">`;
+          html += `<div><h5 class="card-title mb-0">${meta.name}${statusBadge}</h5><small class="text-muted">SST=${sst}</small></div>`;
+          html += `<span class="badge bg-${meta.color} fs-6">SST ${sst}</span></div>`;
+          html += '<hr class="my-2">';
+
+          if (active) {
+            html += '<div class="row g-1">';
+            /* Anchored-on / UE count come from the SMF-side rollup over
+             * session.Default.All() — TS 23.501 v19.7.0 §6.3.3 (per-
+             * S-NSSAI/DNN UPF selection). DL/UL byte counters remain
+             * placeholders until per-slice URR aggregation lands. */
+            const upfList = (s.upf_ids||[]).join(', ') || '-';
+            const dnnList = (s.dnns||[]).join(', ') || '-';
+            const stats = [
+              ['Sessions', s.session_count||0, false],
+              ['UE count', s.ue_count||0, false],
+              ['Anchored on', upfList, false],
+              ['DNNs', dnnList, false],
+              ['DL Volume', fmtB(s.dl_bytes||0), false],
+              ['UL Volume', fmtB(s.ul_bytes||0), false],
+              ['DL Pkts', fmtP(s.dl_pkts||0), false],
+              ['UL Pkts', fmtP(s.ul_pkts||0), false],
+              ['DL Dropped', fmtP(s.dl_dropped||0), (s.dl_dropped||0)>0],
+              ['UL Dropped', fmtP(s.ul_dropped||0), (s.ul_dropped||0)>0],
+            ];
+            for (const [lbl, val, warn] of stats) {
+              html += `<div class="col-6"><div class="ss-item"><span class="ss-lbl">${lbl}</span>`;
+              html += `<span class="ss-val${warn?' text-danger':''}">${val}</span></div></div>`;
+            }
+            html += '</div>';
+          } else {
+            html += '<div class="text-muted small py-2">No active sessions on this slice.</div>';
+          }
+
+          html += `<div class="mt-2"><small class="text-muted">${meta.desc}</small></div>`;
+          html += '</div></div></div>';
+        }
+        container.innerHTML = html;
+      } catch(e) {}
+    };
+
+    /* ── Slice Catalog — editable nssai_catalog CRUD ──
+     * Drives /api/catalog/nssai (GET/POST/PUT/DELETE). The "Used by"
+     * columns are computed client-side by joining /api/plmn/supported
+     * (PLMNs that advertise this SST/SD) and /api/admin/upf-instances
+     * (UPFs that anchor it). Catalog rows ARE the FK target for every
+     * other slice consumer — deletes cascade. */
+    let _sliceCatalog = []; // cached for sliceCatEdit() pre-fill
+    const pollSliceCatalog = async () => {
+      try {
+        const [rCat, rPlmn, rUpfs] = await Promise.all([
+          fetch('/api/catalog/nssai'),
+          fetch('/api/plmn/supported'),
+          fetch('/api/admin/upf-instances'),
+        ]);
+        const cat = (await rCat.json()).items || [];
+        const plmns = await rPlmn.json();
+        const upfs = (await rUpfs.json()).instances || [];
+        _sliceCatalog = cat;
+        const body = $('sliceCatBody');
+        if (!cat.length) {
+          body.innerHTML = '<tr><td colspan="6" class="text-muted text-center">No slices in the catalog yet — click "+ Add slice" above.</td></tr>';
+          return;
+        }
+        // Build per-SST PLMN list (PLMN side stores raw sst/sd).
+        const plmnsBySst = {};
+        for (const p of plmns) {
+          for (const n of (p.nssai || [])) {
+            const k = (n.sst|0) + '|' + (n.sd || '');
+            (plmnsBySst[k] = plmnsBySst[k] || []).push(p.plmn_id);
+          }
+        }
+        // The /api/admin/upf-instances response now includes the
+        // legacy supported_sst CSV; once Phase E's UPF multi-select
+        // lands the runtime-truth path will be the join table, but
+        // this view stays cheap by reusing the existing payload.
+        const sstEq = (a, b) => parseInt(a, 10) === parseInt(b, 10);
+        let html = '';
+        for (const s of cat) {
+          const sd = s.sd || '';
+          const k = (s.sst|0) + '|' + sd;
+          const plmnList = (plmnsBySst[k] || []).join(', ') || '<span class="text-muted">-</span>';
+          const upfMatched = upfs.filter(u => (u.supported_sst||[]).some(x => sstEq(x, s.sst)));
+          const upfList = upfMatched.length
+            ? upfMatched.map(u => `<span class="badge bg-info text-dark me-1">${esc(u.upf_id)}</span>`).join('')
+            : '<span class="text-muted">-</span>';
+          html += '<tr>';
+          html += `<td><span class="badge bg-${sstColors[String(s.sst)] || 'secondary'}">${esc(s.sst)}</span></td>`;
+          html += `<td>${sd ? '<code>'+esc(sd)+'</code>' : '<span class="text-muted">-</span>'}</td>`;
+          html += `<td>${esc(s.name || sstNames[String(s.sst)] || '')}</td>`;
+          html += `<td>${plmnList}</td>`;
+          html += `<td>${upfList}</td>`;
+          html += `<td class="text-nowrap">
+            <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="sliceCatEdit(${s.id})">edit</button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="sliceCatDelete(${s.id})">x</button>
+          </td>`;
+          html += '</tr>';
+        }
+        body.innerHTML = html;
+      } catch(e) {}
+    };
+
+    /* Standardised SST table — TS 23.501 v19.7.0 Table 5.15.2.2-1.
+     * Used to (a) recognise a stored SST as "spec-defined" and select
+     * the matching dropdown option, (b) auto-fill the Name field with
+     * the canonical short name when the user picks a spec SST. */
+    const _sstSpec = {1:'eMBB', 2:'URLLC', 3:'MIoT', 4:'V2X', 5:'HMTC', 6:'HDLLC'};
+
+    function _sliceCatLoadSstInto(sst) {
+      const sel = $('sliceCatSstSel');
+      const num = $('sliceCatSst');
+      const isStandard = !!_sstSpec[sst];
+      if (isStandard) {
+        sel.value = String(sst);
+        num.style.display = 'none';
+        num.value = '';
+      } else {
+        sel.value = 'custom';
+        num.style.display = '';
+        num.value = sst > 0 ? String(sst) : '';
+      }
+    }
+    function sliceCatSstSelChanged() {
+      const sel = $('sliceCatSstSel');
+      const num = $('sliceCatSst');
+      const nameEl = $('sliceCatName');
+      if (sel.value === 'custom') {
+        num.style.display = '';
+        num.focus();
+      } else {
+        num.style.display = 'none';
+        num.value = '';
+        // Auto-fill the Name field if it's empty / still showing the
+        // last spec name — operators expect "eMBB" when picking SST=1.
+        const cur = nameEl.value.trim();
+        const wasAutoFilled = !cur || Object.values(_sstSpec).includes(cur);
+        if (wasAutoFilled) nameEl.value = _sstSpec[parseInt(sel.value,10)] || '';
+      }
+    }
+    function sliceCatAddOpen() {
+      $('sliceCatId').value = '';
+      _sliceCatLoadSstInto(1);             // default to eMBB
+      $('sliceCatSd').value = '';
+      $('sliceCatName').value = _sstSpec[1];
+      $('sliceCatForm').style.display = '';
+    }
+    function sliceCatEdit(id) {
+      const s = _sliceCatalog.find(x => x.id === id);
+      if (!s) return;
+      $('sliceCatId').value = s.id;
+      _sliceCatLoadSstInto(s.sst);
+      $('sliceCatSd').value = s.sd || '';
+      $('sliceCatName').value = s.name || '';
+      $('sliceCatForm').style.display = '';
+    }
+    function sliceCatFormClose() { $('sliceCatForm').style.display = 'none'; }
+    async function sliceCatSave() {
+      const id = $('sliceCatId').value.trim();
+      const sel = $('sliceCatSstSel').value;
+      const sst = sel === 'custom'
+        ? parseInt($('sliceCatSst').value || '0', 10)
+        : parseInt(sel, 10);
+      const sd = $('sliceCatSd').value.trim();
+      const name = $('sliceCatName').value.trim();
+      if (!(sst > 0)) { alert('SST must be > 0'); return; }
+      const body = {sst, sd, name};
+      const url = id ? '/api/catalog/nssai/' + id : '/api/catalog/nssai';
+      const method = id ? 'PUT' : 'POST';
+      try {
+        const r = await fetch(url, {method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || r.statusText);
+        sliceCatFormClose();
+        pollSliceCatalog();
+      } catch(e) { alert('Save failed: ' + e.message); }
+    }
+    async function sliceCatDelete(id) {
+      const s = _sliceCatalog.find(x => x.id === id);
+      const lbl = s ? ('SST=' + s.sst + (s.sd ? ' SD=' + s.sd : '')) : ('id=' + id);
+      if (!confirm('Delete slice ' + lbl + '?\n\nCascades into PLMN advertisements, UPF anchor bindings, and per-UE NSSAIs.')) return;
+      try {
+        const r = await fetch('/api/catalog/nssai/' + id, {method: 'DELETE'});
+        if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || r.statusText);
+        pollSliceCatalog();
+      } catch(e) { alert('Delete failed: ' + e.message); }
+    }
+
+    /* ── Slice ↔ UPF anchor mapping (TS 23.501 §6.3.3) ──
+     * Joins /api/plmn/supported (configured S-NSSAIs) with
+     * /api/admin/upf-instances (registered UPFs filtered by
+     * supported_sst). Pure client-side — no new backend route. */
+    const pollSliceUpfMap = async () => {
+      try {
+        const [rPlmn, rUpfs] = await Promise.all([
+          fetch('/api/plmn/supported'),
+          fetch('/api/admin/upf-instances'),
+        ]);
+        const plmns = await rPlmn.json();
+        const upfData = await rUpfs.json();
+        const upfs = upfData.instances || [];
+        const body = $('sliceUpfMapBody');
+
+        /* Deduplicate slices by (SST, SD) — TS 23.003 §28.4.2 says
+         * S-NSSAI = SST + optional SD; empty SD means "no SD" and is
+         * its own valid identifier per TS 23.501 §5.15.2.1. */
+        const seen = new Set();
+        const slices = [];
+        for (const p of plmns) {
+          for (const n of (p.nssai || [])) {
+            const key = `${n.sst}|${n.sd||''}`;
+            if (!seen.has(key)) { seen.add(key); slices.push({sst: String(n.sst), sd: n.sd||''}); }
+          }
+        }
+        if (!slices.length) {
+          body.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No slices configured — add in PLMN Support tab</td></tr>';
+          return;
+        }
+
+        /* Match a configured SST against UPF.supported_sst. The CSV
+         * stored in DB is human-typed — values like "1" / "01" / "1,3"
+         * all show up — so the comparison normalises to a numeric
+         * compare. */
+        const sstEq = (a, b) => parseInt(a,10) === parseInt(b,10);
+
+        let html = '';
+        for (const s of slices) {
+          const typeName = sstNames[s.sst] || 'Custom';
+          const color = sstColors[s.sst] || 'secondary';
+          const matched = upfs.filter(u => (u.supported_sst||[]).some(x => sstEq(x, s.sst)));
+          /* Aggregate the DNN union across the matching UPFs (the
+           * actual SMF selection at establish.go:288 ANDs DNN+SST,
+           * so the UPF column shows what each anchor would accept). */
+          const dnnSet = new Set();
+          for (const u of matched) for (const d of (u.supported_dnns||[])) dnnSet.add(d);
+          const dnnList = [...dnnSet].sort().join(', ');
+          html += '<tr>';
+          html += `<td><span class="badge bg-${color}">${esc(s.sst)}</span></td>`;
+          html += `<td>${typeName}</td>`;
+          html += `<td>${s.sd ? esc(s.sd) : '<span class="text-muted">-</span>'}</td>`;
+          html += `<td>${dnnList ? esc(dnnList) : '<span class="text-muted">-</span>'}</td>`;
+          if (matched.length === 0) {
+            html += '<td><span class="badge bg-warning text-dark">no UPF advertises this SST</span></td>';
+          } else {
+            const ids = matched.map(u => `<span class="badge bg-info text-dark me-1" title="N3 ${esc(u.n3_ip||'')} · port ${u.pfcp_port||8805}">${esc(u.upf_id)}</span>`).join('');
+            html += `<td>${ids}</td>`;
+          }
+          html += '</tr>';
+        }
+        body.innerHTML = html;
+      } catch(e) {}
+    };
+
+    /* ── Poll UE distribution per slice ── */
+    const pollSliceUes = async () => {
+      try {
+        const r = await fetch('/api/ues/connected');
+        const d = await r.json();
+        const ues = d.ues || [];
+        const body = $('sliceUeBody');
+
+        // Group UEs by SST
+        const bySlice = {}; // sst → [{imsi, pdu_session_id, dnn, ip_addr, state}]
+        for (const ue of ues) {
+          for (const pdu of (ue.pdu_sessions||[])) {
+            const sst = String(pdu.sst||'1');
+            if (!bySlice[sst]) bySlice[sst] = [];
+            bySlice[sst].push({
+              imsi: ue.imsi,
+              pdu_session_id: pdu.pdu_session_id,
+              dnn: pdu.dnn,
+              ip_addr: pdu.ip_addr,
+              state: pdu.state,
+              qfi: pdu.qfi,
+              fiveqi: pdu.fiveqi,
+            });
+          }
+        }
+
+        // Update UE count in config table
+        for (const sst in bySlice) {
+          const el = document.querySelector(`[id^="slice_ue_count_${sst}"]`);
+          if (el) el.textContent = bySlice[sst].length;
+        }
+
+        if (!Object.keys(bySlice).length) {
+          body.innerHTML = '<div class="text-muted small">No active PDU sessions</div>';
+          return;
+        }
+
+        let html = '';
+        for (const [sst, sessions] of Object.entries(bySlice).sort()) {
+          const name = sstNames[sst] || `SST=${sst}`;
+          const color = sstColors[sst] || 'secondary';
+          html += `<div class="mb-2"><span class="badge bg-${color} me-1">${name} (SST=${sst})</span> <span class="badge bg-light text-dark">${sessions.length} session(s)</span></div>`;
+          html += '<div class="table-responsive"><table class="table table-sm mb-2">';
+          html += '<thead class="table-light"><tr><th>IMSI</th><th>PDU</th><th>DNN</th><th>IP</th><th>5QI</th><th>State</th></tr></thead><tbody>';
+          for (const s of sessions) {
+            html += `<tr class="slice-ue-row">`;
+            html += `<td><code>${esc(s.imsi)}</code></td>`;
+            html += `<td>${s.pdu_session_id}</td>`;
+            html += `<td>${esc(s.dnn)}</td>`;
+            html += `<td><code>${esc(s.ip_addr)}</code></td>`;
+            html += `<td>${s.fiveqi||'-'}</td>`;
+            html += `<td><span class="badge bg-${s.state==='active'?'success':'secondary'}">${esc(s.state)}</span></td>`;
+            html += '</tr>';
+          }
+          html += '</tbody></table></div>';
+        }
+        body.innerHTML = html;
+      } catch(e) {}
+    };
+
+    /* ── Poll loop ── */
+    const poll = async () => {
+      await Promise.all([pollSliceStats(), pollSliceCatalog(), pollSliceUes(), pollSliceUpfMap()]);
+      $('sliceLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+
+    // The Slice Catalog form is wired with inline onclick attributes
+    // so the handlers must be on window (init() runs inside an IIFE).
+    window.sliceCatAddOpen        = sliceCatAddOpen;
+    window.sliceCatEdit           = sliceCatEdit;
+    window.sliceCatFormClose      = sliceCatFormClose;
+    window.sliceCatSave           = sliceCatSave;
+    window.sliceCatDelete         = sliceCatDelete;
+    window.sliceCatSstSelChanged  = sliceCatSstSelChanged;
+
+    $('btnSliceRefresh').addEventListener('click', poll);
+
+    let timer = null;
+    const autoCheck = $('sliceAutoRefresh');
+    const intervalInput = $('slicePollInterval');
+    const getMs = () => Math.max(1000, (parseFloat(intervalInput.value)||3)*1000);
+    const startTimer = () => { stopTimer(); timer = setInterval(poll, getMs()); };
+    const stopTimer = () => { if(timer){clearInterval(timer);timer=null;} };
+    autoCheck.addEventListener('change', () => { if(autoCheck.checked) startTimer(); else stopTimer(); });
+    intervalInput.addEventListener('change', () => { if(autoCheck.checked&&timer) startTimer(); });
+
+    const tabPane = document.getElementById('slices-tab');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        if (tabPane.classList.contains('active')) { poll(); if(autoCheck.checked&&!timer) startTimer(); }
+        else { stopTimer(); }
+      });
+      observer.observe(tabPane, {attributes:true, attributeFilter:['class']});
+    }
+    if (tabPane && tabPane.classList.contains('active')) poll();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>

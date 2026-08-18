@@ -1,0 +1,300 @@
+<!-- templates/seal.html — SEAL Service Enabler Architecture Layer (TS 23.434) -->
+
+<!-- SEAL Status Overview -->
+<div class="row g-2 mb-3" id="sealStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="sealGroups">0</div><div class="small text-muted">Groups</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="sealMembers">0</div><div class="small text-muted">Members</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="sealLocSubs">0</div><div class="small text-muted">Location Subs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="sealConfigs">0</div><div class="small text-muted">Configs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="sealValUsers">0</div><div class="small text-muted">VAL Users</div></div></div>
+</div>
+
+<!-- Group Management (TS 23.434 §8) -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#sealGroupCollapse"><div class="w-100 text-center">Group Management (TS 23.434 &sect;8)</div></button></h2>
+  <div id="sealGroupCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>App ID</th><th>Description</th><th>Members</th><th>Created</th><th></th></tr>
+    </thead><tbody id="sealGroupBody"><tr><td colspan="7" class="text-muted text-center">No groups</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="sealGroupName" class="form-control form-control-sm" style="width:140px" placeholder="V2X-Fleet-A"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">App ID</label><input id="sealGroupAppId" class="form-control form-control-sm" style="width:120px" placeholder="mcptt"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Description</label><input id="sealGroupDesc" class="form-control form-control-sm" style="width:200px" placeholder="Fleet group for V2X"></div>
+      <div class="col-auto"><button id="btnSealAddGroup" class="btn btn-success btn-sm">+ Add Group</button></div>
+    </div>
+
+    <!-- Member panel (shown when a group is selected) -->
+    <div id="sealMemberPanel" class="mt-3 d-none">
+      <h6 class="fw-bold">Members of: <span id="sealMemberGroupName"></span> <small class="text-muted">(ID: <span id="sealMemberGroupId"></span>)</small></h6>
+      <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+        <tr><th>IMSI</th><th>Role</th><th>Joined</th><th></th></tr>
+      </thead><tbody id="sealMemberBody"><tr><td colspan="4" class="text-muted text-center">No members</td></tr></tbody></table></div>
+      <div class="row g-2 align-items-end">
+        <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="sealMemberImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+        <div class="col-auto"><label class="form-label mb-0 small">Role</label><select id="sealMemberRole" class="form-select form-select-sm" style="width:110px">
+          <option value="member">member</option><option value="admin">admin</option><option value="viewer">viewer</option>
+        </select></div>
+        <div class="col-auto"><button id="btnSealAddMember" class="btn btn-success btn-sm">+ Add Member</button></div>
+      </div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Location Subscriptions (TS 23.434 §9) -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sealLocCollapse"><div class="w-100 text-center">Location Reporting (TS 23.434 &sect;9)</div></button></h2>
+  <div id="sealLocCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Type</th><th>Target</th><th>Callback</th><th>Interval</th><th>Active</th><th>Last Notified</th><th></th></tr>
+    </thead><tbody id="sealLocBody"><tr><td colspan="8" class="text-muted text-center">No subscriptions</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Target</label><input id="sealLocTarget" class="form-control form-control-sm" style="width:180px" placeholder="IMSI or group:ID"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Callback URL</label><input id="sealLocCallback" class="form-control form-control-sm" style="width:260px" placeholder="http://app.local/location"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Interval (s)</label><input id="sealLocInterval" class="form-control form-control-sm" style="width:80px" type="number" value="60"></div>
+      <div class="col-auto"><button id="btnSealAddLocSub" class="btn btn-success btn-sm">+ Subscribe</button></div>
+    </div>
+
+    <!-- Location lookup -->
+    <div class="row g-2 align-items-end mt-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Lookup IMSI</label><input id="sealLocLookupImsi" class="form-control form-control-sm" style="width:180px" placeholder="001010000000001"></div>
+      <div class="col-auto"><button id="btnSealLocLookup" class="btn btn-outline-primary btn-sm">Get Location</button></div>
+      <div class="col-auto"><span id="sealLocResult" class="small text-muted"></span></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Configuration Management (TS 23.434 §10) -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sealCfgCollapse"><div class="w-100 text-center">Configuration Management (TS 23.434 &sect;10)</div></button></h2>
+  <div id="sealCfgCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Type</th><th>Target</th><th>Key</th><th>Value</th><th>Updated</th><th></th></tr>
+    </thead><tbody id="sealCfgBody"><tr><td colspan="7" class="text-muted text-center">No configs</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Target</label><input id="sealCfgTarget" class="form-control form-control-sm" style="width:180px" placeholder="imsi:X / group:X / app:X"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Key</label><input id="sealCfgKey" class="form-control form-control-sm" style="width:140px" placeholder="max_bitrate"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Value</label><input id="sealCfgValue" class="form-control form-control-sm" style="width:200px" placeholder="100000"></div>
+      <div class="col-auto"><button id="btnSealPushCfg" class="btn btn-success btn-sm">Push Config</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Identity Management (TS 23.434 §11) -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-danger text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sealIdCollapse"><div class="w-100 text-center">Identity Management (TS 23.434 &sect;11)</div></button></h2>
+  <div id="sealIdCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>VAL User ID</th><th>IMSI</th><th>App ID</th><th>Created</th><th></th></tr>
+    </thead><tbody id="sealIdBody"><tr><td colspan="6" class="text-muted text-center">No mappings</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">VAL User ID</label><input id="sealIdValUser" class="form-control form-control-sm" style="width:160px" placeholder="user@app.com"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="sealIdImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">App ID</label><input id="sealIdAppId" class="form-control form-control-sm" style="width:120px" placeholder="mcptt"></div>
+      <div class="col-auto"><button id="btnSealAddMapping" class="btn btn-success btn-sm">+ Map</button></div>
+    </div>
+    <!-- Resolve lookup -->
+    <div class="row g-2 align-items-end mt-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Resolve</label><input id="sealIdResolve" class="form-control form-control-sm" style="width:200px" placeholder="VAL user ID or IMSI"></div>
+      <div class="col-auto"><button id="btnSealResolve" class="btn btn-outline-primary btn-sm">Resolve</button></div>
+      <div class="col-auto"><span id="sealIdResult" class="small text-muted"></span></div>
+    </div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/seal';
+
+  // ── Stats ──
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      document.getElementById('sealGroups').textContent = d.groups||0;
+      document.getElementById('sealMembers').textContent = d.members||0;
+      document.getElementById('sealLocSubs').textContent = d.location_subscriptions||0;
+      document.getElementById('sealConfigs').textContent = d.configs||0;
+      document.getElementById('sealValUsers').textContent = d.val_users||0;
+    }).catch(()=>{});
+  }
+
+  // ── Groups ──
+  let _selectedGroupId = null;
+
+  function loadGroups(){
+    fetch(API+'/groups').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('sealGroupBody');
+      if(!d.items||!d.items.length){ tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No groups</td></tr>'; return; }
+      tb.innerHTML = d.items.map(g=>`<tr>
+        <td>${g.id}</td><td>${g.name}</td><td>${g.app_id||''}</td><td>${g.description||''}</td>
+        <td><button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="sealShowMembers(${g.id},'${g.name}')">View</button></td>
+        <td>${g.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="sealDeleteGroup(${g.id})">Del</button></td>
+      </tr>`).join('');
+    });
+  }
+
+  window.sealShowMembers = function(gid, name){
+    _selectedGroupId = gid;
+    document.getElementById('sealMemberGroupId').textContent = gid;
+    document.getElementById('sealMemberGroupName').textContent = name;
+    document.getElementById('sealMemberPanel').classList.remove('d-none');
+    loadMembers(gid);
+  };
+
+  function loadMembers(gid){
+    fetch(API+'/groups/'+gid+'/members').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('sealMemberBody');
+      if(!d.items||!d.items.length){ tb.innerHTML='<tr><td colspan="4" class="text-muted text-center">No members</td></tr>'; return; }
+      tb.innerHTML = d.items.map(m=>`<tr>
+        <td>${m.imsi}</td><td>${m.role}</td><td>${m.joined_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="sealRemoveMember(${gid},'${m.imsi}')">Del</button></td>
+      </tr>`).join('');
+    });
+  }
+
+  window.sealDeleteGroup = function(gid){
+    if(!confirm('Delete group '+gid+'?')) return;
+    fetch(API+'/groups/'+gid,{method:'DELETE'}).then(()=>{ loadGroups(); loadStats(); });
+  };
+
+  window.sealRemoveMember = function(gid, imsi){
+    fetch(API+'/groups/'+gid+'/members/'+imsi,{method:'DELETE'}).then(()=>{ loadMembers(gid); loadStats(); });
+  };
+
+  document.getElementById('btnSealAddGroup').addEventListener('click', ()=>{
+    const name = document.getElementById('sealGroupName').value.trim();
+    if(!name){ alert('Name required'); return; }
+    fetch(API+'/groups',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, app_id:document.getElementById('sealGroupAppId').value.trim()||null,
+        description:document.getElementById('sealGroupDesc').value.trim()||null})
+    }).then(r=>{if(!r.ok) return r.json().then(d=>{throw new Error(d.error)}); return r.json();})
+      .then(()=>{ loadGroups(); loadStats(); document.getElementById('sealGroupName').value=''; })
+      .catch(e=>alert('Error: '+e.message));
+  });
+
+  document.getElementById('btnSealAddMember').addEventListener('click', ()=>{
+    if(!_selectedGroupId){ alert('Select a group first'); return; }
+    const imsi = document.getElementById('sealMemberImsi').value.trim();
+    if(!imsi){ alert('IMSI required'); return; }
+    const role = document.getElementById('sealMemberRole').value;
+    fetch(API+'/groups/'+_selectedGroupId+'/members',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({imsi,role})
+    }).then(r=>{if(!r.ok) return r.json().then(d=>{throw new Error(d.error)}); return r.json();})
+      .then(()=>{ loadMembers(_selectedGroupId); loadStats(); document.getElementById('sealMemberImsi').value=''; })
+      .catch(e=>alert('Error: '+e.message));
+  });
+
+  // ── Location Subscriptions ──
+  function loadLocSubs(){
+    fetch(API+'/location/subscriptions?active=1').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('sealLocBody');
+      if(!d.items||!d.items.length){ tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No subscriptions</td></tr>'; return; }
+      tb.innerHTML = d.items.map(s=>`<tr>
+        <td>${s.id}</td><td>${s.target_type}</td><td>${s.target_id}</td>
+        <td class="text-truncate" style="max-width:200px" title="${s.callback_url}">${s.callback_url}</td>
+        <td>${s.interval_s}s</td><td>${s.active?'Yes':'No'}</td><td>${s.last_notified_at||'never'}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="sealUnsubLoc(${s.id})">Unsub</button></td>
+      </tr>`).join('');
+    });
+  }
+
+  window.sealUnsubLoc = function(sid){
+    fetch(API+'/location/subscriptions/'+sid,{method:'DELETE'}).then(()=>{ loadLocSubs(); loadStats(); });
+  };
+
+  document.getElementById('btnSealAddLocSub').addEventListener('click', ()=>{
+    const target = document.getElementById('sealLocTarget').value.trim();
+    const callback_url = document.getElementById('sealLocCallback').value.trim();
+    if(!target||!callback_url){ alert('Target and callback required'); return; }
+    const interval_s = parseInt(document.getElementById('sealLocInterval').value)||60;
+    fetch(API+'/location/subscriptions',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({target, callback_url, interval_s})
+    }).then(r=>{if(!r.ok) return r.json().then(d=>{throw new Error(d.error)}); return r.json();})
+      .then(()=>{ loadLocSubs(); loadStats(); })
+      .catch(e=>alert('Error: '+e.message));
+  });
+
+  document.getElementById('btnSealLocLookup').addEventListener('click', ()=>{
+    const imsi = document.getElementById('sealLocLookupImsi').value.trim();
+    if(!imsi){ alert('IMSI required'); return; }
+    fetch(API+'/location/'+imsi).then(r=>r.json()).then(d=>{
+      if(d.error) document.getElementById('sealLocResult').textContent = d.error;
+      else document.getElementById('sealLocResult').textContent = JSON.stringify(d);
+    });
+  });
+
+  // ── Configs ──
+  function loadConfigs(){
+    fetch(API+'/configs').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('sealCfgBody');
+      if(!d.items||!d.items.length){ tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No configs</td></tr>'; return; }
+      tb.innerHTML = d.items.map(c=>`<tr>
+        <td>${c.id}</td><td>${c.target_type}</td><td>${c.target_id}</td>
+        <td>${c.config_key}</td><td class="text-truncate" style="max-width:200px">${c.config_value||''}</td>
+        <td>${c.updated_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="sealDelCfg(${c.id})">Del</button></td>
+      </tr>`).join('');
+    });
+  }
+
+  window.sealDelCfg = function(cid){
+    fetch(API+'/configs/'+cid,{method:'DELETE'}).then(()=>{ loadConfigs(); loadStats(); });
+  };
+
+  document.getElementById('btnSealPushCfg').addEventListener('click', ()=>{
+    const target = document.getElementById('sealCfgTarget').value.trim();
+    const key = document.getElementById('sealCfgKey').value.trim();
+    const value = document.getElementById('sealCfgValue').value.trim();
+    if(!target||!key){ alert('Target and key required'); return; }
+    const config_data = {};
+    config_data[key] = value;
+    fetch(API+'/configs',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({target, config_data})
+    }).then(r=>{if(!r.ok) return r.json().then(d=>{throw new Error(d.error)}); return r.json();})
+      .then(()=>{ loadConfigs(); loadStats(); })
+      .catch(e=>alert('Error: '+e.message));
+  });
+
+  // ── Identity ──
+  function loadIdentity(){
+    fetch(API+'/identity/mappings').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('sealIdBody');
+      if(!d.items||!d.items.length){ tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No mappings</td></tr>'; return; }
+      tb.innerHTML = d.items.map(m=>`<tr>
+        <td>${m.id}</td><td>${m.val_user_id}</td><td>${m.imsi}</td><td>${m.app_id||''}</td>
+        <td>${m.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="sealDelMapping('${m.val_user_id}')">Del</button></td>
+      </tr>`).join('');
+    });
+  }
+
+  window.sealDelMapping = function(vid){
+    fetch(API+'/identity/mappings/'+encodeURIComponent(vid),{method:'DELETE'}).then(()=>{ loadIdentity(); loadStats(); });
+  };
+
+  document.getElementById('btnSealAddMapping').addEventListener('click', ()=>{
+    const val_user_id = document.getElementById('sealIdValUser').value.trim();
+    const imsi = document.getElementById('sealIdImsi').value.trim();
+    if(!val_user_id||!imsi){ alert('VAL user ID and IMSI required'); return; }
+    fetch(API+'/identity/mappings',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({val_user_id, imsi, app_id:document.getElementById('sealIdAppId').value.trim()||null})
+    }).then(r=>{if(!r.ok) return r.json().then(d=>{throw new Error(d.error)}); return r.json();})
+      .then(()=>{ loadIdentity(); loadStats(); document.getElementById('sealIdValUser').value=''; })
+      .catch(e=>alert('Error: '+e.message));
+  });
+
+  document.getElementById('btnSealResolve').addEventListener('click', ()=>{
+    const q = document.getElementById('sealIdResolve').value.trim();
+    if(!q){ alert('Enter a VAL user ID or IMSI'); return; }
+    // Heuristic: if all digits and length >= 10, treat as IMSI
+    const isImsi = /^\d{10,15}$/.test(q);
+    const param = isImsi ? 'imsi='+encodeURIComponent(q) : 'val_user_id='+encodeURIComponent(q);
+    fetch(API+'/identity/resolve?'+param).then(r=>r.json()).then(d=>{
+      if(d.error) document.getElementById('sealIdResult').textContent = d.error;
+      else document.getElementById('sealIdResult').textContent = JSON.stringify(d);
+    });
+  });
+
+  // ── Init ──
+  loadStats(); loadGroups(); loadLocSubs(); loadConfigs(); loadIdentity();
+})();
+</script>

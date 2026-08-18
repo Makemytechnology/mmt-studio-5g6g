@@ -1,0 +1,46 @@
+# Copyright (c) 2026 MakeMyTechnology. Licensed under Apache-2.0.
+#
+# .gitattributes — declarative Git LFS routing for large binary
+# specifications.
+#
+# These rules apply to *future* additions: files matching the patterns
+# below are stored via Git LFS instead of regular Git blobs, keeping
+# clone size manageable.
+#
+# Existing PDFs already in plain Git history stay as-is. Migrating
+# them to LFS requires a one-shot history rewrite via
+# `git lfs migrate import --include="specs/3gpp/*.pdf,specs/ietf/*.pdf"`
+# on a publication branch — that is deliberately deferred (see plan).
+# The repo as-shipped works correctly without LFS configured locally.
+
+# 3GPP specifications (large PDFs, ~190 MB total today).
+specs/3gpp/*.pdf  filter=lfs diff=lfs merge=lfs -text
+
+# IETF documents — most are small text files, but PDFs (rare in IETF)
+# go through LFS.
+specs/ietf/*.pdf  filter=lfs diff=lfs merge=lfs -text
+
+# Keep IETF RFC text files as plain text (greppable, diffable). They're
+# all under ~700 KB.
+specs/ietf/*.txt  text
+
+# Mark generated codec files as generated for GitHub diff folding +
+# language-stat exclusion (linguist-generated keeps these out of the
+# repo's "primary language" calculation on github.com).
+codecs/asn1-go/protocols/ngap/generated/**           linguist-generated=true
+codecs/asn1-go/protocols/s1ap/generated/**           linguist-generated=true
+codecs/tlv-3gpp-nas/nasgen/generated/**              linguist-generated=true
+codecs/tlv-3gpp-pfcp/pfcpgen/generated/**            linguist-generated=true
+
+# Vendored DPDK source — mark as vendored so its line count doesn't
+# distort the repo's primary-language statistics on github.com.
+libs/dpdk-25.11/**                                   linguist-vendored=true
+
+# Shell scripts — ensure consistent line endings for cross-platform
+# checkouts (relevant for any Windows / macOS contributor).
+*.sh    text eol=lf
+*.go    text
+*.c     text
+*.h     text
+*.md    text
+Makefile text

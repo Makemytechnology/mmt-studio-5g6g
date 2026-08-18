@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SA CORE — Tactical Communication System</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', 'bootstrap/css/bootstrap.min.css') }}">
+  <!-- Leaflet.js for topology map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --tcs-bg: #0a0f0a;
+      --tcs-card: #111a11;
+      --tcs-border: #1a2e1a;
+      --tcs-green: #00ff41;
+      --tcs-amber: #ffbf00;
+      --tcs-red: #ff2b2b;
+      --tcs-blue: #00b4d8;
+      --tcs-text: #c8d6c8;
+      --tcs-muted: #5a6e5a;
+    }
+    body { background: var(--tcs-bg); color: var(--tcs-text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    /* Sidebar */
+    .sidebar-group { margin-bottom: 2px; }
+    .sidebar-heading {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--tcs-green); padding: 10px 12px 4px; margin-top: 4px;
+      border-top: 1px solid var(--tcs-border); opacity: 0.7;
+    }
+    .sidebar-group:first-child .sidebar-heading { border-top: none; margin-top: 0; }
+    #sidebar { background: var(--tcs-card); border-radius: 4px; padding: 4px 0; }
+    #sidebar .list-group-item {
+      font-size: 13px; padding: 6px 12px 6px 20px; border: none; border-radius: 0;
+      background: transparent; color: var(--tcs-text);
+    }
+    #sidebar .list-group-item:hover { background: rgba(0,255,65,0.08); }
+    #sidebar .list-group-item.active {
+      background: rgba(0,255,65,0.15); color: var(--tcs-green);
+      border-left: 3px solid var(--tcs-green); padding-left: 17px; font-weight: 600;
+    }
+
+    /* Cards */
+    .tcs-card {
+      background: var(--tcs-card); border: 1px solid var(--tcs-border);
+      border-radius: 6px; padding: 1rem; margin-bottom: 1rem;
+    }
+    .tcs-card h5, .tcs-card h6 { color: var(--tcs-green); }
+
+    /* Tables */
+    .table-tcs { color: var(--tcs-text); font-size: 0.82rem; }
+    .table-tcs thead th {
+      background: rgba(0,255,65,0.08); color: var(--tcs-green);
+      border-bottom: 1px solid var(--tcs-border); font-weight: 600;
+      text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px;
+    }
+    .table-tcs td { border-bottom: 1px solid rgba(26,46,26,0.5); vertical-align: middle; }
+    .table-tcs tbody tr:hover { background: rgba(0,255,65,0.04); }
+
+    /* Badges */
+    .badge-good { background: var(--tcs-green); color: #000; }
+    .badge-degraded { background: var(--tcs-amber); color: #000; }
+    .badge-poor, .badge-down { background: var(--tcs-red); color: #fff; }
+    .badge-active { background: var(--tcs-green); color: #000; }
+    .badge-standby { background: var(--tcs-blue); color: #000; }
+    .badge-attached { background: var(--tcs-green); color: #000; }
+    .badge-detached { background: var(--tcs-muted); color: #fff; }
+
+    /* Map */
+    #topo-map { height: 500px; border: 1px solid var(--tcs-border); border-radius: 4px; }
+
+    /* Status indicators */
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
+    .status-dot.green { background: var(--tcs-green); box-shadow: 0 0 6px var(--tcs-green); }
+    .status-dot.amber { background: var(--tcs-amber); box-shadow: 0 0 6px var(--tcs-amber); }
+    .status-dot.red { background: var(--tcs-red); box-shadow: 0 0 6px var(--tcs-red); }
+
+    /* Link quality bars */
+    .quality-bar {
+      height: 6px; border-radius: 3px; background: var(--tcs-border); overflow: hidden;
+      width: 100px; display: inline-block; vertical-align: middle;
+    }
+    .quality-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    /* Stat box */
+    .stat-box {
+      text-align: center; padding: 0.8rem; border: 1px solid var(--tcs-border);
+      border-radius: 6px; background: rgba(0,255,65,0.03);
+    }
+    .stat-box .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--tcs-green); }
+    .stat-box .stat-label { font-size: 0.7rem; text-transform: uppercase; color: var(--tcs-muted); }
+
+    /* State machine */
+    .state-machine { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .state-node {
+      padding: 6px 14px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+      border: 1px solid var(--tcs-border); color: var(--tcs-muted);
+    }
+    .state-node.current { background: var(--tcs-green); color: #000; border-color: var(--tcs-green); }
+    .state-arrow { color: var(--tcs-muted); font-size: 1rem; }
+
+    /* Forms */
+    .form-control-tcs, .form-select-tcs {
+      background: var(--tcs-bg); border: 1px solid var(--tcs-border); color: var(--tcs-text);
+      font-size: 0.85rem;
+    }
+    .form-control-tcs:focus, .form-select-tcs:focus {
+      background: var(--tcs-bg); border-color: var(--tcs-green); color: var(--tcs-text);
+      box-shadow: 0 0 0 0.2rem rgba(0,255,65,0.15);
+    }
+    .btn-tcs {
+      background: var(--tcs-green); color: #000; border: none; font-weight: 600; font-size: 0.8rem;
+    }
+    .btn-tcs:hover { background: #00cc34; color: #000; }
+    .btn-tcs-outline {
+      background: transparent; color: var(--tcs-green); border: 1px solid var(--tcs-green);
+      font-size: 0.8rem;
+    }
+    .btn-tcs-outline:hover { background: rgba(0,255,65,0.1); color: var(--tcs-green); }
+    .btn-tcs-danger {
+      background: transparent; color: var(--tcs-red); border: 1px solid var(--tcs-red);
+      font-size: 0.8rem;
+    }
+    .btn-tcs-danger:hover { background: rgba(255,43,43,0.1); color: var(--tcs-red); }
+
+    /* Topology SVG */
+    #topo-svg { width: 100%; height: 350px; background: rgba(0,0,0,0.3); border-radius: 4px; }
+    #topo-svg text { fill: var(--tcs-text); font-size: 11px; }
+    #topo-svg .link-good { stroke: var(--tcs-green); }
+    #topo-svg .link-degraded { stroke: var(--tcs-amber); }
+    #topo-svg .link-poor { stroke: var(--tcs-red); }
+
+    /* Misc */
+    .kbd-hint { font-size: 0.7rem; color: var(--tcs-muted); }
+    code { color: var(--tcs-green); background: rgba(0,255,65,0.05); padding: 1px 4px; border-radius: 3px; }
+    .text-green { color: var(--tcs-green) !important; }
+    .text-amber { color: var(--tcs-amber) !important; }
+    .text-tcs-red { color: var(--tcs-red) !important; }
+    .border-tcs { border-color: var(--tcs-border) !important; }
+
+    /* Leaflet dark overrides */
+    .leaflet-container { background: #0a0f0a; }
+    .leaflet-tile { filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
+    .leaflet-control-zoom a { background: var(--tcs-card); color: var(--tcs-green); border-color: var(--tcs-border); }
+    .leaflet-control-attribution { background: rgba(10,15,10,0.8) !important; color: var(--tcs-muted) !important; }
+    .leaflet-control-attribution a { color: var(--tcs-muted) !important; }
+    .leaflet-popup-content-wrapper { background: var(--tcs-card); color: var(--tcs-text); border: 1px solid var(--tcs-border); }
+    .leaflet-popup-tip { background: var(--tcs-card); }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Brand Bar -->
+  <div class="d-flex align-items-center px-3 py-2 border-bottom"
+       style="background:#0a1a0a; border-color: var(--tcs-border) !important; position:sticky; top:0; z-index:1000;">
+    <a href="/" class="fw-bold text-decoration-none" style="color: var(--tcs-green);">
+      MAKE<span style="color:#ff2b2b;">MY</span>TECHNOLOGY
+    </a>
+    <span class="ms-3" style="font-size:0.85rem; color: var(--tcs-muted);">/ TCS Dashboard</span>
+    <span class="ms-2 kbd-hint">[T] switch tabs</span>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <span id="hdr-node" class="me-2" style="font-size:0.75rem; color: var(--tcs-green);"></span>
+      <span id="hdr-state" class="me-2"></span>
+    </div>
+  </div>
+
+  <div class="container-fluid mt-3">
+    <div class="row">
+
+      <!-- Sidebar -->
+      <div class="col-12 col-md-3 col-lg-2">
+        <nav id="sidebar">
+          <div class="sidebar-group">
+            <div class="sidebar-heading">Tactical</div>
+            <div class="list-group list-group-flush" role="tablist">
+              <a class="list-group-item list-group-item-action active"
+                 data-bs-toggle="list" href="#tab-topology" role="tab" data-key="1">Network Topology</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-nodes" role="tab" data-key="2">Node Status</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-ue" role="tab" data-key="3">UE Tracking</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-mesh" role="tab" data-key="4">Mesh Routing</a>
+            </div>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-heading">Data & Services</div>
+            <div class="list-group list-group-flush" role="tablist">
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-sync" role="tab" data-key="5">Sync Status</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-inter" role="tab" data-key="6">Inter-NIB Services</a>
+            </div>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-heading">System</div>
+            <div class="list-group list-group-flush" role="tablist">
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-fallback" role="tab" data-key="7">Fallback Status</a>
+              <a class="list-group-item list-group-item-action"
+                 data-bs-toggle="list" href="#tab-config" role="tab" data-key="8">Configuration</a>
+            </div>
+          </div>
+          <div class="sidebar-group">
+            <div class="sidebar-heading">Navigation</div>
+            <div class="list-group list-group-flush">
+              <a class="list-group-item list-group-item-action" href="/" style="color: var(--tcs-muted);">Back to Dashboard</a>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Main content -->
+      <div class="col-12 col-md-9 col-lg-10">
+        <div class="tab-content">
+
+          <!-- ============================================================ -->
+          <!-- TAB 1: NETWORK TOPOLOGY (MAP VIEW) -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade show active" id="tab-topology" role="tabpanel">
+            <div class="tcs-card">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="mb-0">Network Topology</h5>
+                  <span class="text-muted" style="font-size:0.8rem">Mesh network map view — auto-refresh 5s</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-sm btn-tcs-outline" onclick="TCS.refreshTopology()">Refresh</button>
+                  <button class="btn btn-sm btn-tcs-outline" onclick="TCS.fitMapBounds()">Fit Bounds</button>
+                </div>
+              </div>
+              <div id="topo-map"></div>
+              <div class="mt-2 d-flex gap-3 align-items-center" style="font-size:0.78rem;">
+                <span><span style="color:#00b4d8; font-size:1.1em;">&#x2B1F;</span> Full NIB</span>
+                <span><span style="color:var(--tcs-green); font-size:1.1em;">&#x25B2;</span> gNB-only</span>
+                <span><span style="color:var(--tcs-red); font-size:1.1em;">&#x25CF;</span> UE</span>
+                <span><span style="color:var(--tcs-green);">&#x2500;&#x2500;</span> Good</span>
+                <span><span style="color:var(--tcs-amber);">&#x2500;&#x2500;</span> Degraded</span>
+                <span><span style="color:var(--tcs-red);">&#x2500;&#x2500;</span> Poor</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 2: NODE STATUS -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-nodes" role="tabpanel">
+            <!-- Local node card -->
+            <div class="tcs-card">
+              <h5>Local Node</h5>
+              <div class="row g-3" id="local-node-info">
+                <div class="col-6 col-lg-2"><div class="stat-box"><div class="stat-value" id="ln-id">--</div><div class="stat-label">Node ID</div></div></div>
+                <div class="col-6 col-lg-2"><div class="stat-box"><div class="stat-value" id="ln-mode">--</div><div class="stat-label">Mode</div></div></div>
+                <div class="col-6 col-lg-2"><div class="stat-box"><div class="stat-value" id="ln-ip">--</div><div class="stat-label">IP Address</div></div></div>
+                <div class="col-6 col-lg-2"><div class="stat-box"><div class="stat-value" id="ln-uptime">--</div><div class="stat-label">Uptime</div></div></div>
+                <div class="col-6 col-lg-2"><div class="stat-box"><div class="stat-value" id="ln-peers">--</div><div class="stat-label">Peers</div></div></div>
+                <div class="col-6 col-lg-2"><div class="stat-box"><div class="stat-value" id="ln-ues">--</div><div class="stat-label">UEs</div></div></div>
+              </div>
+              <div class="mt-2" id="ln-services"></div>
+            </div>
+            <!-- Peer nodes table -->
+            <div class="tcs-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Peer Nodes</h6>
+                <button class="btn btn-sm btn-tcs-outline" data-bs-toggle="modal" data-bs-target="#addPeerModal">Add Peer</button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-peers">
+                  <thead>
+                    <tr>
+                      <th>Node ID</th><th>IP</th><th>Mode</th><th>Status</th>
+                      <th>RSRP</th><th>ETX</th><th>Link Quality</th><th>Hops</th>
+                      <th>Last Seen</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 3: UE LOCATION TRACKING -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-ue" role="tabpanel">
+            <div class="tcs-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <h5 class="mb-0">UE Location Tracking</h5>
+                  <span class="text-muted" style="font-size:0.8rem">Real-time UE locations across all NIB nodes — polling 3s</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <input type="text" class="form-control form-control-sm form-control-tcs" id="ue-search"
+                         placeholder="Search SUPI..." style="width:180px;" oninput="TCS.filterUeTable()">
+                  <select class="form-select form-select-sm form-select-tcs" id="ue-node-filter"
+                          style="width:150px;" onchange="TCS.filterUeTable()">
+                    <option value="">All Nodes</option>
+                  </select>
+                  <select class="form-select form-select-sm form-select-tcs" id="ue-status-filter"
+                          style="width:130px;" onchange="TCS.filterUeTable()">
+                    <option value="">All Status</option>
+                    <option value="ATTACHED">ATTACHED</option>
+                    <option value="DETACHED">DETACHED</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-ues">
+                  <thead>
+                    <tr>
+                      <th>SUPI</th><th>Serving Node</th><th>Node IP</th>
+                      <th>IMS Contact</th><th>MCX Endpoint</th><th>Status</th><th>Last Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <!-- UE Mobility History (shown on click) -->
+            <div class="tcs-card" id="ue-history-card" style="display:none;">
+              <h6>Mobility History: <span id="ue-hist-supi"></span></h6>
+              <div id="ue-hist-content" style="font-size:0.82rem;"></div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 4: MESH ROUTING -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-mesh" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6">
+                <div class="tcs-card">
+                  <h5>Routing Table</h5>
+                  <div class="table-responsive">
+                    <table class="table table-tcs" id="tbl-routes">
+                      <thead>
+                        <tr><th>Destination</th><th>Next Hop</th><th>Path</th><th>Cost (ETX)</th><th>Hops</th><th>Updated</th></tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="tcs-card">
+                  <h5>Neighbor Table</h5>
+                  <div class="table-responsive">
+                    <table class="table table-tcs" id="tbl-neighbors">
+                      <thead>
+                        <tr><th>Node ID</th><th>IP</th><th>RSRP</th><th>ETX</th><th>PDR</th><th>Last Hello</th></tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Topology Graph (SVG) -->
+            <div class="tcs-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Topology Graph</h5>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-sm btn-tcs-outline" onclick="TCS.drawTopoGraph()">Refresh</button>
+                </div>
+              </div>
+              <svg id="topo-svg"></svg>
+            </div>
+            <!-- Route Trace -->
+            <div class="tcs-card">
+              <h6>Route Trace</h6>
+              <div class="d-flex gap-2 align-items-end">
+                <div>
+                  <label class="form-label" style="font-size:0.75rem; color: var(--tcs-muted);">Destination Node</label>
+                  <input type="text" class="form-control form-control-sm form-control-tcs" id="trace-dest"
+                         placeholder="NIB-DELTA-04" style="width:200px;">
+                </div>
+                <button class="btn btn-sm btn-tcs" onclick="TCS.traceRoute()">Trace Route</button>
+              </div>
+              <div id="trace-result" class="mt-2" style="font-size:0.85rem;"></div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 5: SYNC STATUS -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-sync" role="tabpanel">
+            <div class="tcs-card">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">CR-SQLite Sync Status</h5>
+                <button class="btn btn-sm btn-tcs" onclick="TCS.triggerSync()">Trigger Sync</button>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-4"><div class="stat-box"><div class="stat-value" id="sync-local-ver">--</div><div class="stat-label">Local Version</div></div></div>
+                <div class="col-4"><div class="stat-box"><div class="stat-value" id="sync-pending">--</div><div class="stat-label">Pending Changesets</div></div></div>
+                <div class="col-4"><div class="stat-box"><div class="stat-value text-green" id="sync-health">--</div><div class="stat-label">Overall Health</div></div></div>
+              </div>
+              <!-- Peer sync table -->
+              <h6>Peer Sync Convergence</h6>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-sync-peers">
+                  <thead>
+                    <tr><th>Node ID</th><th>Version</th><th>Status</th><th>Behind By</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <!-- Sync History -->
+            <div class="tcs-card">
+              <h5>Sync History</h5>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-sync-history">
+                  <thead>
+                    <tr><th>Version</th><th>Timestamp</th><th>Source Node</th><th>Table</th><th>Operation</th><th>Summary</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 6: INTER-NIB SERVICES -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-inter" role="tabpanel">
+            <!-- SIP Trunks -->
+            <div class="tcs-card">
+              <h5>Active SIP Trunks</h5>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-trunks">
+                  <thead>
+                    <tr><th>Peer Node</th><th>SIP URI</th><th>Status</th><th>Active Calls</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <!-- Cross-NIB Calls -->
+            <div class="tcs-card">
+              <h5>Cross-NIB Calls</h5>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-calls">
+                  <thead>
+                    <tr><th>Call ID</th><th>Caller (SUPI@Node)</th><th>Callee (SUPI@Node)</th><th>Type</th><th>Codec</th><th>Duration</th><th>Status</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <!-- MCX Group Routing -->
+            <div class="tcs-card">
+              <h5>MCX Group Routing</h5>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-mcx">
+                  <thead>
+                    <tr><th>Group ID</th><th>Members per Node</th><th>Routing Mode</th><th>Active Talker</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 7: FALLBACK STATUS -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-fallback" role="tabpanel">
+            <div class="tcs-card">
+              <h5>Fallback State Machine</h5>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <div class="stat-box">
+                    <div class="stat-value" id="fb-mode">--</div>
+                    <div class="stat-label">Current Mode</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-box">
+                    <div class="stat-value" id="fb-core-status">--</div>
+                    <div class="stat-label">Central Core</div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-box">
+                    <div class="stat-value" id="fb-latency">--</div>
+                    <div class="stat-label">Core Latency</div>
+                  </div>
+                </div>
+              </div>
+              <!-- State machine visualization -->
+              <div class="mb-3">
+                <h6>State Transition</h6>
+                <div class="state-machine" id="state-machine">
+                  <div class="state-node" data-state="CONNECTED">CONNECTED</div>
+                  <span class="state-arrow">&rarr;</span>
+                  <div class="state-node" data-state="DEGRADED">DEGRADED</div>
+                  <span class="state-arrow">&rarr;</span>
+                  <div class="state-node" data-state="FALLBACK">FALLBACK</div>
+                  <span class="state-arrow">&rarr;</span>
+                  <div class="state-node" data-state="INDEPENDENT">INDEPENDENT</div>
+                  <span class="state-arrow">&rarr;</span>
+                  <div class="state-node" data-state="RECOVERY">RECOVERY</div>
+                </div>
+              </div>
+              <div class="d-flex gap-2 mb-3">
+                <button class="btn btn-sm btn-tcs-danger" onclick="TCS.triggerFallback()">Trigger Fallback</button>
+                <button class="btn btn-sm btn-tcs" onclick="TCS.triggerRecovery()">Trigger Recovery</button>
+              </div>
+              <!-- State history -->
+              <h6>State Transition History</h6>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-state-history">
+                  <thead>
+                    <tr><th>State</th><th>Entered At</th><th>Reason</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- TAB 8: CONFIGURATION -->
+          <!-- ============================================================ -->
+          <div class="tab-pane fade" id="tab-config" role="tabpanel">
+            <div class="tcs-card">
+              <h5>Node Configuration</h5>
+              <form id="frm-config" class="row g-2" style="max-width:700px;">
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">Node ID</label>
+                  <input type="text" class="form-control form-control-sm form-control-tcs" id="cfg-node-id">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">Node IP</label>
+                  <input type="text" class="form-control form-control-sm form-control-tcs" id="cfg-node-ip">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">Mode</label>
+                  <select class="form-select form-select-sm form-select-tcs" id="cfg-mode">
+                    <option value="full_nib">Full NIB</option>
+                    <option value="gnb_only">gNB-only</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">Mesh Protocol</label>
+                  <select class="form-select form-select-sm form-select-tcs" id="cfg-mesh">
+                    <option value="OLSR-v2">OLSR-v2</option>
+                    <option value="BATMAN-V">BATMAN-V</option>
+                    <option value="AODV">AODV</option>
+                  </select>
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">HMAC Key (security)</label>
+                  <div class="input-group input-group-sm">
+                    <input type="password" class="form-control form-control-tcs" id="cfg-hmac" placeholder="********">
+                    <button type="button" class="btn btn-tcs-outline" onclick="TCS.toggleHmac()">Show</button>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">Encryption</label>
+                  <select class="form-select form-select-sm form-select-tcs" id="cfg-encrypt">
+                    <option value="1">Enabled</option>
+                    <option value="0">Disabled</option>
+                  </select>
+                </div>
+                <!-- V2X Resource Pools -->
+                <div class="col-12 mt-2">
+                  <label class="form-label" style="font-size:0.78rem; color:var(--tcs-muted);">V2X Resource Pools (%)</label>
+                </div>
+                <div class="col-md-4">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text" style="background:var(--tcs-bg); color:var(--tcs-muted); border-color:var(--tcs-border); font-size:0.75rem;">Pool 1</span>
+                    <input type="number" class="form-control form-control-tcs" id="cfg-pool1" min="0" max="100" value="40">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text" style="background:var(--tcs-bg); color:var(--tcs-muted); border-color:var(--tcs-border); font-size:0.75rem;">Pool 2</span>
+                    <input type="number" class="form-control form-control-tcs" id="cfg-pool2" min="0" max="100" value="35">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text" style="background:var(--tcs-bg); color:var(--tcs-muted); border-color:var(--tcs-border); font-size:0.75rem;">Pool 3</span>
+                    <input type="number" class="form-control form-control-tcs" id="cfg-pool3" min="0" max="100" value="25">
+                  </div>
+                </div>
+                <div class="col-12 mt-2">
+                  <button type="submit" class="btn btn-sm btn-tcs">Save Configuration</button>
+                  <span id="cfg-save-msg" class="ms-2" style="font-size:0.8rem;"></span>
+                </div>
+              </form>
+            </div>
+            <!-- Peer Management -->
+            <div class="tcs-card">
+              <h6>Configured Peers</h6>
+              <div class="table-responsive">
+                <table class="table table-tcs" id="tbl-cfg-peers">
+                  <thead>
+                    <tr><th>Node ID</th><th>IP</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab-content -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Peer Modal -->
+  <div class="modal fade" id="addPeerModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content" style="background:var(--tcs-card); border-color:var(--tcs-border); color:var(--tcs-text);">
+        <div class="modal-header" style="border-color:var(--tcs-border);">
+          <h6 class="modal-title text-green">Add Peer Node</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label" style="font-size:0.78rem;">Node ID</label>
+            <input type="text" class="form-control form-control-sm form-control-tcs" id="ap-node-id" placeholder="NIB-ECHO-05">
+          </div>
+          <div class="mb-2">
+            <label class="form-label" style="font-size:0.78rem;">IP Address</label>
+            <input type="text" class="form-control form-control-sm form-control-tcs" id="ap-ip" placeholder="10.45.0.5">
+          </div>
+          <div class="mb-2">
+            <label class="form-label" style="font-size:0.78rem;">Mode</label>
+            <select class="form-select form-select-sm form-select-tcs" id="ap-mode">
+              <option value="full_nib">Full NIB</option>
+              <option value="gnb_only">gNB-only</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:var(--tcs-border);">
+          <button type="button" class="btn btn-sm btn-tcs-outline" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-tcs" onclick="TCS.addPeer()">Add Peer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', 'bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+  /**
+   * SA Core — Tactical Communication System GUI
+   * 3GPP TS 23.501 §5.33: Non-public networks / tactical deployments
+   */
+  const TCS = (function() {
+    let map, nodeLayer, linkLayer, ueLayer;
+    let topoTimer = null, ueTimer = null;
+    let topoData = { nodes: [], links: [] };
+    let allUes = [];
+
+    // ── Utility ──
+    function _fetch(url, opts) {
+      return fetch(url, opts).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+    }
+    function _fmtTime(iso) {
+      if (!iso) return '--';
+      try { return new Date(iso).toLocaleTimeString(); } catch(e) { return iso; }
+    }
+    function _fmtDuration(s) {
+      if (s == null) return '--';
+      let m = Math.floor(s / 60), sec = s % 60;
+      return m + ':' + String(sec).padStart(2, '0');
+    }
+    function _fmtUptime(s) {
+      let h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+      return h + 'h ' + m + 'm';
+    }
+    function _qualityColor(q) {
+      if (q === 'good') return '#00ff41';
+      if (q === 'degraded') return '#ffbf00';
+      return '#ff2b2b';
+    }
+    function _linkQualityFromEtx(etx) {
+      if (etx <= 1.5) return 'good';
+      if (etx <= 3.0) return 'degraded';
+      return 'poor';
+    }
+    function _badgeHtml(cls, text) {
+      return '<span class="badge badge-' + cls + '" style="font-size:0.7rem;">' + text + '</span>';
+    }
+    function _qualityBarHtml(etx) {
+      let pct = Math.max(0, Math.min(100, (1 / etx) * 100));
+      let color = _qualityColor(_linkQualityFromEtx(etx));
+      return '<div class="quality-bar"><div class="quality-bar-fill" style="width:' + pct +
+             '%;background:' + color + ';"></div></div> <span style="font-size:0.75rem;">' +
+             etx.toFixed(1) + '</span>';
+    }
+
+    // ── Map Init ──
+    function initMap() {
+      map = L.map('topo-map').setView([34.054, -118.244], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OSM', maxZoom: 19
+      }).addTo(map);
+      nodeLayer = L.layerGroup().addTo(map);
+      linkLayer = L.layerGroup().addTo(map);
+      ueLayer = L.layerGroup().addTo(map);
+      setTimeout(function() { map.invalidateSize(); }, 200);
+    }
+
+    // ── Topology ──
+    function refreshTopology() {
+      _fetch('/api/tcs/mesh/topology').then(function(data) {
+        topoData = data;
+        drawMapTopology(data);
+      }).catch(function(e) { console.error('Topology fetch error:', e); });
+    }
+
+    function drawMapTopology(data) {
+      if (!map) return;
+      map.invalidateSize();
+      nodeLayer.clearLayers();
+      linkLayer.clearLayers();
+      ueLayer.clearLayers();
+
+      let nodeMap = {};
+      let bounds = [];
+
+      // Draw links first (below nodes)
+      (data.links || []).forEach(function(lnk) {
+        let fromNode = (data.nodes || []).find(n => n.node_id === lnk.from);
+        let toNode = (data.nodes || []).find(n => n.node_id === lnk.to);
+        if (fromNode && toNode && fromNode.lat && toNode.lat) {
+          let color = _qualityColor(lnk.quality || _linkQualityFromEtx(lnk.etx || 1));
+          let weight = lnk.quality === 'poor' ? 1 : (lnk.quality === 'degraded' ? 2 : 3);
+          let line = L.polyline(
+            [[fromNode.lat, fromNode.lon], [toNode.lat, toNode.lon]],
+            { color: color, weight: weight, opacity: 0.7, dashArray: lnk.quality === 'poor' ? '5,5' : null }
+          ).bindPopup(
+            '<b>' + lnk.from + ' &harr; ' + lnk.to + '</b><br>' +
+            'Quality: ' + (lnk.quality || '--') + '<br>' +
+            'RSRP: ' + (lnk.rsrp || '--') + ' dBm<br>' +
+            'ETX: ' + (lnk.etx || '--')
+          );
+          linkLayer.addLayer(line);
+        }
+      });
+
+      // Draw nodes
+      (data.nodes || []).forEach(function(n) {
+        if (!n.lat || !n.lon) return;
+        nodeMap[n.node_id] = n;
+        let isGnb = n.mode === 'gnb_only';
+        let iconHtml = isGnb
+          ? '<span style="color:#00ff41;font-size:22px;text-shadow:0 0 8px #00ff41;">&#x25B2;</span>'
+          : '<span style="color:#00b4d8;font-size:22px;text-shadow:0 0 8px #00b4d8;">&#x2B1F;</span>';
+        let marker = L.marker([n.lat, n.lon], {
+          icon: L.divIcon({
+            html: iconHtml, className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+          })
+        }).bindPopup(
+          '<div style="font-size:0.82rem;">' +
+          '<b style="color:#00ff41;">' + n.node_id + '</b><br>' +
+          'IP: ' + (n.ip || '--') + '<br>' +
+          'Mode: ' + (n.mode || '--') + '<br>' +
+          'Services: ' + (n.services || []).join(', ') + '<br>' +
+          'UEs: ' + (n.ue_count || 0) + '<br>' +
+          'Links: ' + ((data.links || []).filter(l => l.from === n.node_id || l.to === n.node_id).length) +
+          '</div>'
+        );
+        nodeLayer.addLayer(marker);
+        bounds.push([n.lat, n.lon]);
+      });
+
+      // Load UEs and place on map
+      _fetch('/api/tcs/ue-locations').then(function(ueData) {
+        (ueData.ues || []).forEach(function(ue) {
+          if (!ue.lat || !ue.lon) return;
+          let cm = L.circleMarker([ue.lat, ue.lon], {
+            radius: 5, color: '#ff2b2b', fillColor: '#ff4444', fillOpacity: 0.9, weight: 1
+          }).bindPopup(
+            '<div style="font-size:0.82rem;">' +
+            '<b style="color:#ff2b2b;">' + ue.supi + '</b><br>' +
+            'Node: ' + (ue.serving_node_id || '--') + '<br>' +
+            'Status: ' + (ue.status || '--') +
+            '</div>'
+          );
+          ueLayer.addLayer(cm);
+          bounds.push([ue.lat, ue.lon]);
+        });
+        if (bounds.length > 0) {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+        }
+      }).catch(function() {});
+    }
+
+    function fitMapBounds() {
+      if (!map) return;
+      let bounds = [];
+      nodeLayer.eachLayer(function(l) {
+        if (l.getLatLng) bounds.push(l.getLatLng());
+      });
+      ueLayer.eachLayer(function(l) {
+        if (l.getLatLng) bounds.push(l.getLatLng());
+      });
+      if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    }
+
+    // ── Node Status ──
+    function loadNodeStatus() {
+      _fetch('/api/tcs/status').then(function(d) {
+        document.getElementById('ln-id').textContent = d.node_id || '--';
+        document.getElementById('ln-mode').textContent = (d.mode === 'full_nib' ? 'Full NIB' : 'gNB-only');
+        document.getElementById('ln-ip').textContent = d.ip || '--';
+        document.getElementById('ln-uptime').textContent = _fmtUptime(d.uptime_s || 0);
+        document.getElementById('ln-peers').textContent = d.peer_count || 0;
+        document.getElementById('ln-ues').textContent = d.ue_count || 0;
+        // Header
+        document.getElementById('hdr-node').textContent = d.node_id || '';
+        let stBadge = document.getElementById('hdr-state');
+        let fState = d.fallback_state || 'UNKNOWN';
+        let stCls = fState === 'CONNECTED' ? 'badge-good' : (fState === 'DEGRADED' ? 'badge-degraded' : 'badge-poor');
+        stBadge.innerHTML = '<span class="badge ' + stCls + '" style="font-size:0.7rem;">' + fState + '</span>';
+        // Services
+        let svcHtml = (d.services || []).map(function(s) {
+          return '<span class="badge badge-active me-1" style="font-size:0.7rem;">' + s + '</span>';
+        }).join('');
+        document.getElementById('ln-services').innerHTML = '<span style="font-size:0.75rem;color:var(--tcs-muted);">Services:</span> ' + svcHtml;
+      }).catch(function() {});
+
+      _fetch('/api/tcs/peers').then(function(d) {
+        let tb = document.querySelector('#tbl-peers tbody');
+        tb.innerHTML = '';
+        (d.peers || []).forEach(function(p) {
+          let stCls = p.link_status === 'active' ? 'good' : (p.link_status === 'degraded' ? 'degraded' : 'poor');
+          let modeLbl = p.mode === 'full_nib' ? 'Full NIB' : 'gNB-only';
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + p.node_id + '</code></td>' +
+            '<td>' + p.ip + '</td>' +
+            '<td>' + modeLbl + '</td>' +
+            '<td>' + _badgeHtml(stCls, p.link_status) + '</td>' +
+            '<td>' + (p.rsrp || '--') + ' dBm</td>' +
+            '<td>' + (p.etx || '--') + '</td>' +
+            '<td>' + _qualityBarHtml(p.etx || 1) + '</td>' +
+            '<td>' + (p.mesh_hops || '--') + '</td>' +
+            '<td>' + _fmtTime(p.last_seen) + '</td>' +
+            '<td><button class="btn btn-sm btn-tcs-danger" onclick="TCS.removePeer(\'' + p.node_id + '\')">Remove</button></td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+    }
+
+    function addPeer() {
+      let body = {
+        node_id: document.getElementById('ap-node-id').value.trim(),
+        ip: document.getElementById('ap-ip').value.trim(),
+        mode: document.getElementById('ap-mode').value
+      };
+      if (!body.node_id || !body.ip) { alert('Node ID and IP required'); return; }
+      _fetch('/api/tcs/peers', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(function() {
+        bootstrap.Modal.getInstance(document.getElementById('addPeerModal')).hide();
+        loadNodeStatus();
+        refreshTopology();
+      }).catch(function(e) { alert('Error adding peer: ' + e.message); });
+    }
+
+    function removePeer(nodeId) {
+      if (!confirm('Remove peer ' + nodeId + '?')) return;
+      _fetch('/api/tcs/peers/' + encodeURIComponent(nodeId), { method: 'DELETE' })
+        .then(function() { loadNodeStatus(); refreshTopology(); })
+        .catch(function(e) { alert('Error: ' + e.message); });
+    }
+
+    // ── UE Tracking ──
+    function loadUeLocations() {
+      _fetch('/api/tcs/ue-locations').then(function(d) {
+        allUes = d.ues || [];
+        // Populate node filter
+        let nodeFilter = document.getElementById('ue-node-filter');
+        let existingOpts = new Set();
+        for (let i = 1; i < nodeFilter.options.length; i++) existingOpts.add(nodeFilter.options[i].value);
+        allUes.forEach(function(u) {
+          if (u.serving_node_id && !existingOpts.has(u.serving_node_id)) {
+            let opt = document.createElement('option');
+            opt.value = u.serving_node_id;
+            opt.text = u.serving_node_id;
+            nodeFilter.appendChild(opt);
+            existingOpts.add(u.serving_node_id);
+          }
+        });
+        renderUeTable(allUes);
+      }).catch(function() {});
+    }
+
+    function renderUeTable(ues) {
+      let tb = document.querySelector('#tbl-ues tbody');
+      tb.innerHTML = '';
+      ues.forEach(function(u) {
+        let stCls = u.status === 'ATTACHED' ? 'attached' : 'detached';
+        tb.innerHTML += '<tr style="cursor:pointer;" onclick="TCS.showUeHistory(\'' + u.supi + '\')">' +
+          '<td><code>' + u.supi + '</code></td>' +
+          '<td>' + (u.serving_node_id || '--') + '</td>' +
+          '<td>' + (u.serving_node_ip || '--') + '</td>' +
+          '<td style="font-size:0.75rem;">' + (u.ims_contact || '--') + '</td>' +
+          '<td style="font-size:0.75rem;">' + (u.mcx_endpoint || '--') + '</td>' +
+          '<td>' + _badgeHtml(stCls, u.status) + '</td>' +
+          '<td>' + _fmtTime(u.last_updated) + '</td>' +
+          '</tr>';
+      });
+    }
+
+    function filterUeTable() {
+      let search = (document.getElementById('ue-search').value || '').toLowerCase();
+      let nodeF = document.getElementById('ue-node-filter').value;
+      let statusF = document.getElementById('ue-status-filter').value;
+      let filtered = allUes.filter(function(u) {
+        if (search && !(u.supi || '').toLowerCase().includes(search)) return false;
+        if (nodeF && u.serving_node_id !== nodeF) return false;
+        if (statusF && u.status !== statusF) return false;
+        return true;
+      });
+      renderUeTable(filtered);
+    }
+
+    function showUeHistory(supi) {
+      document.getElementById('ue-history-card').style.display = '';
+      document.getElementById('ue-hist-supi').textContent = supi;
+      document.getElementById('ue-hist-content').innerHTML =
+        '<span style="color:var(--tcs-muted);">Mobility history for ' + supi + ' — feature requires core.tcs module.</span>';
+    }
+
+    // ── Mesh Routing ──
+    function loadMeshRouting() {
+      _fetch('/api/tcs/mesh/routes').then(function(d) {
+        let tb = document.querySelector('#tbl-routes tbody');
+        tb.innerHTML = '';
+        (d.routes || []).forEach(function(r) {
+          let pathStr = (r.path || []).map(function(p) {
+            return '<code style="font-size:0.7rem;">' + p + '</code>';
+          }).join(' &rarr; ');
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + r.destination + '</code></td>' +
+            '<td><code>' + r.next_hop + '</code></td>' +
+            '<td>' + pathStr + '</td>' +
+            '<td>' + (r.cost_etx || '--') + '</td>' +
+            '<td>' + (r.hops || '--') + '</td>' +
+            '<td>' + _fmtTime(r.updated_at) + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+
+      // Neighbor table (from peers data)
+      _fetch('/api/tcs/peers').then(function(d) {
+        let tb = document.querySelector('#tbl-neighbors tbody');
+        tb.innerHTML = '';
+        (d.peers || []).filter(function(p) { return p.mesh_hops === 1; }).forEach(function(p) {
+          let pdr = p.etx ? Math.min(100, Math.round((1 / p.etx) * 100)) : '--';
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + p.node_id + '</code></td>' +
+            '<td>' + p.ip + '</td>' +
+            '<td>' + (p.rsrp || '--') + ' dBm</td>' +
+            '<td>' + (p.etx || '--') + '</td>' +
+            '<td>' + pdr + '%</td>' +
+            '<td>' + _fmtTime(p.last_seen) + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+    }
+
+    function drawTopoGraph() {
+      let svg = document.getElementById('topo-svg');
+      let w = svg.clientWidth || 600, h = 350;
+      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      svg.innerHTML = '';
+
+      let nodes = topoData.nodes || [];
+      let links = topoData.links || [];
+      if (nodes.length === 0) {
+        svg.innerHTML = '<text x="' + (w/2) + '" y="' + (h/2) + '" text-anchor="middle" fill="#5a6e5a">No topology data</text>';
+        return;
+      }
+
+      // Simple circular layout
+      let cx = w / 2, cy = h / 2, radius = Math.min(w, h) * 0.35;
+      let posMap = {};
+      nodes.forEach(function(n, i) {
+        let angle = (2 * Math.PI * i / nodes.length) - Math.PI / 2;
+        posMap[n.node_id] = {
+          x: cx + radius * Math.cos(angle),
+          y: cy + radius * Math.sin(angle)
+        };
+      });
+
+      // Draw links
+      links.forEach(function(lnk) {
+        let from = posMap[lnk.from], to = posMap[lnk.to];
+        if (!from || !to) return;
+        let cls = 'link-' + (lnk.quality || _linkQualityFromEtx(lnk.etx || 1));
+        let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
+        line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
+        line.setAttribute('class', cls);
+        line.setAttribute('stroke-width', lnk.quality === 'poor' ? '1' : '2');
+        line.setAttribute('opacity', '0.6');
+        if (lnk.quality === 'poor') line.setAttribute('stroke-dasharray', '5,5');
+        svg.appendChild(line);
+
+        // ETX label at midpoint
+        let txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', (from.x + to.x) / 2);
+        txt.setAttribute('y', (from.y + to.y) / 2 - 5);
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('font-size', '9');
+        txt.setAttribute('fill', '#5a6e5a');
+        txt.textContent = 'ETX:' + (lnk.etx || '?');
+        svg.appendChild(txt);
+      });
+
+      // Draw nodes
+      nodes.forEach(function(n) {
+        let pos = posMap[n.node_id];
+        if (!pos) return;
+        let isGnb = n.mode === 'gnb_only';
+        let color = isGnb ? '#00ff41' : '#00b4d8';
+
+        let circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
+        circle.setAttribute('r', '18');
+        circle.setAttribute('fill', 'rgba(10,15,10,0.9)');
+        circle.setAttribute('stroke', color);
+        circle.setAttribute('stroke-width', '2');
+        svg.appendChild(circle);
+
+        // Inner symbol
+        let sym = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        sym.setAttribute('x', pos.x); sym.setAttribute('y', pos.y + 4);
+        sym.setAttribute('text-anchor', 'middle');
+        sym.setAttribute('font-size', isGnb ? '14' : '12');
+        sym.setAttribute('fill', color);
+        sym.textContent = isGnb ? '\u25B2' : '\u2B1F';
+        svg.appendChild(sym);
+
+        // Label
+        let label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', pos.x); label.setAttribute('y', pos.y + 34);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('font-size', '10');
+        label.setAttribute('fill', '#c8d6c8');
+        label.textContent = n.node_id;
+        svg.appendChild(label);
+      });
+    }
+
+    function traceRoute() {
+      let dest = document.getElementById('trace-dest').value.trim();
+      if (!dest) { alert('Enter destination node ID'); return; }
+      _fetch('/api/tcs/mesh/route/' + encodeURIComponent(dest)).then(function(d) {
+        let pathHtml = (d.path || []).map(function(p, i) {
+          let cls = (i === 0) ? 'text-green' : ((i === d.path.length - 1) ? 'text-amber' : '');
+          return '<code class="' + cls + '">' + p + '</code>';
+        }).join(' &rarr; ');
+        document.getElementById('trace-result').innerHTML =
+          '<div class="tcs-card" style="padding:0.5rem;">' +
+          '<b>Route:</b> ' + pathHtml + '<br>' +
+          '<b>Cost:</b> ETX ' + (d.cost_etx || '--') + ' | <b>Hops:</b> ' + (d.hops || '--') +
+          ' | <b>Computed:</b> ' + _fmtTime(d.computed_at) +
+          '</div>';
+      }).catch(function(e) {
+        document.getElementById('trace-result').innerHTML =
+          '<span class="text-tcs-red">Route trace failed: ' + e.message + '</span>';
+      });
+    }
+
+    // ── Sync Status ──
+    function loadSyncStatus() {
+      _fetch('/api/tcs/sync/status').then(function(d) {
+        document.getElementById('sync-local-ver').textContent = d.local_version || '--';
+        document.getElementById('sync-pending').textContent = d.pending_changesets || 0;
+        let peers = d.peers || [];
+        let allSync = peers.every(function(p) { return p.status === 'in_sync'; });
+        let healthEl = document.getElementById('sync-health');
+        if (allSync) {
+          healthEl.textContent = 'SYNCED';
+          healthEl.className = 'stat-value text-green';
+        } else {
+          healthEl.textContent = 'PENDING';
+          healthEl.className = 'stat-value text-amber';
+        }
+
+        let tb = document.querySelector('#tbl-sync-peers tbody');
+        tb.innerHTML = '';
+        peers.forEach(function(p) {
+          let stCls = p.status === 'in_sync' ? 'good' : (p.behind_by > 10 ? 'poor' : 'degraded');
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + p.node_id + '</code></td>' +
+            '<td>' + p.version + '</td>' +
+            '<td>' + _badgeHtml(stCls, p.status) + '</td>' +
+            '<td>' + (p.behind_by || 0) + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+
+      _fetch('/api/tcs/sync/history').then(function(d) {
+        let tb = document.querySelector('#tbl-sync-history tbody');
+        tb.innerHTML = '';
+        (d.history || []).forEach(function(h) {
+          let opCls = h.operation === 'INSERT' ? 'text-green' : (h.operation === 'DELETE' ? 'text-tcs-red' : 'text-amber');
+          tb.innerHTML += '<tr>' +
+            '<td>' + h.version + '</td>' +
+            '<td>' + _fmtTime(h.timestamp) + '</td>' +
+            '<td><code>' + h.source_node + '</code></td>' +
+            '<td>' + h.table + '</td>' +
+            '<td class="' + opCls + '">' + h.operation + '</td>' +
+            '<td>' + (h.summary || '') + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+    }
+
+    function triggerSync() {
+      _fetch('/api/tcs/sync/trigger', { method: 'POST' }).then(function(d) {
+        alert(d.message || 'Sync triggered');
+        loadSyncStatus();
+      }).catch(function(e) { alert('Sync trigger failed: ' + e.message); });
+    }
+
+    // ── Inter-NIB Services ──
+    function loadInterNib() {
+      _fetch('/api/tcs/inter-nib/trunks').then(function(d) {
+        let tb = document.querySelector('#tbl-trunks tbody');
+        tb.innerHTML = '';
+        (d.trunks || []).forEach(function(t) {
+          let stCls = t.status === 'active' ? 'active' : 'standby';
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + t.peer_node + '</code></td>' +
+            '<td>' + t.peer_sip_uri + '</td>' +
+            '<td>' + _badgeHtml(stCls, t.status) + '</td>' +
+            '<td>' + (t.calls_active || 0) + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+
+      _fetch('/api/tcs/inter-nib/calls').then(function(d) {
+        let tb = document.querySelector('#tbl-calls tbody');
+        tb.innerHTML = '';
+        (d.calls || []).forEach(function(c) {
+          tb.innerHTML += '<tr>' +
+            '<td><code style="font-size:0.72rem;">' + c.call_id + '</code></td>' +
+            '<td>' + c.caller + '</td>' +
+            '<td>' + c.callee + '</td>' +
+            '<td>' + (c.type || '--') + '</td>' +
+            '<td>' + (c.codec || '--') + '</td>' +
+            '<td>' + _fmtDuration(c.duration_s) + '</td>' +
+            '<td>' + _badgeHtml('active', c.status) + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+
+      _fetch('/api/tcs/inter-nib/mcx-groups').then(function(d) {
+        let tb = document.querySelector('#tbl-mcx tbody');
+        tb.innerHTML = '';
+        (d.groups || []).forEach(function(g) {
+          let membersHtml = Object.entries(g.members || {}).map(function(e) {
+            return '<code>' + e[0] + '</code>: ' + e[1];
+          }).join(', ');
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + g.group_id + '</code></td>' +
+            '<td>' + membersHtml + '</td>' +
+            '<td>' + (g.routing_mode || '--') + '</td>' +
+            '<td>' + (g.active_talker ? '<code>' + g.active_talker + '</code>' : '<span style="color:var(--tcs-muted);">None</span>') + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+    }
+
+    // ── Fallback ──
+    function loadFallback() {
+      _fetch('/api/tcs/fallback/status').then(function(d) {
+        document.getElementById('fb-mode').textContent = d.current_mode === 'full_nib' ? 'Full NIB' : 'gNB-only';
+        let coreStatus = (d.central_core || {}).status || 'unknown';
+        let coreEl = document.getElementById('fb-core-status');
+        coreEl.textContent = coreStatus.toUpperCase();
+        coreEl.className = 'stat-value ' + (coreStatus === 'connected' ? 'text-green' : 'text-tcs-red');
+        document.getElementById('fb-latency').textContent = ((d.central_core || {}).latency_ms || '--') + ' ms';
+
+        // State machine highlight
+        document.querySelectorAll('#state-machine .state-node').forEach(function(el) {
+          el.classList.toggle('current', el.dataset.state === d.state);
+        });
+
+        // History
+        let tb = document.querySelector('#tbl-state-history tbody');
+        tb.innerHTML = '';
+        (d.state_history || []).forEach(function(h) {
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + h.state + '</code></td>' +
+            '<td>' + _fmtTime(h.entered_at) + '</td>' +
+            '<td>' + (h.reason || '--') + '</td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+    }
+
+    function triggerFallback() {
+      if (!confirm('Trigger fallback mode? This is for testing purposes.')) return;
+      _fetch('/api/tcs/fallback/trigger', { method: 'POST' }).then(function(d) {
+        alert(d.message || 'Fallback triggered');
+        loadFallback();
+      }).catch(function(e) { alert('Error: ' + e.message); });
+    }
+
+    function triggerRecovery() {
+      _fetch('/api/tcs/fallback/recover', { method: 'POST' }).then(function(d) {
+        alert(d.message || 'Recovery initiated');
+        loadFallback();
+      }).catch(function(e) { alert('Error: ' + e.message); });
+    }
+
+    // ── Configuration ──
+    function loadConfig() {
+      _fetch('/api/tcs/config').then(function(d) {
+        document.getElementById('cfg-node-id').value = d.node_id || '';
+        document.getElementById('cfg-node-ip').value = d.node_ip || '';
+        document.getElementById('cfg-mode').value = d.mode || 'full_nib';
+        document.getElementById('cfg-mesh').value = d.mesh_protocol || 'OLSR-v2';
+        document.getElementById('cfg-hmac').value = (d.security || {}).hmac_key || '';
+        document.getElementById('cfg-encrypt').value = (d.security || {}).encryption_enabled ? '1' : '0';
+        let pools = d.v2x_pools || {};
+        document.getElementById('cfg-pool1').value = pools.pool1_pct || 40;
+        document.getElementById('cfg-pool2').value = pools.pool2_pct || 35;
+        document.getElementById('cfg-pool3').value = pools.pool3_pct || 25;
+
+        // Peer table in config
+        let tb = document.querySelector('#tbl-cfg-peers tbody');
+        tb.innerHTML = '';
+        (d.peers || []).forEach(function(p) {
+          tb.innerHTML += '<tr>' +
+            '<td><code>' + p.node_id + '</code></td>' +
+            '<td>' + p.ip + '</td>' +
+            '<td><button class="btn btn-sm btn-tcs-danger" onclick="TCS.removePeer(\'' + p.node_id + '\')">Remove</button></td>' +
+            '</tr>';
+        });
+      }).catch(function() {});
+    }
+
+    function saveConfig(e) {
+      e.preventDefault();
+      let body = {
+        node_id: document.getElementById('cfg-node-id').value.trim(),
+        node_ip: document.getElementById('cfg-node-ip').value.trim(),
+        mode: document.getElementById('cfg-mode').value,
+        mesh_protocol: document.getElementById('cfg-mesh').value,
+        security: {
+          hmac_key: document.getElementById('cfg-hmac').value,
+          encryption_enabled: document.getElementById('cfg-encrypt').value === '1'
+        },
+        v2x_pools: {
+          pool1_pct: parseInt(document.getElementById('cfg-pool1').value) || 0,
+          pool2_pct: parseInt(document.getElementById('cfg-pool2').value) || 0,
+          pool3_pct: parseInt(document.getElementById('cfg-pool3').value) || 0
+        }
+      };
+      _fetch('/api/tcs/config', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      }).then(function(d) {
+        let msg = document.getElementById('cfg-save-msg');
+        msg.innerHTML = '<span class="text-green">Configuration saved</span>';
+        setTimeout(function() { msg.innerHTML = ''; }, 3000);
+      }).catch(function(e) {
+        let msg = document.getElementById('cfg-save-msg');
+        msg.innerHTML = '<span class="text-tcs-red">Save failed: ' + e.message + '</span>';
+      });
+    }
+
+    function toggleHmac() {
+      let el = document.getElementById('cfg-hmac');
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    // ── Tab switching & keyboard shortcuts ──
+    function initTabs() {
+      document.querySelectorAll('#sidebar a[data-bs-toggle="list"]').forEach(function(link) {
+        link.addEventListener('click', function() {
+          document.querySelectorAll('#sidebar a.active').forEach(function(a) {
+            if (a !== link) a.classList.remove('active');
+          });
+          document.querySelectorAll('.tab-content .tab-pane').forEach(function(p) {
+            p.classList.remove('show', 'active');
+          });
+          var target = document.querySelector(link.getAttribute('href'));
+          if (target) {
+            target.classList.add('show', 'active');
+            onTabActivated(link.getAttribute('href'));
+          }
+        });
+      });
+    }
+
+    function onTabActivated(tabId) {
+      if (tabId === '#tab-topology') {
+        setTimeout(function() { if (map) { map.invalidateSize(); refreshTopology(); } }, 100);
+      } else if (tabId === '#tab-nodes') {
+        loadNodeStatus();
+      } else if (tabId === '#tab-ue') {
+        loadUeLocations();
+      } else if (tabId === '#tab-mesh') {
+        loadMeshRouting();
+        drawTopoGraph();
+      } else if (tabId === '#tab-sync') {
+        loadSyncStatus();
+      } else if (tabId === '#tab-inter') {
+        loadInterNib();
+      } else if (tabId === '#tab-fallback') {
+        loadFallback();
+      } else if (tabId === '#tab-config') {
+        loadConfig();
+      }
+    }
+
+    function activateTabByKey(key) {
+      var link = document.querySelector('#sidebar a[data-key="' + key + '"]');
+      if (link) link.click();
+    }
+
+    // ── Auto-refresh timers ──
+    function startTimers() {
+      // Topology refresh every 5s
+      topoTimer = setInterval(function() {
+        var pane = document.getElementById('tab-topology');
+        if (pane && pane.classList.contains('active')) refreshTopology();
+      }, 5000);
+      // UE tracking refresh every 3s
+      ueTimer = setInterval(function() {
+        var pane = document.getElementById('tab-ue');
+        if (pane && pane.classList.contains('active')) loadUeLocations();
+      }, 3000);
+    }
+
+    // ── Keyboard handler ──
+    function initKeyboard() {
+      document.addEventListener('keydown', function(e) {
+        // Ignore if typing in input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+        if (e.key === 't' || e.key === 'T') {
+          // Cycle through tabs
+          var tabs = document.querySelectorAll('#sidebar a[data-key]');
+          var active = document.querySelector('#sidebar a.active[data-key]');
+          var currentKey = active ? parseInt(active.dataset.key) : 0;
+          var nextKey = (currentKey % tabs.length) + 1;
+          activateTabByKey(nextKey);
+          e.preventDefault();
+        }
+        // Number keys 1-8 for direct tab access
+        if (e.key >= '1' && e.key <= '8' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          activateTabByKey(e.key);
+          e.preventDefault();
+        }
+      });
+    }
+
+    // ── Init ──
+    function init() {
+      initMap();
+      initTabs();
+      initKeyboard();
+      // Initial loads
+      refreshTopology();
+      loadNodeStatus();
+      startTimers();
+      // Config form handler
+      document.getElementById('frm-config').addEventListener('submit', saveConfig);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    return {
+      refreshTopology: refreshTopology,
+      fitMapBounds: fitMapBounds,
+      addPeer: addPeer,
+      removePeer: removePeer,
+      filterUeTable: filterUeTable,
+      showUeHistory: showUeHistory,
+      drawTopoGraph: drawTopoGraph,
+      traceRoute: traceRoute,
+      triggerSync: triggerSync,
+      triggerFallback: triggerFallback,
+      triggerRecovery: triggerRecovery,
+      toggleHmac: toggleHmac
+    };
+  })();
+  </script>
+</body>
+</html>

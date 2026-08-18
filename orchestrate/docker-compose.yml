@@ -1,0 +1,292 @@
+# Top-level orchestration: mmt-studio-core (Go) + mmt_studio_core_tester
+# (Python) on the same Docker host, each in its own network namespace
+# with a unique IP — so SCTP/38412 (NGAP) and UDP/2152 (GTP-U) don't
+# collide.
+#
+# ┌────────────── Linux bridge: mmtnet, 172.30.0.0/24 ──────────────┐
+# │                                                                 │
+# │   sacore  172.30.0.10        satester  172.30.0.20              │
+# │   ───────────────────        ─────────────────────              │
+# │   :38412/sctp  (AMF)  ◄── SCTP ── (gNB ephemeral src)           │
+# │   :2152/udp   (UPF)   ◄─ GTP-U ──►  :2152/udp  (gNB sim)        │
+# │   :5000/tcp   (web) ─────────────────► host :5000               │
+# │   :9100/tcp (traffic agent, in sacore netns via `satraffic`)    │
+# │                                  :5001/tcp (web) ─► host :5001  │
+# │                                                                 │
+# └─────────────────────────────────────────────────────────────────┘
+#
+# Three services, one bridge:
+#   sacore     — Go core (AMF/SMF/UPF), owns the upfgtp TUN
+#   satraffic  — Python traffic-agent slave; SAME image as satester,
+#                runs `src.traffic.agent_main`. Lives in sacore's
+#                netns (`network_mode: service:sacore`) so iperf3
+#                packets it generates traverse the UPF's upfgtp TUN.
+#                Tester is master, satraffic is slave — single
+#                codebase (mmt_studio_core_tester/src/traffic/) used
+#                on both sides.
+#   satester   — Python orchestrator + gNB/UE simulator (master)
+#
+# Why a custom bridge instead of network_mode: host?
+#   - host net forces both containers to share the host's IP/netns,
+#     which makes (0.0.0.0, 2152, udp) collide between core's UPF
+#     and tester's gNB simulator.
+#   - With a custom bridge each container has its own netns + IP, so
+#     each can bind 0.0.0.0:2152 independently.
+#   - SCTP works fine over a Linux bridge for container-to-container
+#     traffic — only Docker's userland docker-proxy (used by `-p`
+#     port mapping) breaks SCTP, and we only port-map the TCP web UIs.
+#
+# Tester runtime config (point gNB profile at core's bridge IP):
+#   amf_ip   = 172.30.0.10
+#   amf_port = 38412
+#   upf_ip   = 172.30.0.10  (core has integrated UPF)
+#   gtpu_port = 2152
+# Set these in the tester web UI (http://localhost:5001) under
+# Infrastructure → AMF / gNB profile, or seed via config/.
+#
+# Bring-up:
+#   cd /home/bxb/work/mmt-studio-orchestrate && docker compose up --build -d
+#   docker compose logs -f
+#
+# Tear down:
+#   docker compose down
+
+networks:
+  mmtnet:
+    name: mmtnet
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1
+    driver_opts:
+      # Give the host bridge a stable, legible name (instead of the
+      # auto-generated `br-<hash>` Docker would otherwise pick). Shows
+      # up in `ifconfig` / `ip link` / `tcpdump -i mmtnet0` cleanly.
+      com.docker.network.bridge.name: mmtnet0
+      # Larger MTU so GTP-U-encapsulated 1500-byte UE frames
+      # (1500 + 8 GTP-U + 20 IP + 8 UDP = 1536) don't fragment.
+      com.docker.network.driver.mtu: "1600"
+
+services:
+  sacore:
+    # Default image tag points at the local dev build the orchestrate
+    # workflow produces. The published installer sets SACORE_IMAGE to
+    # ghcr.io/makemytechnology/mmt-studio-core:<version> so no
+    # `build:` happens on customer hosts. The build context is kept
+    # so `docker compose build` still works for developers checked
+    # out alongside the sibling repos.
+    #
+    # `network: host` on build (NOT runtime) lets BuildKit's build
+    # sandbox share the daemon host's network namespace during
+    # metadata/auth fetches. Without it, on Docker Desktop / WSL2 the
+    # sandbox uses a fresh netns whose resolv.conf may not match the
+    # daemon's `dns` config, producing intermittent
+    #   "dial tcp: lookup auth.docker.io … i/o timeout"
+    # failures during `[internal] load metadata`. Has no effect on
+    # runtime networking (the `networks:` block below still applies).
+    build:
+      context: ../core
+      dockerfile: tools/release/Dockerfile
+      network: host
+    image: ${SACORE_IMAGE:-mmt-studio-core:dev}
+    container_name: sacore
+    # Compose profiles let one file drive three deployment shapes:
+    #   --profile both    — single-host all-in-one (default for run_studio.sh)
+    #   --profile core    — core-only host (tester runs elsewhere)
+    #   --profile tester  — tester-only host (points at remote core)
+    profiles: ["core", "both"]
+    restart: unless-stopped
+    networks:
+      mmtnet:
+        ipv4_address: 172.30.0.10
+    ports:
+      # Web UI only — SCTP/GTP-U stay on the bridge, never NAT'd.
+      - "5000:5000"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - IPC_LOCK
+      - SYS_NICE
+      - SYS_RESOURCE
+    volumes:
+      # Persist the SQLite DB across down/up so AMF IP, gNB profiles,
+      # subscribers, etc. survive container recreation. Mount at a
+      # dedicated path (NOT /opt/mmt-studio-core/webservice) — the
+      # latter contains templates/ and static/ in the image, and
+      # mounting a volume there hides those once they're captured
+      # into the volume on first creation. That stale-template overlay
+      # was why GUI changes (UPF Instances form, etc.) didn't show
+      # after image rebuild. The binary picks the new location via
+      # SA_CORE_DB_FILE below. Existing volumes keep working —
+      # sacore.db sits at the volume's root either way.
+      - sacore_data:/var/lib/sacore
+      - /dev/hugepages:/dev/hugepages
+      - /sys/bus/pci/devices:/sys/bus/pci/devices:ro
+      - /sys/kernel/mm/hugepages:/sys/kernel/mm/hugepages:ro
+      - /sys/devices/system/node:/sys/devices/system/node:ro
+      - /lib/modules:/lib/modules:ro
+    devices:
+      - /dev/vfio:/dev/vfio
+      # UPF DPDK dataplane creates the `mmttun` (upfgtp) TUN for
+      # post-decap UE↔DN forwarding; without /dev/net/tun the cgo
+      # bridge logs "Cannot open /dev/net/tun" and packets never
+      # reach the UE side → TC-TRF-* shows 0 Mbps even when DPDK
+      # EAL itself is happy.
+      - /dev/net/tun:/dev/net/tun
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    environment:
+      - SACORE_HUGEPAGE_COUNT=512
+      # DB lives in the dedicated persistence volume, not under the
+      # templates/static tree. See the volumes block above for why.
+      - SA_CORE_DB_FILE=/var/lib/sacore/sacore.db
+    sysctls:
+      # SCTP server-side knobs are per-netns under modern kernels.
+      net.sctp.rcvbuf_policy: "0"
+      net.sctp.sndbuf_policy: "0"
+    healthcheck:
+      test: ["CMD-SHELL", "ss -tln | grep -q ':5000' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Traffic-agent SLAVE on the core side. Same image as satester (built
+  # by the satester service below — image: tag dedups), but launches
+  # `src.traffic.agent_main` instead of the orchestrator/web UI. Joins
+  # sacore's network namespace via `network_mode: service:sacore` so:
+  #   - DL iperf3 client packets it generates leave via sacore's upfgtp
+  #     TUN, get GTP-U-encapped by UPF, and reach UE TUNs in satester.
+  #   - UL iperf3 server it hosts is reachable on sacore's mmtnet IP
+  #     (172.30.0.10:9100 for HTTP control; iperf3 ephemeral data ports
+  #     are also in sacore's netns).
+  # Master (satester) drives this via TrafficAgent HTTP — base_url is
+  # configured in tester DB row `traffic_agents` (default → http://172.30.0.10:9100).
+  satraffic:
+    build:
+      context: ../tester
+      dockerfile: build/Dockerfile
+      # See `network: host` rationale in the sacore build block above.
+      network: host
+    image: ${SATESTER_IMAGE:-mmt-studio-tester:dev}
+    container_name: satraffic
+    # satraffic shares sacore's netns — only meaningful when sacore
+    # is colocated on the same host. So it lives in the core/both
+    # profiles, never in tester-only.
+    profiles: ["core", "both"]
+    restart: unless-stopped
+    network_mode: "service:sacore"
+    command:
+      - python3
+      - -m
+      - src.traffic.agent_main
+      - --bind
+      - 0.0.0.0
+      - --port
+      - "9100"
+    cap_add:
+      # DSCP/TOS marking on iperf3 sockets (setsockopt IP_TOS for high
+      # values) needs CAP_NET_ADMIN on some kernels.
+      - NET_ADMIN
+    environment:
+      - PYTHONUNBUFFERED=1
+      # No SA_AGENT_TOKEN — auth disabled by design (agent_main.py
+      # treats unset token as "no auth", fine for isolated lab nets).
+    depends_on:
+      sacore:
+        condition: service_healthy
+    healthcheck:
+      # Two-step probe:
+      #   1. `ss` confirms own FastAPI agent port (:9100) is up.
+      #   2. Bare TCP connect to localhost:5000 (sacore web) confirms
+      #      the netns is correctly joined. We open + close the socket
+      #      WITHOUT speaking HTTP — full HTTP requests would close
+      #      the body mid-stream and spam sacore's web log with
+      #      "connection reset by peer" / "broken pipe" entries every
+      #      10s. socket.connect() is enough to prove "sacore-web is
+      #      reachable on the shared netns"; if satraffic is in a
+      #      stale orphaned netns, the connect refuses and the
+      #      healthcheck fails (operator sees `unhealthy` in
+      #      `docker ps`). /proc/net/* is mount-ns-scoped so we can't
+      #      probe sacore's UDP/2152 from satraffic's `ss`; the TCP
+      #      connect path is the cleanest substitute.
+      test: ["CMD-SHELL", "ss -ltn | grep -q ':9100' && python3 -c 'import socket; s=socket.create_connection((\"127.0.0.1\",5000),2); s.close()'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  satester:
+    build:
+      context: ../tester
+      dockerfile: build/Dockerfile
+      # See `network: host` rationale in the sacore build block above.
+      network: host
+    image: ${SATESTER_IMAGE:-mmt-studio-tester:dev}
+    container_name: satester
+    profiles: ["tester", "both"]
+    restart: unless-stopped
+    networks:
+      mmtnet:
+        ipv4_address: 172.30.0.20
+    ports:
+      - "5001:5001"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      # Tester creates TUN devices (one per simulated UE) → needs /dev/net/tun
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - satester_data:/app/data
+      - satester_config:/app/config
+      # Docker socket — the tester uses this to restart satraffic after
+      # /api/admin/remove-db-file on sa_core, because satraffic
+      # shares sa_core's netns and its bound iperf3 sockets go stale
+      # when the netns is recreated by a sacore restart. The tester
+      # speaks the docker HTTP API via curl --unix-socket; no docker
+      # CLI needed in the image.
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Defaults point at the in-bundle sacore (172.30.0.10) on a
+      # single-host (--role=both) deploy. For a split-host topology
+      # (--role=tester only), install.sh writes a .env that overrides
+      # these to the remote core's reachable address (typically the
+      # core host's LAN IP, port 5000/38412/2152 exposed there).
+      - AMF_IP=${AMF_IP:-172.30.0.10}
+      - AMF_PORT=${AMF_PORT:-38412}
+      - UPF_IP=${UPF_IP:-172.30.0.10}
+      - GTPU_PORT=${GTPU_PORT:-2152}
+      - SACORE_BASE_URL=${SACORE_BASE_URL:-http://172.30.0.10:5000}
+    # depends_on only matters when the upstream services are also in
+    # the active profile set (--role=both). For --role=tester these
+    # entries are silently skipped by Compose.
+    depends_on:
+      sacore:
+        condition: service_healthy
+        required: false
+      satraffic:
+        condition: service_healthy
+        required: false
+
+# Named volumes for state persistence across `down/up`. Wipe with:
+#   docker compose down -v
+#
+# sacore_data    — sacore's SQLite DB (Network Config, gNB profiles,
+#                  subscribers, …).
+# satester_data  — tester DB + run artefacts. Replaces the dev-time
+#                  ../tester/data bind mount; that
+#                  path doesn't exist on a customer install where
+#                  the source tree isn't checked out.
+# satester_config — tester YAML overrides. Same reason as above.
+volumes:
+  sacore_data:
+  satester_data:
+  satester_config:

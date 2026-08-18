@@ -1,0 +1,156 @@
+<!-- templates/ntn.html — NTN Satellite Dashboard (TS 38.821) -->
+
+<style>
+.ntn-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.ntn-card .t-val { font-size: 1.5rem; font-weight: 700; }
+.ntn-card .t-lbl { font-size: 0.78rem; opacity: 0.9; }
+.tc-blue { background: #0d6efd; }
+.tc-green { background: #28a745; }
+.tc-orange { background: #fd7e14; }
+.tc-gray { background: #6c757d; }
+.sat-row { border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; background: #f8f9fa; }
+.sat-row .sat-name { font-weight: 600; font-size: 0.95rem; }
+.sat-row .sat-detail { font-size: 0.82rem; color: #555; margin-top: 4px; }
+.sat-row .sat-detail span { margin-right: 14px; }
+.sat-orbit { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+.orbit-LEO { background: #0d6efd; }
+.orbit-MEO { background: #6f42c1; }
+.orbit-GEO { background: #fd7e14; }
+.orbit-HAPS { background: #28a745; }
+</style>
+
+<!-- Summary -->
+<div class="row g-2 mb-3" id="ntnSummary">
+  <div class="col"><div class="ntn-card tc-blue"><div class="t-val" id="ntnSatCount">--</div><div class="t-lbl">Satellites</div></div></div>
+  <div class="col"><div class="ntn-card tc-green"><div class="t-val" id="ntnGsCount">--</div><div class="t-lbl">Ground Stations</div></div></div>
+  <div class="col"><div class="ntn-card tc-orange"><div class="t-val" id="ntnTaiCount">--</div><div class="t-lbl">NTN TAIs</div></div></div>
+  <div class="col"><div class="ntn-card tc-gray"><div class="t-val" id="ntnBufCount">--</div><div class="t-lbl">Buffered UEs</div></div></div>
+</div>
+
+<!-- Load Defaults -->
+<div class="mb-3">
+  <button class="btn btn-sm btn-outline-primary" onclick="ntnLoadDefaults()">Load Default Constellation</button>
+  <button class="btn btn-sm btn-outline-secondary ms-1" onclick="ntnLoad()">Refresh</button>
+</div>
+
+<!-- Coverage Check -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Coverage Check</strong></div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label form-label-sm">Latitude</label>
+        <input type="number" step="0.0001" class="form-control form-control-sm" id="ntnLat" value="13.0" placeholder="13.0">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm">Longitude</label>
+        <input type="number" step="0.0001" class="form-control form-control-sm" id="ntnLon" value="77.5" placeholder="77.5">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-primary w-100" onclick="ntnCheckCoverage()">Check</button>
+      </div>
+      <div class="col-md-4" id="ntnCovResult"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Satellites -->
+<h6 class="fw-bold mb-2">Satellites</h6>
+<div id="ntnSatList"><small class="text-muted">No satellites configured</small></div>
+
+<!-- Ground Stations -->
+<h6 class="fw-bold mt-3 mb-2">Ground Stations</h6>
+<div id="ntnGsList"><small class="text-muted">No ground stations</small></div>
+
+<!-- TAIs -->
+<h6 class="fw-bold mt-3 mb-2">NTN Geographic TAIs</h6>
+<div id="ntnTaiList"><small class="text-muted">No TAIs</small></div>
+
+<!-- Feeder Links -->
+<h6 class="fw-bold mt-3 mb-2">Feeder Links</h6>
+<div id="ntnFeederLinks"><small class="text-muted">No active feeder links</small></div>
+
+<script>
+function ntnLoad() {
+  // Constellation
+  fetch('/api/ntn/constellation').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    document.getElementById('ntnSatCount').textContent = d.satellite_count;
+    document.getElementById('ntnGsCount').textContent = d.ground_stations.length;
+
+    const satDiv = document.getElementById('ntnSatList');
+    if (!d.satellites.length) { satDiv.innerHTML = '<small class="text-muted">No satellites</small>'; }
+    else {
+      satDiv.innerHTML = d.satellites.map(s => {
+        const pos = s.position || {};
+        return `<div class="sat-row">
+          <span class="sat-name">${s.name}</span>
+          <span class="sat-orbit orbit-${s.orbit_type}">${s.orbit_type}</span>
+          <div class="sat-detail">
+            <span>Alt: ${s.altitude_km} km</span>
+            <span>Beams: ${s.beam_count}</span>
+            <span>RTT: ${s.min_rtt_ms}-${s.max_rtt_ms} ms</span>
+            <span>Pos: ${pos.latitude||'--'}, ${pos.longitude||'--'}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const gsDiv = document.getElementById('ntnGsList');
+    if (!d.ground_stations.length) { gsDiv.innerHTML = '<small class="text-muted">No ground stations</small>'; }
+    else {
+      gsDiv.innerHTML = d.ground_stations.map(g =>
+        `<div class="sat-row"><span class="sat-name">${g.name}</span><div class="sat-detail"><span>Lat: ${g.latitude}</span><span>Lon: ${g.longitude}</span><span>gNB: ${g.connected_gnb_ip||'None'}</span></div></div>`
+      ).join('');
+    }
+  }).catch(()=>{});
+
+  // TAIs
+  fetch('/api/ntn/tais').then(r=>r.json()).then(d => {
+    document.getElementById('ntnTaiCount').textContent = d.count || 0;
+    const div = document.getElementById('ntnTaiList');
+    if (!d.tais || !d.tais.length) { div.innerHTML = '<small class="text-muted">No TAIs</small>'; return; }
+    div.innerHTML = d.tais.map(t =>
+      `<div class="sat-row"><span class="sat-name">TAC ${t.tac}</span><div class="sat-detail"><span>Center: ${t.center_lat}, ${t.center_lon}</span><span>Radius: ${t.radius_km} km</span><span>${t.mcc}/${t.mnc}</span></div></div>`
+    ).join('');
+  }).catch(()=>{});
+
+  // Buffer status
+  fetch('/api/ntn/buffer-status').then(r=>r.json()).then(d => {
+    document.getElementById('ntnBufCount').textContent = d.total_ues_buffered || 0;
+  }).catch(()=>{});
+
+  // Feeder links
+  fetch('/api/ntn/feeder-links').then(r=>r.json()).then(d => {
+    const div = document.getElementById('ntnFeederLinks');
+    const links = d.active_links || {};
+    const keys = Object.keys(links);
+    if (!keys.length) { div.innerHTML = '<small class="text-muted">No active feeder links</small>'; return; }
+    div.innerHTML = keys.map(k => {
+      const l = links[k];
+      return `<div class="sat-row"><span class="sat-name">${k}</span><div class="sat-detail"><span>GS: ${l.gs_id}</span><span>gNB: ${l.gnb_ip}</span></div></div>`;
+    }).join('');
+  }).catch(()=>{});
+}
+
+function ntnCheckCoverage() {
+  const lat = document.getElementById('ntnLat').value;
+  const lon = document.getElementById('ntnLon').value;
+  fetch(`/api/ntn/coverage?lat=${lat}&lon=${lon}`).then(r=>r.json()).then(d => {
+    const div = document.getElementById('ntnCovResult');
+    if (d.covered) {
+      div.innerHTML = `<span class="badge bg-success">Covered</span> <small>${d.satellite_name} (el: ${d.elevation_deg||'--'}°, ${d.visible_satellites} visible)</small>`;
+    } else {
+      div.innerHTML = `<span class="badge bg-danger">No Coverage</span> <small>${d.message||''}</small>`;
+    }
+  }).catch(()=>{});
+}
+
+function ntnLoadDefaults() {
+  fetch('/api/ntn/load-defaults', {method:'POST'}).then(r=>r.json()).then(d => {
+    if (d.ok) ntnLoad();
+  });
+}
+
+document.querySelector('a[href="#ntn-tab"]')?.addEventListener('shown.bs.tab', ntnLoad);
+</script>

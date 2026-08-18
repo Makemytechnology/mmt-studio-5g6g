@@ -1,0 +1,185 @@
+<!-- Roaming Management (TS 23.501 §5.17) -->
+<h5>Roaming <small class="text-muted">TS 23.501 §5.17</small></h5>
+
+<!-- Stats -->
+<div class="row mb-3">
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Active Sessions</div>
+    <span class="fs-4 fw-bold" id="rm-active">-</span>
+  </div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Inbound</div>
+    <span class="fs-4 fw-bold text-primary" id="rm-inbound">-</span>
+  </div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">CDRs Pending</div>
+    <span class="fs-4 fw-bold text-warning" id="rm-cdrs">-</span>
+  </div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Agreements</div>
+    <span class="fs-4 fw-bold text-success" id="rm-agreements">-</span>
+  </div></div></div>
+</div>
+
+<!-- Roaming Agreements -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Roaming Agreements
+    <button class="btn btn-primary btn-sm" onclick="rmShowAdd()">Add Agreement</button>
+  </div>
+  <div class="card-body border-bottom bg-light d-none" id="rm-form">
+    <div class="row g-2">
+      <div class="col-md-2"><label class="form-label small">Partner PLMN</label>
+        <input type="text" class="form-control form-control-sm" id="rm-plmn" placeholder="310-260"></div>
+      <div class="col-md-2"><label class="form-label small">Name</label>
+        <input type="text" class="form-control form-control-sm" id="rm-name" placeholder="T-Mobile US"></div>
+      <div class="col-md-2"><label class="form-label small">Direction</label>
+        <select class="form-select form-select-sm" id="rm-dir">
+          <option value="both">Both</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option>
+        </select></div>
+      <div class="col-md-2"><label class="form-label small">Mode</label>
+        <select class="form-select form-select-sm" id="rm-mode">
+          <option value="lbo">Local Breakout</option><option value="hr">Home-Routed</option><option value="both">Both</option>
+        </select></div>
+    </div>
+    <div class="row g-2 mt-1">
+      <div class="col-md-3"><label class="form-label small">H-AUSF Endpoint</label>
+        <input type="text" class="form-control form-control-sm" id="rm-ausf" placeholder="http://hplmn:8080"></div>
+      <div class="col-md-3"><label class="form-label small">H-UDM Endpoint</label>
+        <input type="text" class="form-control form-control-sm" id="rm-udm" placeholder="http://hplmn:8081"></div>
+      <div class="col-md-3"><label class="form-label small">H-SMF Endpoint (HR)</label>
+        <input type="text" class="form-control form-control-sm" id="rm-smf" placeholder="http://hplmn:8082"></div>
+      <div class="col-md-3"><label class="form-label small">SEPP Endpoint</label>
+        <input type="text" class="form-control form-control-sm" id="rm-sepp" placeholder="https://sepp:32443"></div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-success btn-sm" onclick="rmSave()">Save</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="rmHideAdd()">Cancel</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>Partner PLMN</th><th>Name</th><th>Direction</th><th>Mode</th><th>AUSF</th><th>UDM</th><th>Status</th><th></th></tr></thead>
+      <tbody id="rm-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Active Roaming Sessions -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Active Roaming Sessions
+    <button class="btn btn-outline-secondary btn-sm" onclick="rmLoadSessions()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>IMSI</th><th>Home PLMN</th><th>Direction</th><th>Mode</th><th>Started</th><th>Status</th></tr></thead>
+      <tbody id="rm-sessions"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CDR Export -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Roaming CDRs <small class="text-muted ms-2">TS 32.240</small>
+    <button class="btn btn-outline-primary btn-sm" onclick="rmExportCdrs()">Export TAP Records</button>
+  </div>
+  <div class="card-body">
+    <div id="rm-cdr-info" class="small text-muted">Loading...</div>
+  </div>
+</div>
+
+<script>
+function rmApi(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('/api/roaming' + path, opts).then(r => r.json());
+}
+
+function rmLoadAll() { rmLoadStats(); rmLoadAgreements(); rmLoadSessions(); rmLoadCdrStats(); }
+
+function rmLoadStats() {
+  rmApi('GET', '/stats').then(d => {
+    document.getElementById('rm-active').textContent = d.active_sessions || 0;
+    document.getElementById('rm-inbound').textContent = d.inbound_active || 0;
+    document.getElementById('rm-cdrs').textContent = d.unexported || 0;
+    document.getElementById('rm-agreements').textContent = d.total_sessions !== undefined ? '-' : '-';
+  }).catch(() => {});
+  rmApi('GET', '/agreements').then(a => {
+    document.getElementById('rm-agreements').textContent = a.length || 0;
+  }).catch(() => {});
+}
+
+function rmLoadAgreements() {
+  rmApi('GET', '/agreements').then(agreements => {
+    const tb = document.getElementById('rm-list');
+    if (!agreements.length) { tb.innerHTML = '<tr><td colspan="8" class="text-muted text-center">No agreements</td></tr>'; return; }
+    tb.innerHTML = '';
+    agreements.forEach(a => {
+      const st = a.enabled ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Disabled</span>';
+      const ausf = a.ausf_endpoint ? '<span class="badge bg-info">Yes</span>' : '-';
+      const udm = a.udm_endpoint ? '<span class="badge bg-info">Yes</span>' : '-';
+      tb.innerHTML += `<tr>
+        <td><code>${a.partner_plmn_id}</code></td><td>${a.partner_name||'-'}</td>
+        <td>${a.direction}</td><td>${a.roaming_mode}</td>
+        <td>${ausf}</td><td>${udm}</td><td>${st}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="rmDel('${a.partner_plmn_id}')">Del</button></td>
+      </tr>`;
+    });
+  });
+}
+
+function rmShowAdd() { document.getElementById('rm-form').classList.remove('d-none'); }
+function rmHideAdd() { document.getElementById('rm-form').classList.add('d-none'); }
+
+function rmSave() {
+  const plmn = document.getElementById('rm-plmn').value.trim();
+  if (!plmn) { alert('Partner PLMN required (e.g., 310-260)'); return; }
+  rmApi('POST', '/agreements', {
+    partner_plmn_id: plmn,
+    partner_name: document.getElementById('rm-name').value,
+    direction: document.getElementById('rm-dir').value,
+    roaming_mode: document.getElementById('rm-mode').value,
+    ausf_endpoint: document.getElementById('rm-ausf').value,
+    udm_endpoint: document.getElementById('rm-udm').value,
+    smf_endpoint: document.getElementById('rm-smf').value,
+    sepp_endpoint: document.getElementById('rm-sepp').value,
+  }).then(() => { rmHideAdd(); rmLoadAll(); });
+}
+
+function rmDel(plmn) {
+  if (!confirm('Delete agreement with ' + plmn + '?')) return;
+  rmApi('DELETE', '/agreements/' + plmn).then(() => rmLoadAll());
+}
+
+function rmLoadSessions() {
+  rmApi('GET', '/sessions').then(sessions => {
+    const tb = document.getElementById('rm-sessions');
+    if (!sessions.length) { tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center">No active sessions</td></tr>'; return; }
+    tb.innerHTML = '';
+    sessions.forEach(s => {
+      const t = new Date(s.start_time * 1000).toLocaleString();
+      tb.innerHTML += `<tr><td><code>${s.imsi}</code></td><td>${s.home_plmn_id}</td>
+        <td>${s.direction}</td><td>${s.roaming_mode}</td><td>${t}</td>
+        <td><span class="badge bg-success">${s.status}</span></td></tr>`;
+    });
+  });
+}
+
+function rmLoadCdrStats() {
+  rmApi('GET', '/cdrs/stats').then(d => {
+    document.getElementById('rm-cdr-info').textContent =
+      `Total: ${d.total_cdrs || 0} | Pending export: ${d.unexported || 0} | Volume: ${((d.total_bytes||0)/1e6).toFixed(1)} MB`;
+  }).catch(() => {});
+}
+
+function rmExportCdrs() {
+  rmApi('POST', '/cdrs/export').then(d => {
+    alert('Exported ' + (d.exported || 0) + ' TAP records');
+    rmLoadCdrStats();
+  });
+}
+
+document.querySelector('[href="#roaming-tab"]')?.addEventListener('shown.bs.tab', rmLoadAll);
+</script>

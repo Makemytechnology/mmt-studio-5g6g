@@ -1,0 +1,244 @@
+<!-- templates/iops.html — IOPS: Isolated Operation for Public Safety (TS 22.346 / TS 23.501 section 5.30.3) -->
+
+<!-- IOPS Status Overview -->
+<div class="row g-2 mb-3" id="iopsStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="iopsConfiguredGnbs">0</div><div class="small text-muted">Configured gNBs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="iopsEnabledGnbs">0</div><div class="small text-muted">Enabled</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="iopsActivations">0</div><div class="small text-muted">Activations</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="iopsCachedCreds">0</div><div class="small text-muted">Cached Creds</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="iopsActiveSessions">0</div><div class="small text-muted">Active Sessions</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #20c997"><div class="fw-bold fs-4" id="iopsRestorations">0</div><div class="small text-muted">Restorations</div></div></div>
+</div>
+
+<!-- gNB IOPS Status Dashboard -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#iopsGnbCollapse"><div class="w-100 text-center">gNB IOPS Status (TS 22.346)</div></button></h2>
+  <div id="iopsGnbCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>gNB ID</th><th>State</th><th>IOPS Enabled</th><th>Local Auth</th><th>Max UEs</th><th>IP Pool</th><th></th></tr>
+    </thead><tbody id="iopsGnbBody"><tr><td colspan="7" class="text-muted text-center">No gNBs configured</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">gNB ID</label><input id="iopsDeclareGnb" class="form-control form-control-sm" style="width:160px" placeholder="gnb-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Reason</label><input id="iopsDeclareReason" class="form-control form-control-sm" style="width:200px" placeholder="backhaul_failure"></div>
+      <div class="col-auto"><button id="btnIopsDeclare" class="btn btn-danger btn-sm">Declare IOPS</button></div>
+      <div class="col-auto"><button id="btnIopsRestore" class="btn btn-success btn-sm">Restore Normal</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- IOPS Config Editor -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#iopsConfigCollapse"><div class="w-100 text-center">IOPS Configuration (TS 23.501 Section 5.30.3)</div></button></h2>
+  <div id="iopsConfigCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">gNB ID</label><input id="iopsConfigGnb" class="form-control form-control-sm" style="width:160px" placeholder="gnb-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Max UEs</label><input id="iopsConfigMaxUes" class="form-control form-control-sm" style="width:80px" type="number" value="100"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">IP Pool</label><input id="iopsConfigIpPool" class="form-control form-control-sm" style="width:160px" value="10.99.0.0/24"></div>
+      <div class="col-auto"><div class="form-check"><input id="iopsConfigEnabled" class="form-check-input" type="checkbox" checked><label class="form-check-label small">IOPS Enabled</label></div></div>
+      <div class="col-auto"><div class="form-check"><input id="iopsConfigLocalAuth" class="form-check-input" type="checkbox" checked><label class="form-check-label small">Local Auth</label></div></div>
+      <div class="col-auto"><button id="btnIopsConfigSave" class="btn btn-primary btn-sm">Save Config</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Credential Cache -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#iopsCacheCollapse"><div class="w-100 text-center">Credential Cache (5G-AKA Pre-provisioning)</div></button></h2>
+  <div id="iopsCacheCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">gNB ID</label><input id="iopsCacheGnb" class="form-control form-control-sm" style="width:160px" placeholder="gnb-001"></div>
+      <div class="col-auto"><button id="btnIopsCacheCheck" class="btn btn-outline-primary btn-sm">Check Cache</button></div>
+    </div>
+    <div id="iopsCacheResult" class="mt-2"></div>
+    <hr>
+    <div class="small text-muted mb-1">Bulk provision credentials (JSON):</div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">gNB ID</label><input id="iopsCacheProvGnb" class="form-control form-control-sm" style="width:160px" placeholder="gnb-001"></div>
+      <div class="col"><textarea id="iopsCacheProvJson" class="form-control form-control-sm" rows="3" placeholder='[{"imsi":"001010000000001","rand":"aabb...","autn":"ccdd...","xres_star":"eeff...","kseaf":"1122..."}]'></textarea></div>
+      <div class="col-auto"><button id="btnIopsCacheProv" class="btn btn-warning btn-sm">Provision</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Event Timeline -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-secondary text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#iopsEventCollapse"><div class="w-100 text-center">IOPS Event Timeline</div></button></h2>
+  <div id="iopsEventCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>gNB</th><th>Event</th><th>Reason</th><th>Time</th></tr>
+    </thead><tbody id="iopsEventBody"><tr><td colspan="5" class="text-muted text-center">No events</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Local Sessions -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-dark text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#iopsSessionCollapse"><div class="w-100 text-center">Local Sessions (IOPS Active)</div></button></h2>
+  <div id="iopsSessionCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Filter gNB</label><input id="iopsSessionFilterGnb" class="form-control form-control-sm" style="width:160px" placeholder="all"></div>
+      <div class="col-auto"><button id="btnIopsSessionRefresh" class="btn btn-outline-primary btn-sm">Refresh</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>gNB</th><th>IMSI</th><th>Service</th><th>IP</th><th>Status</th><th>Created</th><th>Released</th></tr>
+    </thead><tbody id="iopsSessionBody"><tr><td colspan="8" class="text-muted text-center">No local sessions</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/iops';
+
+  function stateColor(s) {
+    return s === 'normal' ? 'success' : s === 'iops_active' ? 'danger'
+         : s === 'backhaul_lost' ? 'warning' : s === 'restoring' ? 'info' : 'secondary';
+  }
+  function eventColor(e) {
+    return e === 'iops_activated' ? 'danger' : e === 'backhaul_lost' ? 'warning'
+         : e === 'restored' ? 'success' : e === 'restoring' ? 'info' : 'secondary';
+  }
+
+  function loadStats() {
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const s=d.stats;
+      document.getElementById('iopsConfiguredGnbs').textContent=s.configured_gnbs;
+      document.getElementById('iopsEnabledGnbs').textContent=s.enabled_gnbs;
+      document.getElementById('iopsActivations').textContent=s.activations;
+      document.getElementById('iopsCachedCreds').textContent=s.cached_credentials;
+      document.getElementById('iopsActiveSessions').textContent=s.active_local_sessions;
+      document.getElementById('iopsRestorations').textContent=s.restorations;
+    }).catch(()=>{});
+  }
+
+  function loadGnbs() {
+    fetch(API+'/status').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('iopsGnbBody');
+      if(!d.gnbs.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No gNBs configured</td></tr>';return;}
+      tb.innerHTML=d.gnbs.map(g=>`<tr>
+        <td class="fw-bold">${g.gnb_id}</td>
+        <td><span class="badge bg-${stateColor(g.state)}">${g.state}</span></td>
+        <td>${g.iops_enabled?'Yes':'No'}</td>
+        <td>${g.local_auth_enabled?'Yes':'No'}</td>
+        <td>${g.max_local_ues}</td>
+        <td><code>${g.local_ip_pool}</code></td>
+        <td>
+          ${g.state==='normal'?`<button class="btn btn-outline-danger btn-sm py-0" onclick="iopsDeclareGnb('${g.gnb_id}')">Declare</button>`:''}
+          ${g.state==='iops_active'?`<button class="btn btn-outline-success btn-sm py-0" onclick="iopsRestoreGnb('${g.gnb_id}')">Restore</button>`:''}
+        </td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadEvents() {
+    fetch(API+'/events?limit=50').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('iopsEventBody');
+      if(!d.events.length){tb.innerHTML='<tr><td colspan="5" class="text-muted text-center">No events</td></tr>';return;}
+      tb.innerHTML=d.events.map(e=>`<tr>
+        <td>${e.id}</td><td>${e.gnb_id}</td>
+        <td><span class="badge bg-${eventColor(e.event_type)}">${e.event_type}</span></td>
+        <td>${e.reason||''}</td><td>${e.created_at}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadSessions() {
+    const gnb=document.getElementById('iopsSessionFilterGnb').value.trim();
+    const url=gnb?API+'/local-sessions?gnb_id='+encodeURIComponent(gnb):API+'/local-sessions';
+    fetch(url).then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('iopsSessionBody');
+      if(!d.sessions.length){tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No local sessions</td></tr>';return;}
+      tb.innerHTML=d.sessions.map(s=>`<tr>
+        <td>${s.id}</td><td>${s.gnb_id}</td><td>${s.imsi}</td>
+        <td>${s.service_type}</td><td><code>${s.ip_address||''}</code></td>
+        <td><span class="badge bg-${s.status==='active'?'success':'secondary'}">${s.status}</span></td>
+        <td>${s.created_at}</td><td>${s.released_at||''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function refreshAll(){loadStats();loadGnbs();loadEvents();loadSessions();}
+
+  // Declare IOPS
+  window.iopsDeclareGnb=function(gnb){
+    fetch(API+'/declare',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gnb_id:gnb,reason:'backhaul_failure'})})
+      .then(r=>r.json()).then(()=>refreshAll());
+  };
+  document.getElementById('btnIopsDeclare').addEventListener('click',function(){
+    const gnb=document.getElementById('iopsDeclareGnb').value.trim();
+    if(!gnb){alert('gNB ID required');return;}
+    const reason=document.getElementById('iopsDeclareReason').value.trim()||'backhaul_failure';
+    fetch(API+'/declare',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gnb_id:gnb,reason:reason})})
+      .then(r=>r.json()).then(()=>refreshAll());
+  });
+
+  // Restore
+  window.iopsRestoreGnb=function(gnb){
+    fetch(API+'/restore',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gnb_id:gnb})})
+      .then(r=>r.json()).then(()=>refreshAll());
+  };
+  document.getElementById('btnIopsRestore').addEventListener('click',function(){
+    const gnb=document.getElementById('iopsDeclareGnb').value.trim();
+    if(!gnb){alert('gNB ID required');return;}
+    fetch(API+'/restore',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gnb_id:gnb})})
+      .then(r=>r.json()).then(()=>refreshAll());
+  });
+
+  // Save config
+  document.getElementById('btnIopsConfigSave').addEventListener('click',function(){
+    const gnb=document.getElementById('iopsConfigGnb').value.trim();
+    if(!gnb){alert('gNB ID required');return;}
+    fetch(API+'/config',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        gnb_id:gnb,
+        iops_enabled:document.getElementById('iopsConfigEnabled').checked?1:0,
+        local_auth_enabled:document.getElementById('iopsConfigLocalAuth').checked?1:0,
+        max_local_ues:parseInt(document.getElementById('iopsConfigMaxUes').value)||100,
+        local_ip_pool:document.getElementById('iopsConfigIpPool').value||'10.99.0.0/24'
+      })}).then(r=>r.json()).then(()=>refreshAll());
+  });
+
+  // Cache check
+  document.getElementById('btnIopsCacheCheck').addEventListener('click',function(){
+    const gnb=document.getElementById('iopsCacheGnb').value.trim();
+    if(!gnb){alert('gNB ID required');return;}
+    fetch(API+'/cache/'+encodeURIComponent(gnb)).then(r=>r.json()).then(d=>{
+      const el=document.getElementById('iopsCacheResult');
+      if(!d.ok){el.innerHTML='<div class="text-danger">Error</div>';return;}
+      el.innerHTML=`<div class="alert alert-info py-1 mb-0">
+        <strong>${d.gnb_id}</strong>: ${d.count} cached credential(s)
+        ${d.credentials&&d.credentials.length?'<ul class="mb-0 small">'+d.credentials.map(c=>'<li>'+c.imsi+' (exp: '+c.expires_at+')</li>').join('')+'</ul>':''}
+      </div>`;
+    }).catch(()=>{});
+  });
+
+  // Cache provision
+  document.getElementById('btnIopsCacheProv').addEventListener('click',function(){
+    const gnb=document.getElementById('iopsCacheProvGnb').value.trim();
+    if(!gnb){alert('gNB ID required');return;}
+    let creds;
+    try{creds=JSON.parse(document.getElementById('iopsCacheProvJson').value);}
+    catch(e){alert('Invalid JSON');return;}
+    fetch(API+'/cache-credentials',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gnb_id:gnb,credentials:creds})})
+      .then(r=>r.json()).then(d=>{
+        alert('Cached: '+(d.cached||0)+' credential(s)');
+        refreshAll();
+      });
+  });
+
+  // Session refresh
+  document.getElementById('btnIopsSessionRefresh').addEventListener('click',loadSessions);
+
+  // Auto-load on tab show
+  const tabEl=document.querySelector('a[href="#iops-tab"]');
+  if(tabEl) tabEl.addEventListener('shown.bs.tab',refreshAll);
+  refreshAll();
+})();
+</script>

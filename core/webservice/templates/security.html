@@ -1,0 +1,155 @@
+<!-- templates/security.html — Security Dashboard (TS 33.501) -->
+
+<style>
+.sec-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.sec-card .s-val { font-size: 1.5rem; font-weight: 700; }
+.sec-card .s-lbl { font-size: 0.78rem; opacity: 0.9; }
+.sc-green { background: #28a745; }
+.sc-orange { background: #fd7e14; }
+.sc-red { background: #dc3545; }
+.sc-blue { background: #0d6efd; }
+.sc-gray { background: #6c757d; }
+.sec-panel { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #f8f9fa; }
+.sec-panel h6 { margin-bottom: 8px; font-size: 0.9rem; }
+.ids-alert { border-left: 4px solid #dc3545; padding: 6px 12px; margin: 4px 0; background: #fff5f5; font-size: 0.82rem; }
+.ids-alert.sev-HIGH { border-left-color: #dc3545; }
+.ids-alert.sev-CRITICAL { border-left-color: #721c24; background: #f8d7da; }
+.ids-alert.sev-MEDIUM { border-left-color: #fd7e14; background: #fff8f0; }
+.blocked-item { font-size: 0.82rem; background: #f8d7da; padding: 4px 8px; margin: 2px 0; border-radius: 4px; }
+.sec-kv { font-size: 0.82rem; color: #333; }
+.sec-kv span { margin-right: 14px; }
+</style>
+
+<!-- Summary -->
+<div class="row g-2 mb-3">
+  <div class="col"><div class="sec-card sc-green" id="secOverall"><div class="s-val">Secure</div><div class="s-lbl">Status</div></div></div>
+  <div class="col"><div class="sec-card sc-blue"><div class="s-val" id="secAlerts">0</div><div class="s-lbl">IDS Alerts</div></div></div>
+  <div class="col"><div class="sec-card sc-orange"><div class="s-val" id="secBlocked">0</div><div class="s-lbl">Blocked Sources</div></div></div>
+  <div class="col"><div class="sec-card sc-gray"><div class="s-val" id="secViolations">0</div><div class="s-lbl">Rate Violations</div></div></div>
+  <div class="col"><div class="sec-card sc-blue"><div class="s-val" id="secAudit">0</div><div class="s-lbl">Audit Events (24h)</div></div></div>
+</div>
+
+<div class="row g-3">
+  <!-- IDS Alerts -->
+  <div class="col-md-6">
+    <div class="sec-panel">
+      <h6 class="fw-bold">IDS Alerts</h6>
+      <div id="secIdsList" style="max-height:250px;overflow-y:auto"><small class="text-muted">No alerts</small></div>
+    </div>
+    <div class="sec-panel">
+      <h6 class="fw-bold">Blocked Sources</h6>
+      <div id="secBlockedList"><small class="text-muted">None</small></div>
+    </div>
+  </div>
+  <!-- Rate Limiter + GTP-U -->
+  <div class="col-md-6">
+    <div class="sec-panel">
+      <h6 class="fw-bold">Rate Limiter Violations</h6>
+      <div id="secRateList" style="max-height:150px;overflow-y:auto"><small class="text-muted">No violations</small></div>
+    </div>
+    <div class="sec-panel">
+      <h6 class="fw-bold">GTP-U Firewall</h6>
+      <div class="sec-kv" id="secGtpu">Loading...</div>
+    </div>
+    <div class="sec-panel">
+      <h6 class="fw-bold">IDS Rules</h6>
+      <div id="secRules" style="max-height:200px;overflow-y:auto;font-size:0.8rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Audit Log -->
+<div class="sec-panel">
+  <h6 class="fw-bold">Recent Audit Events</h6>
+  <div id="secAuditList" style="max-height:200px;overflow-y:auto"><small class="text-muted">No events</small></div>
+</div>
+
+<div class="text-end mt-2">
+  <small class="text-muted" id="secTs">Last updated: --</small>
+  <button class="btn btn-sm btn-outline-secondary ms-1" onclick="secLoad()">Refresh</button>
+</div>
+
+<script>
+function secLoad() {
+  fetch('/api/security/status').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+
+    // IDS alerts
+    const alerts = (d.ids||{}).alerts || [];
+    const blocked = (d.ids||{}).blocked_sources || {};
+    const violations = (d.rate_limiter||{}).violations || [];
+    const rules = (d.ids||{}).rules || [];
+    const audit = d.audit_summary || [];
+
+    document.getElementById('secAlerts').textContent = alerts.length;
+    document.getElementById('secBlocked').textContent = Object.keys(blocked).length;
+    document.getElementById('secViolations').textContent = violations.length;
+    document.getElementById('secAudit').textContent = audit.reduce((s,a)=>s+a.count, 0);
+
+    // Overall status
+    const oc = document.getElementById('secOverall');
+    if (alerts.some(a=>a.severity==='CRITICAL')) {
+      oc.className = 'sec-card sc-red'; oc.querySelector('.s-val').textContent = 'Threat';
+    } else if (alerts.length > 0) {
+      oc.className = 'sec-card sc-orange'; oc.querySelector('.s-val').textContent = 'Warning';
+    } else {
+      oc.className = 'sec-card sc-green'; oc.querySelector('.s-val').textContent = 'Secure';
+    }
+
+    // IDS alerts
+    const aDiv = document.getElementById('secIdsList');
+    if (!alerts.length) { aDiv.innerHTML = '<small class="text-muted">No alerts</small>'; }
+    else {
+      aDiv.innerHTML = alerts.slice(-20).reverse().map(a => {
+        const ts = new Date(a.timestamp*1000).toLocaleTimeString();
+        return `<div class="ids-alert sev-${a.severity}"><strong>${a.rule}</strong> — ${a.source} (${a.count}x) <small class="float-end">${ts}</small><br><small>${a.detail||''}</small></div>`;
+      }).join('');
+    }
+
+    // Blocked
+    const bDiv = document.getElementById('secBlockedList');
+    const bKeys = Object.keys(blocked);
+    if (!bKeys.length) { bDiv.innerHTML = '<small class="text-muted">None</small>'; }
+    else {
+      bDiv.innerHTML = bKeys.map(k =>
+        `<div class="blocked-item">${k} <small>(${blocked[k].remaining_sec}s remaining)</small></div>`
+      ).join('');
+    }
+
+    // Violations
+    const vDiv = document.getElementById('secRateList');
+    if (!violations.length) { vDiv.innerHTML = '<small class="text-muted">No violations</small>'; }
+    else {
+      vDiv.innerHTML = violations.map(v =>
+        `<div class="sec-kv"><span>${v.interface}</span><span>${v.source}</span><span>${v.count}x</span></div>`
+      ).join('');
+    }
+
+    // GTP-U
+    const g = d.gtpu || {};
+    document.getElementById('secGtpu').innerHTML =
+      `<span>Allowed: ${g.allowed||0}</span><span>Unknown TEID: ${g.blocked_unknown_teid||0}</span><span>Unknown gNB: ${g.blocked_unknown_gnb||0}</span><span>IP Spoof: ${g.blocked_ip_spoof||0}</span><span>Blacklisted: ${g.blocked_blacklist||0}</span>`;
+
+    // Rules
+    document.getElementById('secRules').innerHTML = rules.map(r =>
+      `<div class="sec-kv" style="border-bottom:1px solid #eee;padding:2px 0"><strong>${r.name}</strong> <span>threshold=${r.threshold}/${r.window_sec}s</span> <span>action=${r.action}</span> <span class="badge bg-${r.severity==='CRITICAL'?'danger':r.severity==='HIGH'?'warning':'secondary'}">${r.severity}</span></div>`
+    ).join('');
+
+    document.getElementById('secTs').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  }).catch(()=>{});
+
+  // Audit events
+  fetch('/api/security/audit?limit=20').then(r=>r.json()).then(d => {
+    const div = document.getElementById('secAuditList');
+    if (!d.ok || !d.events.length) { div.innerHTML = '<small class="text-muted">No events</small>'; return; }
+    div.innerHTML = '<table class="table table-sm table-striped mb-0" style="font-size:0.78rem"><thead><tr><th>Time</th><th>Type</th><th>Severity</th><th>Source</th><th>IMSI</th><th>Detail</th></tr></thead><tbody>'
+      + d.events.map(e => {
+        const ts = new Date(e.timestamp*1000).toLocaleTimeString();
+        const sevClass = e.severity==='CRITICAL'?'text-danger fw-bold':e.severity==='WARNING'?'text-warning':'';
+        return `<tr><td>${ts}</td><td>${e.event_type}</td><td class="${sevClass}">${e.severity}</td><td>${e.source_ip||'-'}</td><td>${e.imsi||'-'}</td><td>${e.detail||''}</td></tr>`;
+      }).join('') + '</tbody></table>';
+  }).catch(()=>{});
+}
+
+document.querySelector('a[href="#security-tab"]')?.addEventListener('shown.bs.tab', secLoad);
+</script>

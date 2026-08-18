@@ -1,0 +1,162 @@
+<!-- templates/resilience.html — Network Resilience (TS 23.501 section 5.19) -->
+
+<!-- Resilience Status Overview -->
+<div class="row g-2 mb-3" id="resStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="resTotalInstances">0</div><div class="small text-muted">NF Instances</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="resHealthy">0</div><div class="small text-muted">Healthy</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="resDegraded">0</div><div class="small text-muted">Degraded</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="resFailed">0</div><div class="small text-muted">Failed</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="resSites">0</div><div class="small text-muted">Sites</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="resFailovers">0</div><div class="small text-muted">Failovers</div></div></div>
+</div>
+
+<!-- NF Health Dashboard -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#resNfCollapse"><div class="w-100 text-center">NF Health Dashboard (TS 23.501 Section 5.19)</div></button></h2>
+  <div id="resNfCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>Instance ID</th><th>NF Type</th><th>Endpoint</th><th>Priority</th><th>Role</th><th>Health</th><th>Last Heartbeat</th><th></th></tr>
+    </thead><tbody id="resNfBody"><tr><td colspan="8" class="text-muted text-center">No instances</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">NF Type</label><select id="resNfType" class="form-select form-select-sm" style="width:120px"><option>AMF</option><option>SMF</option><option>UPF</option><option>AUSF</option><option>UDM</option><option>UDR</option><option>PCF</option><option>NSSF</option><option>NRF</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Instance ID</label><input id="resInstId" class="form-control form-control-sm" style="width:160px" placeholder="amf-01"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Endpoint</label><input id="resEndpoint" class="form-control form-control-sm" style="width:200px" placeholder="http://amf:8080"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Priority</label><input id="resPriority" class="form-control form-control-sm" style="width:60px" type="number" value="0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Role</label><select id="resRole" class="form-select form-select-sm" style="width:100px"><option value="standby">Standby</option><option value="active">Active</option></select></div>
+      <div class="col-auto"><button id="btnResAddNf" class="btn btn-success btn-sm">+ Register</button></div>
+    </div>
+    <div class="row g-2 mt-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Failover NF Type</label><select id="resFailoverType" class="form-select form-select-sm" style="width:120px"><option>AMF</option><option>SMF</option><option>UPF</option><option>AUSF</option><option>UDM</option><option>UDR</option><option>PCF</option></select></div>
+      <div class="col-auto"><button id="btnResFailover" class="btn btn-danger btn-sm">Trigger Failover</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Site Management -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resSiteCollapse"><div class="w-100 text-center">Geo-Redundant Sites</div></button></h2>
+  <div id="resSiteCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>Name</th><th>Location</th><th>Role</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="resSiteBody"><tr><td colspan="6" class="text-muted text-center">No sites</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="resSiteName" class="form-control form-control-sm" style="width:140px" placeholder="site-east"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Location</label><input id="resSiteLocation" class="form-control form-control-sm" style="width:160px" placeholder="us-east-1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Role</label><select id="resSiteRole" class="form-select form-select-sm" style="width:110px"><option value="standby">Standby</option><option value="active">Active</option><option value="dr_site">DR Site</option></select></div>
+      <div class="col-auto"><button id="btnResAddSite" class="btn btn-success btn-sm">+ Add Site</button></div>
+      <div class="col-auto"><button id="btnResSiteFailover" class="btn btn-danger btn-sm">Site Failover</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Replication Status -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resReplCollapse"><div class="w-100 text-center">Replication Status</div></button></h2>
+  <div id="resReplCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div id="resReplContent" class="small text-muted">No replication data</div>
+  </div></div>
+</div></div>
+
+<!-- Failover History -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#resLogCollapse"><div class="w-100 text-center">Failover History</div></button></h2>
+  <div id="resLogCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>NF Type</th><th>From</th><th>To</th><th>Reason</th><th>Site</th><th>Time</th></tr>
+    </thead><tbody id="resLogBody"><tr><td colspan="7" class="text-muted text-center">No failover events</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API='/api/resilience';
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;const s=d.stats;
+      document.getElementById('resTotalInstances').textContent=s.total_instances;
+      document.getElementById('resHealthy').textContent=s.healthy;
+      document.getElementById('resDegraded').textContent=s.degraded;
+      document.getElementById('resFailed').textContent=s.failed;
+      document.getElementById('resSites').textContent=s.sites;
+      document.getElementById('resFailovers').textContent=s.total_failovers;
+    }).catch(()=>{});
+  }
+  function hBadge(h){return h==='healthy'?'success':h==='degraded'?'warning':'danger';}
+  function loadInstances(){
+    fetch(API+'/instances').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const tb=document.getElementById('resNfBody');
+      if(!d.instances.length){tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No instances</td></tr>';return;}
+      tb.innerHTML=d.instances.map(i=>`<tr>
+        <td>${i.instance_id}</td><td>${i.nf_type}</td><td>${i.endpoint}</td>
+        <td>${i.priority}</td><td><span class="badge bg-${i.role==='active'?'primary':'secondary'}">${i.role}</span></td>
+        <td><span class="badge bg-${hBadge(i.health)}">${i.health}</span></td>
+        <td>${i.last_heartbeat_at||'never'}</td>
+        <td><button class="btn btn-sm btn-outline-success" onclick="resHeartbeat('${i.instance_id}')">HB</button> <button class="btn btn-sm btn-outline-danger" onclick="resDeleteNf('${i.instance_id}')">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  function loadSites(){
+    fetch(API+'/sites').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const tb=document.getElementById('resSiteBody');
+      if(!d.sites.length){tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No sites</td></tr>';return;}
+      tb.innerHTML=d.sites.map(s=>`<tr>
+        <td>${s.name}</td><td>${s.location||''}</td>
+        <td><span class="badge bg-${s.role==='active'?'primary':s.role==='dr_site'?'warning':'secondary'}">${s.role}</span></td>
+        <td><span class="badge bg-${s.status==='online'?'success':s.status==='failover'?'warning':'danger'}">${s.status}</span></td>
+        <td>${s.created_at||''}</td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="resDeleteSite('${s.name}')">Del</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  function loadLog(){
+    fetch(API+'/failover-log').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const tb=document.getElementById('resLogBody');
+      if(!d.log.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No failover events</td></tr>';return;}
+      tb.innerHTML=d.log.map(l=>`<tr>
+        <td>${l.id}</td><td>${l.nf_type}</td><td>${l.from_instance||''}</td>
+        <td>${l.to_instance||''}</td><td>${l.reason||''}</td>
+        <td>${l.site||''}</td><td>${l.created_at||''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  function loadRepl(){
+    fetch(API+'/replication-status').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const el=document.getElementById('resReplContent');
+      const r2=d.replication;
+      if(!r2.nf_types||!r2.nf_types.length){el.textContent='No replication data';return;}
+      el.innerHTML='<table class="table table-sm"><thead><tr><th>NF Type</th><th>Latest Snapshot</th><th>Replicated To</th><th>Snapshots</th></tr></thead><tbody>'+r2.nf_types.map(n=>`<tr><td>${n.nf_type}</td><td>${n.latest_snapshot_at||''}</td><td>${n.replicated_to||''}</td><td>${n.snapshot_count}</td></tr>`).join('')+'</tbody></table>';
+    }).catch(()=>{});
+  }
+
+  window.resHeartbeat=function(id){fetch(API+'/instances/'+id+'/heartbeat',{method:'POST'}).then(()=>{loadInstances();loadStats();});};
+  window.resDeleteNf=function(id){fetch(API+'/instances/'+id,{method:'DELETE'}).then(()=>{loadInstances();loadStats();});};
+  window.resDeleteSite=function(n){fetch(API+'/sites/'+n,{method:'DELETE'}).then(()=>{loadSites();loadStats();});};
+
+  document.getElementById('btnResAddNf').addEventListener('click',()=>{
+    fetch(API+'/instances',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nf_type:document.getElementById('resNfType').value,instance_id:document.getElementById('resInstId').value,endpoint:document.getElementById('resEndpoint').value,priority:parseInt(document.getElementById('resPriority').value)||0,role:document.getElementById('resRole').value})
+    }).then(()=>{loadInstances();loadStats();});
+  });
+  document.getElementById('btnResFailover').addEventListener('click',()=>{
+    if(!confirm('Trigger NF failover?'))return;
+    fetch(API+'/failover',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nf_type:document.getElementById('resFailoverType').value,reason:'manual'})
+    }).then(r=>r.json()).then(d=>{if(!d.ok)alert(d.error||'Failover failed');loadInstances();loadStats();loadLog();}).catch(()=>{});
+  });
+  document.getElementById('btnResAddSite').addEventListener('click',()=>{
+    fetch(API+'/sites',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:document.getElementById('resSiteName').value,location:document.getElementById('resSiteLocation').value,role:document.getElementById('resSiteRole').value})
+    }).then(()=>{loadSites();loadStats();});
+  });
+  document.getElementById('btnResSiteFailover').addEventListener('click',()=>{
+    if(!confirm('Trigger site failover?'))return;
+    fetch(API+'/sites/failover',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({reason:'manual'})
+    }).then(r=>r.json()).then(d=>{if(!d.ok)alert(d.error||'Site failover failed');loadSites();loadStats();loadLog();}).catch(()=>{});
+  });
+
+  const tab=document.getElementById('resilience-tab');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active')){loadStats();loadInstances();loadSites();loadLog();loadRepl();}});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  if(tab&&tab.classList.contains('active')){loadStats();loadInstances();loadSites();loadLog();loadRepl();}
+})();
+</script>

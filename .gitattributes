@@ -1,0 +1,63 @@
+# KEEP IN SYNC with the private repo's root .gitattributes.
+# publish-mono.sh copies THIS file to the root of the public mirror so a
+# Windows `git clone` (core.autocrlf=true by default) does NOT rewrite
+# LF blobs to CRLF on checkout. Without it, every *.sh checks out with
+# CRLF and bash inside WSL dies with `$'\r': command not found`, and the
+# install pre-pull mis-parses image names ("ubuntu:24.04\r" => invalid
+# reference format), which cascades into the Docker build failing.
+
+# Force LF line endings on shell scripts no matter what
+# core.autocrlf is set to on the client side. Git for Windows defaults
+# to autocrlf=true which would otherwise CRLF-corrupt every *.sh file
+# on checkout — breaking bash inside WSL with `$'\r': command not
+# found` when install.sh runs. This file is honoured by every git
+# client that supports .gitattributes (≥ git 1.8.2), regardless of
+# the operator's global git config.
+
+* text=auto eol=lf
+
+# Shell + PowerShell scripts: always LF (bash chokes on CR; pwsh
+# accepts either but LF keeps diffs clean).
+*.sh   text eol=lf
+*.bash text eol=lf
+*.zsh  text eol=lf
+*.ps1  text eol=lf
+
+# Source code: LF everywhere.
+*.go   text eol=lf
+*.py   text eol=lf
+*.c    text eol=lf
+*.h    text eol=lf
+*.rs   text eol=lf
+*.js   text eol=lf
+*.ts   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.toml text eol=lf
+*.md   text eol=lf
+
+# Windows-native batch / cmd files: CRLF.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary blobs — never touch.
+*.pcap   binary
+*.pcapng binary
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.pdf    binary
+*.tar    binary
+*.tar.gz binary
+*.tgz    binary
+*.zip    binary
+*.so     binary
+*.dll    binary
+*.dylib  binary
+*.exe    binary
+*.bin    binary

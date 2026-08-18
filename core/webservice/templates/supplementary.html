@@ -1,0 +1,195 @@
+<!-- templates/supplementary.html — Supplementary Services Management (TS 24.604-24.615) -->
+
+<style>
+.ss-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; background: #f8f9fa; }
+.ss-card.ss-active { border-left: 4px solid #28a745; background: #f0fdf4; }
+.ss-card.ss-inactive { border-left: 4px solid #adb5bd; }
+.ss-category { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; font-weight: 600; }
+.ss-name { font-weight: 600; font-size: 0.92rem; }
+.ss-code { font-family: monospace; font-size: 0.78rem; color: #6f42c1; }
+.ss-ref { font-size: 0.72rem; color: #888; }
+.ss-config { margin-top: 6px; }
+.ss-config input { max-width: 220px; }
+.ss-grp-title { font-size: 0.85rem; font-weight: 700; color: #495057; margin: 16px 0 6px; border-bottom: 1px solid #dee2e6; padding-bottom: 4px; }
+</style>
+
+<!-- Subscriber Lookup -->
+<div class="row g-2 mb-3 align-items-end">
+  <div class="col-md-4">
+    <label class="form-label form-label-sm fw-bold">Subscriber IMSI</label>
+    <input type="text" class="form-control form-control-sm" id="ssImsi" placeholder="001011234567001">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-sm btn-primary w-100" onclick="ssLoad()">Load Services</button>
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-sm btn-success w-100" onclick="ssBulkSave()" id="ssBulkSaveBtn" disabled>Save All</button>
+  </div>
+  <div class="col-md-4 text-end">
+    <span id="ssStatus" class="text-muted" style="font-size:0.82rem;"></span>
+  </div>
+</div>
+
+<!-- Service Grid -->
+<div id="ssGrid"></div>
+
+<script>
+(function(){
+  const BASE = '/api/supplementary';
+  let _types = null;
+  let _loaded = false;
+
+  // Category display order
+  const CAT_ORDER = ['forwarding', 'barring', 'identification', 'waiting'];
+  const CAT_LABELS = {
+    forwarding: 'Call Forwarding (TS 24.604)',
+    barring: 'Call Barring (TS 24.615)',
+    identification: 'Identification (TS 24.607/608)',
+    waiting: 'Waiting / Hold (TS 24.610/611)',
+  };
+
+  function setStatus(msg, cls) {
+    const el = document.getElementById('ssStatus');
+    el.textContent = msg;
+    el.className = cls || 'text-muted';
+  }
+
+  window.ssLoad = async function() {
+    const imsi = document.getElementById('ssImsi').value.trim();
+    if (!imsi) { setStatus('Enter an IMSI', 'text-danger'); return; }
+    setStatus('Loading...', 'text-info');
+    try {
+      const resp = await fetch(BASE + '/services?imsi=' + encodeURIComponent(imsi));
+      const data = await resp.json();
+      if (!data.ok) { setStatus(data.error || 'Error', 'text-danger'); return; }
+      renderGrid(data.services, imsi);
+      document.getElementById('ssBulkSaveBtn').disabled = false;
+      _loaded = true;
+      setStatus('Loaded ' + data.services.length + ' services', 'text-success');
+    } catch(e) { setStatus('Network error: ' + e, 'text-danger'); }
+  };
+
+  function renderGrid(services, imsi) {
+    const grid = document.getElementById('ssGrid');
+    // Group by category
+    const groups = {};
+    for (const s of services) {
+      const cat = s.category || 'other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(s);
+    }
+    let html = '';
+    for (const cat of CAT_ORDER) {
+      const items = groups[cat];
+      if (!items) continue;
+      html += '<div class="ss-grp-title">' + (CAT_LABELS[cat] || cat) + '</div>';
+      for (const s of items) {
+        const active = s.active ? true : false;
+        const cls = active ? 'ss-active' : 'ss-inactive';
+        const checked = active ? 'checked' : '';
+        html += '<div class="ss-card ' + cls + '" id="ss-card-' + s.service_type + '">';
+        html += '<div class="d-flex justify-content-between align-items-center">';
+        html += '  <div>';
+        html += '    <span class="ss-name">' + esc(s.name) + '</span> ';
+        html += '    <span class="ss-code">' + esc(s.service_type) + '</span>';
+        html += '    <span class="ss-ref ms-2">' + esc(s.ts_ref || '') + '</span>';
+        html += '  </div>';
+        html += '  <div class="form-check form-switch">';
+        html += '    <input class="form-check-input" type="checkbox" role="switch" '
+              + 'id="ss-toggle-' + s.service_type + '" data-st="' + s.service_type + '" '
+              + checked + ' onchange="ssToggleChanged(\'' + s.service_type + '\')">';
+        html += '  </div>';
+        html += '</div>';
+
+        // Config fields per category
+        if (s.category === 'forwarding') {
+          html += '<div class="ss-config">';
+          html += '  <label class="form-label form-label-sm mb-0">Forwarding Number</label>';
+          html += '  <input type="text" class="form-control form-control-sm" '
+                + 'id="ss-fwd-' + s.service_type + '" placeholder="+1234567890" '
+                + 'value="' + esc(s.forwarding_number || '') + '">';
+          if (s.service_type === 'CFNRy') {
+            html += '  <label class="form-label form-label-sm mb-0 mt-1">No Reply Timer (5-30s)</label>';
+            html += '  <input type="number" class="form-control form-control-sm" '
+                  + 'id="ss-timer-CFNRy" min="5" max="30" step="5" '
+                  + 'value="' + (s.no_reply_timer || 20) + '" style="max-width:100px;">';
+          }
+          html += '</div>';
+        }
+
+        if (s.category === 'barring') {
+          html += '<div class="ss-config">';
+          html += '  <label class="form-label form-label-sm mb-0">Barring Password (4 digits)</label>';
+          html += '  <input type="password" class="form-control form-control-sm" '
+                + 'id="ss-bpw-' + s.service_type + '" maxlength="4" placeholder="****" '
+                + 'value="' + esc(s.barring_password || '') + '" style="max-width:120px;">';
+          html += '</div>';
+        }
+
+        html += '</div>';
+      }
+    }
+    grid.innerHTML = html;
+  }
+
+  window.ssToggleChanged = function(st) {
+    const card = document.getElementById('ss-card-' + st);
+    const toggle = document.getElementById('ss-toggle-' + st);
+    if (toggle.checked) {
+      card.classList.remove('ss-inactive');
+      card.classList.add('ss-active');
+    } else {
+      card.classList.remove('ss-active');
+      card.classList.add('ss-inactive');
+    }
+  };
+
+  window.ssBulkSave = async function() {
+    const imsi = document.getElementById('ssImsi').value.trim();
+    if (!imsi) { setStatus('Enter an IMSI first', 'text-danger'); return; }
+
+    // Collect state from all toggle switches
+    const toggles = document.querySelectorAll('[id^="ss-toggle-"]');
+    const services = [];
+    for (const t of toggles) {
+      const st = t.dataset.st;
+      const entry = { service_type: st, active: t.checked ? 1 : 0 };
+
+      // Forwarding number
+      const fwdEl = document.getElementById('ss-fwd-' + st);
+      if (fwdEl) entry.forwarding_number = fwdEl.value.trim() || null;
+
+      // No reply timer
+      const timerEl = document.getElementById('ss-timer-' + st);
+      if (timerEl) entry.no_reply_timer = parseInt(timerEl.value) || 20;
+
+      // Barring password
+      const bpwEl = document.getElementById('ss-bpw-' + st);
+      if (bpwEl) entry.barring_password = bpwEl.value.trim() || null;
+
+      services.push(entry);
+    }
+
+    setStatus('Saving...', 'text-info');
+    try {
+      const resp = await fetch(BASE + '/bulk', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ imsi, services }),
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        setStatus('Saved ' + data.updated.length + ' services', 'text-success');
+      } else {
+        const errCount = (data.errors || []).length;
+        const okCount = (data.updated || []).length;
+        setStatus('Saved ' + okCount + ', ' + errCount + ' errors', 'text-warning');
+      }
+      // Reload to show persisted state
+      ssLoad();
+    } catch(e) { setStatus('Save error: ' + e, 'text-danger'); }
+  };
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+})();
+</script>

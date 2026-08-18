@@ -1,0 +1,611 @@
+<!-- network_config.html -->
+<div class="accordion mb-4 mt-5" id="netcfgAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="netcfgHeader">
+      <!-- ✅ removed data-bs-toggle/data-bs-target; we toggle via JS -->
+      <button
+        id="netcfgToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center text-center"
+        type="button"
+        aria-expanded="true"
+        aria-controls="netcfgCollapse"
+      >
+        <div class="w-100">Network Configuration</div>
+      </button>
+    </h2>
+
+    <div
+      id="netcfgCollapse"
+      class="accordion-collapse collapse show"
+      aria-labelledby="netcfgHeader"
+      data-bs-parent="#netcfgAccordion"
+    >
+      <div class="accordion-body">
+
+        <!-- AMF Identity -->
+        <h6 class="mb-2">AMF Identity</h6>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label for="amfName" class="form-label">AMF Name</label>
+            <input id="amfName" type="text" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label for="amfIp" class="form-label">AMF IP</label>
+            <input id="amfIp" type="text" class="form-control" inputmode="numeric">
+            <div id="amfIpHint" class="form-text small text-muted">
+              Leave blank to auto-pick (skips docker/TUN/loopback per TS 38.412 §7).
+            </div>
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <label for="amfCapacity" class="form-label">Relative AMF Capacity</label>
+            <input id="amfCapacity" type="number" class="form-control" min="0" max="255" value="255">
+            <div class="form-text">0-255 (TS 38.413 §9.2.3.6)</div>
+          </div>
+        </div>
+
+        <!-- 5GS Network Feature Support (TS 24.501 §9.11.3.5) -->
+        <h6 class="mb-2 mt-3">5GS Network Feature Support <small class="text-muted">TS 24.501 §9.11.3.5 (octet 3 + octet 4)</small></h6>
+        <p class="small text-muted mb-2">
+          Bits the AMF advertises in the Registration Accept message. Single-bit
+          fields are toggles; <code>EMC</code>, <code>EMF</code>, <code>RestrictEC</code>
+          are 2-bit per spec (4 enumerated values each).
+        </p>
+
+        <!-- ── IMS Voice over PS (octet 3, bits 1-2) ── -->
+        <div class="card mb-2"><div class="card-body py-2 px-3">
+          <div class="small fw-bold text-muted mb-2">IMS Voice over PS — octet 3 bits 1-2</div>
+          <div class="row g-2">
+            <div class="col-md-4"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-ims-vops" data-field="ims_vops_3gpp">
+              <label class="form-check-label small" for="nf-ims-vops">IMS-VoPS-3GPP</label>
+            </div></div>
+            <div class="col-md-4"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-ims-vops-n3gpp" data-field="ims_vops_n3gpp">
+              <label class="form-check-label small" for="nf-ims-vops-n3gpp">IMS-VoPS-N3GPP</label>
+            </div></div>
+          </div>
+        </div></div>
+
+        <!-- ── Emergency services (octet 3 bits 3-6, octet 4 bit 1) ── -->
+        <div class="card mb-2"><div class="card-body py-2 px-3">
+          <div class="small fw-bold text-muted mb-2">Emergency services — octet 3 bits 3-6, octet 4 bit 1</div>
+          <div class="row g-2">
+            <div class="col-md-5">
+              <label class="form-label small mb-1">EMC <span class="text-muted">(bits 3-4)</span></label>
+              <select class="form-select form-select-sm netfeat-select" data-field="emc">
+                <option value="0">0 — Emergency services not supported</option>
+                <option value="1">1 — Supported in NR/5GCN only</option>
+                <option value="2">2 — Supported in E-UTRA/5GCN only</option>
+                <option value="3">3 — Supported in NR + E-UTRA over 5GCN</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small mb-1">EMF <span class="text-muted">(bits 5-6, fallback)</span></label>
+              <select class="form-select form-select-sm netfeat-select" data-field="emf">
+                <option value="0">0 — Emergency services fallback not supported</option>
+                <option value="1">1 — Fallback in NR/5GCN only</option>
+                <option value="2">2 — Fallback in E-UTRA/5GCN only</option>
+                <option value="3">3 — Fallback in NR + E-UTRA over 5GCN</option>
+              </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <div class="form-check form-switch w-100">
+                <input class="form-check-input netfeat" type="checkbox" id="nf-emcn3" data-field="emcn3">
+                <label class="form-check-label small" for="nf-emcn3">EMCN3 <span class="text-muted">(o4 b1)</span></label>
+              </div>
+            </div>
+          </div>
+        </div></div>
+
+        <!-- ── CIoT 5GS Optimisation + N3 data (octet 4 bits 5-8 + RestrictEC) ── -->
+        <div class="card mb-2"><div class="card-body py-2 px-3">
+          <div class="small fw-bold text-muted mb-2">CIoT 5GS Optimisation — octet 4 bits 3-8</div>
+          <div class="row g-2">
+            <div class="col-md-3"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-cp-ciot" data-field="cp_ciot">
+              <label class="form-check-label small" for="nf-cp-ciot">5G-CP CIoT <span class="text-muted">(b5)</span></label>
+            </div></div>
+            <div class="col-md-3"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-up-ciot" data-field="up_ciot">
+              <label class="form-check-label small" for="nf-up-ciot">5G-UP CIoT <span class="text-muted">(b8)</span></label>
+            </div></div>
+            <div class="col-md-3"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-iphc-cp-ciot" data-field="iphc_cp_ciot">
+              <label class="form-check-label small" for="nf-iphc-cp-ciot">5G-IPHC-CP CIoT <span class="text-muted">(b7)</span></label>
+            </div></div>
+            <div class="col-md-3"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-n3-data" data-field="n3_data">
+              <label class="form-check-label small" for="nf-n3-data">N3 data <span class="text-muted">(b6)</span></label>
+            </div></div>
+            <div class="col-md-6 mt-2">
+              <label class="form-label small mb-1">RestrictEC <span class="text-muted">(bits 3-4)</span></label>
+              <select class="form-select form-select-sm netfeat-select" data-field="restrict_ec">
+                <option value="0">0 — Use of enhanced coverage not restricted</option>
+                <option value="1">1 — Use of enhanced coverage restricted</option>
+                <option value="2">2 — Reserved</option>
+                <option value="3">3 — Reserved</option>
+              </select>
+            </div>
+          </div>
+        </div></div>
+
+        <!-- ── Misc (octet 3 bits 7-8, octet 4 bit 2) ── -->
+        <div class="card mb-3"><div class="card-body py-2 px-3">
+          <div class="small fw-bold text-muted mb-2">Misc — octet 3 bits 7-8 + octet 4 bit 2</div>
+          <div class="row g-2">
+            <div class="col-md-4"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-iwk-n26" data-field="iwk_n26">
+              <label class="form-check-label small" for="nf-iwk-n26">IWK-N26 <span class="text-muted">(o3 b7)</span></label>
+            </div></div>
+            <div class="col-md-4"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-mpsi" data-field="mpsi">
+              <label class="form-check-label small" for="nf-mpsi">MPSI <span class="text-muted">(o3 b8)</span></label>
+            </div></div>
+            <div class="col-md-4"><div class="form-check form-switch">
+              <input class="form-check-input netfeat" type="checkbox" id="nf-mcsi" data-field="mcsi">
+              <label class="form-check-label small" for="nf-mcsi">MCSI <span class="text-muted">(o4 b2)</span></label>
+            </div></div>
+          </div>
+        </div></div>
+
+        <!-- Security Algorithms editor -->
+        <div class="mt-4">
+          <h6 class="m-0 mb-3">Security Algorithms</h6>
+          <div class="row g-4">
+            <!-- Ciphering algorithms -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                  <span class="fw-bold small">Ciphering (5G-EA)</span>
+                  <button id="addCiphBtn" type="button" class="btn btn-sm btn-outline-primary">+ Add</button>
+                </div>
+                <div class="card-body p-2">
+                  <div class="small text-muted mb-1">Priority 1 = most preferred. Drag to reorder.</div>
+                  <div id="ciphAlgoList" class="vstack gap-1"><!-- rows injected --></div>
+                </div>
+              </div>
+            </div>
+            <!-- Integrity algorithms -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                  <span class="fw-bold small">Integrity (5G-IA)</span>
+                  <button id="addIntegBtn" type="button" class="btn btn-sm btn-outline-primary">+ Add</button>
+                </div>
+                <div class="card-body p-2">
+                  <div class="small text-muted mb-1">Priority 1 = most preferred. Drag to reorder.</div>
+                  <div id="integAlgoList" class="vstack gap-1"><!-- rows injected --></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JSON preview + SUBMIT -->
+        <div class="mt-4">
+          <label class="form-label fw-bold d-none">Preview (read-only JSON)</label>
+          <pre id="jsonPreview" class="bg-dark text-light p-3 rounded small d-none" style="white-space:pre-wrap;"></pre>
+
+          <div class="d-flex gap-2 mt-3">
+            <button id="submitNetCfg" type="button" class="btn btn-success">
+              <span class="submitLabel">Submit</span>
+              <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+            </button>
+
+            <div id="submitMsg" class="ms-2 small" aria-live="polite"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ----------------------------
+  // ✅ FIX: Manual accordion toggle (open + close works reliably)
+  // ----------------------------
+  const toggleBtn = document.getElementById('netcfgToggleBtn');
+  const collapseEl = document.getElementById('netcfgCollapse');
+
+  let collapseInstance = null;
+
+  function syncAccordionButtonUI() {
+    const isOpen = collapseEl.classList.contains('show');
+    toggleBtn.classList.toggle('collapsed', !isOpen);
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  function getCollapseInstance() {
+    if (collapseInstance) return collapseInstance;
+
+    // If Bootstrap JS is available, use it
+    if (window.bootstrap && window.bootstrap.Collapse) {
+      collapseInstance = window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+      collapseEl.addEventListener('shown.bs.collapse', syncAccordionButtonUI);
+      collapseEl.addEventListener('hidden.bs.collapse', syncAccordionButtonUI);
+      return collapseInstance;
+    }
+
+    // Fallback (no Bootstrap JS): class toggle
+    collapseInstance = {
+      toggle() {
+        collapseEl.classList.toggle('show');
+        syncAccordionButtonUI();
+      }
+    };
+    return collapseInstance;
+  }
+
+  if (toggleBtn && collapseEl) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      getCollapseInstance().toggle();
+    });
+  }
+
+  // ---- helpers ----
+  const validIPv4 = (ip) =>
+    /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$/.test((ip||'').trim());
+  const validIPv4CIDR = (cidr) =>
+    /^(((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d))\/([0-9]|[12]\d|3[0-2])$/.test(cidr || '');
+  const validIPv6CIDR = (cidr) => {
+    if (!cidr) return false;
+    try { const parts = cidr.split('/'); return parts.length === 2 && parts[0].includes(':') && parseInt(parts[1]) >= 0 && parseInt(parts[1]) <= 128; }
+    catch(e) { return false; }
+  };
+  const asInt = (v, def = 0) => {
+    const n = parseInt(String(v ?? ""), 10);
+    return Number.isFinite(n) ? n : def;
+  };
+
+
+  // ---- algorithm presets (TS 33.501 §5.3.1) ----
+  const CIPH_ALGOS = ["NEA0", "NEA1", "NEA2", "NEA3"];
+  const INTEG_ALGOS = ["NIA0", "NIA1", "NIA2", "NIA3"];
+  const ALGO_LABELS = {
+    "NEA0": "NEA0 - Null Ciphering",
+    "NEA1": "NEA1 - 128-SNOW3G",
+    "NEA2": "NEA2 - 128-AES (CTR)",
+    "NEA3": "NEA3 - 128-ZUC",
+    "NIA0": "NIA0 - Null Integrity",
+    "NIA1": "NIA1 - 128-SNOW3G (MAC)",
+    "NIA2": "NIA2 - 128-AES (CMAC)",
+    "NIA3": "NIA3 - 128-ZUC (MAC)",
+  };
+
+  // ---- model (hydrated from server) ----
+  const model = {
+    amf_name: "",
+    amf_ip: "",
+    relative_amf_capacity: 255,
+    net_feat: {},
+    security_algorithms: {
+      ciphering: [],
+      integrity: []
+    }
+  };
+
+  // ---- DOM refs ----
+  const amfNameEl = document.getElementById('amfName');
+  const amfIpEl = document.getElementById('amfIp');
+  const amfCapEl = document.getElementById('amfCapacity');
+  const jsonPreviewEl = document.getElementById('jsonPreview');
+
+  const submitBtn = document.getElementById('submitNetCfg');
+  const submitSpinner = submitBtn.querySelector('.spinner-border');
+  const submitMsg = document.getElementById('submitMsg');
+
+  // ---- basics wiring ----
+  function updateBasicsFromInputs() {
+    model.amf_name = amfNameEl.value.trim();
+    model.amf_ip = amfIpEl.value.trim();
+    model.relative_amf_capacity = parseInt(amfCapEl.value) || 255;
+
+    // Net features from single-bit checkboxes (.netfeat) and 2-bit
+    // selects (.netfeat-select). Selects carry a 0..3 value per the
+    // 5GS Network Feature Support IE bit layout (TS 24.501 §9.11.3.5).
+    document.querySelectorAll('.netfeat').forEach(cb => {
+      model.net_feat[cb.dataset.field] = cb.checked ? 1 : 0;
+    });
+    document.querySelectorAll('.netfeat-select').forEach(sel => {
+      model.net_feat[sel.dataset.field] = asInt(sel.value, 0) & 0x3;
+    });
+
+    renderJSON();
+  }
+
+  [amfNameEl, amfIpEl, amfCapEl].forEach(el => {
+    el.addEventListener('input', () => {
+      if (el === amfIpEl) amfIpEl.classList.toggle('is-invalid', !validIPv4(amfIpEl.value));
+      updateBasicsFromInputs();
+    });
+  });
+  document.querySelectorAll('.netfeat').forEach(cb => {
+    cb.addEventListener('change', updateBasicsFromInputs);
+  });
+  document.querySelectorAll('.netfeat-select').forEach(sel => {
+    sel.addEventListener('change', updateBasicsFromInputs);
+  });
+
+  // ---- Security Algorithms editor ----
+  const ciphAlgoListEl = document.getElementById('ciphAlgoList');
+  const integAlgoListEl = document.getElementById('integAlgoList');
+  const addCiphBtn = document.getElementById('addCiphBtn');
+  const addIntegBtn = document.getElementById('addIntegBtn');
+
+  function makeAlgoRow(algoType, algo, idx) {
+    const presets = algoType === 'ciphering' ? CIPH_ALGOS : INTEG_ALGOS;
+    const list = model.security_algorithms[algoType];
+
+    const row = document.createElement('div');
+    row.className = 'd-flex align-items-center gap-2 p-1 border rounded bg-light';
+    row.innerHTML = `
+      <span class="badge bg-secondary algoRank" style="min-width:28px">${idx + 1}</span>
+      <select class="form-select form-select-sm algoSelect" style="max-width:140px"></select>
+      <button type="button" class="btn btn-sm btn-outline-secondary btnUp" title="Move up">&uarr;</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary btnDown" title="Move down">&darr;</button>
+      <button type="button" class="btn btn-sm btn-outline-danger btnDelAlgo" title="Remove">&times;</button>
+    `;
+
+    const sel = row.querySelector('.algoSelect');
+    sel.style.maxWidth = '240px';
+    presets.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = ALGO_LABELS[name] || name;
+      sel.appendChild(opt);
+    });
+    sel.value = algo.algorithm;
+
+    sel.addEventListener('change', () => {
+      list[idx].algorithm = sel.value;
+      renderJSON();
+    });
+
+    row.querySelector('.btnUp').addEventListener('click', () => {
+      if (idx === 0) return;
+      [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+      renderAlgoList(algoType);
+      renderJSON();
+    });
+
+    row.querySelector('.btnDown').addEventListener('click', () => {
+      if (idx >= list.length - 1) return;
+      [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+      renderAlgoList(algoType);
+      renderJSON();
+    });
+
+    row.querySelector('.btnDelAlgo').addEventListener('click', () => {
+      list.splice(idx, 1);
+      // Re-number priorities
+      list.forEach((a, i) => a.priority = i + 1);
+      renderAlgoList(algoType);
+      renderJSON();
+    });
+
+    return row;
+  }
+
+  function renderAlgoList(algoType) {
+    const container = algoType === 'ciphering' ? ciphAlgoListEl : integAlgoListEl;
+    const list = model.security_algorithms[algoType];
+    // Ensure priorities are sequential
+    list.forEach((a, i) => a.priority = i + 1);
+    container.innerHTML = '';
+    list.forEach((algo, idx) => container.appendChild(makeAlgoRow(algoType, algo, idx)));
+  }
+
+  addCiphBtn.addEventListener('click', () => {
+    const list = model.security_algorithms.ciphering;
+    // Find first algorithm not already in list
+    const used = new Set(list.map(a => a.algorithm));
+    const next = CIPH_ALGOS.find(a => !used.has(a)) || CIPH_ALGOS[0];
+    list.push({ algorithm: next, priority: list.length + 1 });
+    renderAlgoList('ciphering');
+    renderJSON();
+  });
+
+  addIntegBtn.addEventListener('click', () => {
+    const list = model.security_algorithms.integrity;
+    const used = new Set(list.map(a => a.algorithm));
+    const next = INTEG_ALGOS.find(a => !used.has(a)) || INTEG_ALGOS[0];
+    list.push({ algorithm: next, priority: list.length + 1 });
+    renderAlgoList('integrity');
+    renderJSON();
+  });
+
+  // ---- JSON (and validity) ----
+  function currentJSON() {
+    return {
+      amf_name: model.amf_name,
+      amf_ip: model.amf_ip,
+      relative_amf_capacity: model.relative_amf_capacity,
+      net_feat: model.net_feat,
+      security_algorithms: {
+        ciphering: (model.security_algorithms.ciphering || []).map((a, i) => ({
+          algorithm: a.algorithm,
+          priority: i + 1
+        })),
+        integrity: (model.security_algorithms.integrity || []).map((a, i) => ({
+          algorithm: a.algorithm,
+          priority: i + 1
+        }))
+      }
+    };
+  }
+
+  function isConfigValid(obj) {
+    if (!validIPv4(obj.amf_ip)) return false;
+    return true;
+  }
+
+  function renderJSON() {
+    const jsonObj = currentJSON();
+
+    amfIpEl.classList.toggle('is-invalid', !validIPv4(amfIpEl.value));
+
+    jsonPreviewEl.textContent = JSON.stringify(jsonObj, null, 4);
+    submitBtn.disabled = !isConfigValid(jsonObj);
+  }
+
+  // ---- SUBMIT handler ----
+  async function submitConfig() {
+    const payload = currentJSON();
+    if (!isConfigValid(payload)) {
+      submitMsg.className = "text-danger";
+      submitMsg.textContent = "Please fix validation errors before submitting.";
+      (
+        !validIPv4(payload.amf_ip) ? amfIpEl : null
+      )?.focus();
+      return;
+    }
+    submitMsg.textContent = "";
+    submitBtn.disabled = true;
+    submitSpinner.classList.remove("d-none");
+
+    try {
+      const res = await fetch("/api/network-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+
+      const cfg = data.config || {};
+      const secAlgos2 = cfg.security_algorithms || {};
+      Object.assign(model, {
+        amf_name: cfg.amf_name || "",
+        amf_ip: cfg.amf_ip || "",
+        relative_amf_capacity: cfg.relative_amf_capacity || 255,
+        net_feat: cfg.net_feat || {},
+        security_algorithms: {
+          ciphering: Array.isArray(secAlgos2.ciphering) ? secAlgos2.ciphering.map(a => ({ algorithm: a.algorithm, priority: a.priority })) : [],
+          integrity: Array.isArray(secAlgos2.integrity) ? secAlgos2.integrity.map(a => ({ algorithm: a.algorithm, priority: a.priority })) : []
+        }
+      });
+
+      // GUI must reflect DB: re-sync form inputs from server response.
+      amfNameEl.value = model.amf_name;
+      amfIpEl.value = (model.amf_ip || '').split(',')[0].trim();
+      amfCapEl.value = model.relative_amf_capacity;
+      document.querySelectorAll('.netfeat').forEach(cb => {
+        cb.checked = !!(model.net_feat && model.net_feat[cb.dataset.field]);
+      });
+      document.querySelectorAll('.netfeat-select').forEach(sel => {
+        const v = (model.net_feat && model.net_feat[sel.dataset.field]) || 0;
+        sel.value = String(asInt(v, 0) & 0x3);
+      });
+
+      renderAlgoList('ciphering'); renderAlgoList('integrity');
+      renderJSON();
+
+      // Re-render the bind hint — input value just changed.
+      loadRuntimeBindHint();
+
+      submitMsg.className = "text-success";
+      submitMsg.textContent = "✅ Saved successfully.";
+    } catch (e) {
+      submitMsg.className = "text-danger";
+      submitMsg.textContent = "❌ " + (e.message || "Save failed");
+    } finally {
+      submitSpinner.classList.add("d-none");
+      submitBtn.disabled = !isConfigValid(currentJSON());
+    }
+  }
+  submitBtn.addEventListener("click", submitConfig);
+
+
+  // ---- Runtime NGAP bind hint ----
+  // sa_core auto-picks an IPv4 when network_config.amf_ip is empty
+  // (transport_linux.go::pickPrimaryIPv4, TS 38.412 §7). Surface that
+  // runtime value so the input field never looks "empty" to operators
+  // when the AMF is actually listening on a real address.
+  async function loadRuntimeBindHint() {
+    const hintEl = document.getElementById('amfIpHint');
+    if (!hintEl) return;
+    try {
+      const r = await fetch('/api/admin/sys-info', { cache: 'no-store' });
+      const j = await r.json();
+      const bind = (j && j.ngap_bind) || '';
+      const ip = bind.split(':')[0];
+      if (ip) {
+        amfIpEl.placeholder = ip;
+        const stored = (amfIpEl.value || '').trim();
+        if (!stored) {
+          hintEl.innerHTML = 'Currently bound to <code>' + bind + '</code> (auto-pick). Leave blank to keep auto-pick.';
+        } else if (stored !== ip) {
+          hintEl.innerHTML = 'Configured <code>' + stored + '</code>; runtime bound to <code>' + bind + '</code> — change takes effect on next restart.';
+        } else {
+          hintEl.innerHTML = 'Bound to <code>' + bind + '</code>.';
+        }
+      }
+    } catch (e) { /* sys-info best-effort; leave default text */ }
+  }
+
+  // ---- Load from server (no cache) ----
+  async function loadConfigFromServer() {
+    try {
+      const r = await fetch("/api/network-config", { method: "GET", cache: "no-store" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || r.statusText);
+      const cfg = j.config || j;
+
+      model.amf_name = cfg.amf_name || "";
+      model.amf_ip = cfg.amf_ip || "";
+      model.relative_amf_capacity = cfg.relative_amf_capacity || 255;
+      model.net_feat = cfg.net_feat || {};
+
+      // Security algorithms
+      const secAlgos = cfg.security_algorithms || {};
+      model.security_algorithms = {
+        ciphering: Array.isArray(secAlgos.ciphering)
+          ? secAlgos.ciphering.map(a => ({ algorithm: a.algorithm, priority: a.priority }))
+          : [],
+        integrity: Array.isArray(secAlgos.integrity)
+          ? secAlgos.integrity.map(a => ({ algorithm: a.algorithm, priority: a.priority }))
+          : []
+      };
+    } catch (e) {
+      console.warn("Failed to load config; using empty defaults", e);
+    }
+  }
+
+  // ---- init ----
+  (async function hydrate() {
+    await loadConfigFromServer();
+    amfNameEl.value = model.amf_name || '';
+    amfIpEl.value = (model.amf_ip || '').split(',')[0].trim();
+    amfCapEl.value = model.relative_amf_capacity || 255;
+
+    // Populate net feature checkboxes (single-bit) + dropdowns (2-bit
+    // EMC/EMF/RestrictEC per TS 24.501 §9.11.3.5).
+    document.querySelectorAll('.netfeat').forEach(cb => {
+      const field = cb.dataset.field;
+      cb.checked = !!(model.net_feat && model.net_feat[field]);
+    });
+    document.querySelectorAll('.netfeat-select').forEach(sel => {
+      const v = (model.net_feat && model.net_feat[sel.dataset.field]) || 0;
+      sel.value = String(asInt(v, 0) & 0x3);
+    });
+
+    renderAlgoList('ciphering');
+    renderAlgoList('integrity');
+    renderJSON();
+
+    // ✅ keep button UI consistent on initial load
+    syncAccordionButtonUI();
+
+    // Surface the runtime NGAP bind once the input is populated so the
+    // hint reflects current model state (blank → auto-pick, mismatch →
+    // pending-restart).
+    await loadRuntimeBindHint();
+  })();
+})();
+</script>

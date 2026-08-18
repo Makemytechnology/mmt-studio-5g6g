@@ -1,0 +1,165 @@
+<!-- templates/traces.html — 3GPP Trace Management (TS 32.421/422/423) -->
+
+<style>
+.tr-row { font-size: 0.78rem; font-family: monospace; border-bottom: 1px solid #eee; padding: 2px 4px; }
+.tr-row:hover { background: #f0f7ff; }
+.tr-dir-in { color: #0d6efd; } .tr-dir-out { color: #28a745; }
+.tr-iface { display: inline-block; width: 36px; font-weight: 600; }
+.tr-time { display: inline-block; width: 100px; color: #666; }
+.tr-type { font-weight: 600; }
+.tr-summary { color: #555; margin-left: 8px; }
+.tr-latency { color: #999; font-size: 0.7rem; margin-left: 6px; }
+.tr-hex { font-size: 0.7rem; color: #888; word-break: break-all; margin-left: 140px; }
+</style>
+
+<!-- Start Trace -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Start Trace</strong> <small class="text-muted">(TS 32.422)</small></div>
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label form-label-sm">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="trImsi" placeholder="All UEs"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Depth</label>
+        <select class="form-select form-select-sm" id="trDepth">
+          <option value="minimum">Minimum</option><option value="medium" selected>Medium</option><option value="maximum">Maximum</option>
+        </select></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Duration</label>
+        <div class="input-group input-group-sm"><input type="number" class="form-control" id="trDuration" value="10"><span class="input-group-text">min</span></div></div>
+      <div class="col-md-4"><label class="form-label form-label-sm">Interfaces</label><br>
+        <span style="font-size:0.78rem">
+          <label><input type="checkbox" class="form-check-input" id="trN1" checked> N1</label>
+          <label class="ms-1"><input type="checkbox" class="form-check-input" id="trN2" checked> N2</label>
+          <label class="ms-1"><input type="checkbox" class="form-check-input" id="trN11" checked> N11</label>
+          <label class="ms-1"><input type="checkbox" class="form-check-input" id="trN4"> N4</label>
+          <label class="ms-1"><input type="checkbox" class="form-check-input" id="trS1AP"> S1AP</label>
+          <label class="ms-1"><input type="checkbox" class="form-check-input" id="trSIP"> SIP</label>
+        </span></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-primary w-100" onclick="trStart()">Start</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Session List -->
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h6 class="fw-bold mb-0">Trace Sessions</h6>
+  <button class="btn btn-sm btn-outline-secondary" onclick="trLoadSessions()">Refresh</button>
+</div>
+<div id="trSessionList"><small class="text-muted">No traces</small></div>
+
+<!-- Trace Viewer -->
+<div id="trViewerPanel" style="display:none" class="mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h6 class="fw-bold mb-0">Trace: <span id="trViewRef">--</span></h6>
+    <div>
+      <button class="btn btn-sm btn-outline-secondary" onclick="trExport('json')">Export JSON</button>
+      <button class="btn btn-sm btn-outline-secondary ms-1" onclick="trExport('xml')">Export XML</button>
+      <button class="btn btn-sm btn-outline-secondary ms-1" onclick="trRefreshRecords()">Refresh</button>
+      <button class="btn btn-sm btn-outline-warning ms-2" onclick="trAiAnalyze()">AI: Analyze</button>
+      <button class="btn btn-sm btn-outline-warning ms-1" onclick="trAiBottleneck()">AI: Bottleneck</button>
+    </div>
+  </div>
+  <div id="trRecords" style="max-height:350px;overflow-y:auto;border:1px solid #dee2e6;border-radius:6px;padding:6px;background:#fafafa">
+    <small class="text-muted">No records</small>
+  </div>
+  <div id="trAiResult" class="mt-2" style="font-size:0.82rem;white-space:pre-wrap;display:none"></div>
+</div>
+
+<script>
+let _trViewRef = null;
+
+function trStart() {
+  const ifaces = [];
+  if (document.getElementById('trN1').checked) ifaces.push('N1');
+  if (document.getElementById('trN2').checked) ifaces.push('N2');
+  if (document.getElementById('trN11').checked) ifaces.push('N11');
+  if (document.getElementById('trN4').checked) ifaces.push('N4');
+  if (document.getElementById('trS1AP').checked) ifaces.push('S1AP');
+  if (document.getElementById('trSIP').checked) ifaces.push('SIP');
+
+  fetch('/api/trace/start', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      imsi: document.getElementById('trImsi').value.trim(),
+      depth: document.getElementById('trDepth').value,
+      duration_sec: parseInt(document.getElementById('trDuration').value) * 60,
+      interfaces: ifaces.join(','),
+    })}).then(r=>r.json()).then(d => {
+    if (d.ok) { trLoadSessions(); trView(d.trace_ref); }
+  });
+}
+
+function trLoadSessions() {
+  fetch('/api/trace/sessions').then(r=>r.json()).then(d => {
+    const div = document.getElementById('trSessionList');
+    if (!d.ok || !d.sessions.length) { div.innerHTML = '<small class="text-muted">No traces</small>'; return; }
+    div.innerHTML = '<table class="table table-sm table-striped mb-0" style="font-size:0.8rem"><thead><tr><th>Ref</th><th>IMSI</th><th>Depth</th><th>Interfaces</th><th>Records</th><th>Status</th><th></th></tr></thead><tbody>' +
+      d.sessions.map(s => {
+        const badge = s.status==='active'?'<span class="badge bg-success">active</span>':s.status==='completed'?'<span class="badge bg-secondary">done</span>':'<span class="badge bg-warning text-dark">stopped</span>';
+        return `<tr><td><strong>${s.trace_ref}</strong></td><td>${s.imsi||'all'}</td><td>${s.depth}</td><td>${s.interfaces}</td><td>${s.record_count}</td><td>${badge}</td><td><button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="trView('${s.trace_ref}')">View</button>${s.status==='active'?` <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="trStop('${s.trace_ref}')">Stop</button>`:''}</td></tr>`;
+      }).join('') + '</tbody></table>';
+  });
+}
+
+function trStop(ref) {
+  fetch('/api/trace/'+ref+'/stop', {method:'POST'}).then(()=>trLoadSessions());
+}
+
+function trView(ref) {
+  _trViewRef = ref;
+  document.getElementById('trViewRef').textContent = ref;
+  document.getElementById('trViewerPanel').style.display = '';
+  trRefreshRecords();
+}
+
+function trRefreshRecords() {
+  if (!_trViewRef) return;
+  fetch('/api/trace/'+_trViewRef+'/records').then(r=>r.json()).then(d => {
+    const div = document.getElementById('trRecords');
+    if (!d.ok || !d.records.length) { div.innerHTML = '<small class="text-muted">No records captured yet</small>'; return; }
+    div.innerHTML = d.records.map(r => {
+      const ts = new Date(r.timestamp*1000);
+      const time = ts.toTimeString().split(' ')[0] + '.' + String(ts.getMilliseconds()).padStart(3,'0');
+      const dir = r.direction === 'in' ? '<span class="tr-dir-in">→</span>' : '<span class="tr-dir-out">←</span>';
+      const lat = r.latency_us != null ? `<span class="tr-latency">${r.latency_us > 1000 ? (r.latency_us/1000).toFixed(1)+'ms' : r.latency_us+'μs'}</span>` : '';
+      let html = `<div class="tr-row"><span class="tr-time">${time}</span> <span class="tr-iface">${r.interface}</span> ${dir} <span class="tr-type">${r.msg_type}</span>${lat}`;
+      if (r.summary) html += `<span class="tr-summary">${r.summary}</span>`;
+      html += '</div>';
+      if (r.hex_dump) html += `<div class="tr-hex">${r.hex_dump}</div>`;
+      return html;
+    }).join('');
+  });
+}
+
+function trExport(fmt) {
+  if (!_trViewRef) return;
+  window.open('/api/trace/'+_trViewRef+'/export/'+fmt, '_blank');
+}
+
+function trAiAnalyze() {
+  if (!_trViewRef) return;
+  const div = document.getElementById('trAiResult');
+  div.style.display = ''; div.textContent = 'AI analyzing trace...';
+  fetch('/api/trace/'+_trViewRef+'/ai/analyze').then(r=>r.json()).then(d => {
+    div.textContent = d.analysis || 'No analysis';
+  });
+}
+
+function trAiBottleneck() {
+  if (!_trViewRef) return;
+  const div = document.getElementById('trAiResult');
+  div.style.display = ''; div.textContent = 'AI finding bottleneck...';
+  fetch('/api/trace/'+_trViewRef+'/ai/bottleneck').then(r=>r.json()).then(d => {
+    if (d.cause) div.textContent = 'Bottleneck: ' + d.message + ' (' + d.latency_ms + 'ms)\nCause: ' + d.cause + '\nComponent: ' + (d.component||'?') + '\nRecommendation: ' + (d.recommendation||'N/A');
+    else div.textContent = d.message || 'No bottleneck found';
+  });
+}
+
+// Auto-refresh active traces
+let _trInterval = null;
+document.querySelector('a[href="#traces-tab"]')?.addEventListener('shown.bs.tab', () => {
+  trLoadSessions();
+  _trInterval = setInterval(() => { trLoadSessions(); if (_trViewRef) trRefreshRecords(); }, 5000);
+});
+document.querySelector('a[href="#traces-tab"]')?.addEventListener('hidden.bs.tab', () => {
+  if (_trInterval) { clearInterval(_trInterval); _trInterval = null; }
+});
+</script>

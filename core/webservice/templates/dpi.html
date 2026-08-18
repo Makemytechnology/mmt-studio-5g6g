@@ -1,0 +1,145 @@
+<!-- templates/dpi.html — Application Detection (DPI, TS 23.501 §5.8) -->
+
+<!-- Add App -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between"><strong>Applications</strong>
+    <button class="btn btn-sm btn-outline-primary" onclick="dpiSeedDefaults()">Load Defaults</button></div>
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label form-label-sm">App ID</label>
+        <input type="text" class="form-control form-control-sm" id="dpiAppId" placeholder="youtube"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">Name</label>
+        <input type="text" class="form-control form-control-sm" id="dpiAppName" placeholder="YouTube"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Category</label>
+        <select class="form-select form-select-sm" id="dpiCat"><option>video</option><option>social</option><option>voip</option><option>gaming</option><option>enterprise</option><option>general</option></select></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">QoS Profile</label>
+        <input type="text" class="form-control form-control-sm" id="dpiQos" placeholder="optional"></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-primary w-100" style="margin-top:18px" onclick="dpiAddApp()">Add</button></div>
+    </div>
+    <div id="dpiAppList" class="mt-2"><small class="text-muted">No apps</small></div>
+  </div>
+</div>
+
+<!-- PFD Rules -->
+<div class="card mb-3">
+  <div class="card-header"><strong>PFD Rules</strong></div>
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label form-label-sm">App</label>
+        <input type="text" class="form-control form-control-sm" id="dpiRuleApp" placeholder="youtube"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">Type</label>
+        <select class="form-select form-select-sm" id="dpiRuleType"><option value="sni">SNI</option><option value="dns">DNS</option><option value="ip_range">IP Range</option><option value="host">Host</option><option value="port_range">Port Range</option></select></div>
+      <div class="col-md-3"><label class="form-label form-label-sm">Pattern</label>
+        <input type="text" class="form-control form-control-sm" id="dpiRulePattern" placeholder="*.youtube.com"></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-primary w-100" style="margin-top:18px" onclick="dpiAddRule()">Add</button></div>
+    </div>
+    <div id="dpiRuleList" class="mt-2" style="max-height:200px;overflow-y:auto"><small class="text-muted">No rules</small></div>
+  </div>
+</div>
+
+<!-- Detection Test + Usage -->
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card"><div class="card-header"><strong>Test Detection</strong></div>
+      <div class="card-body py-2">
+        <div class="row g-2 align-items-end">
+          <div class="col"><input type="text" class="form-control form-control-sm" id="dpiTestVal" placeholder="www.youtube.com or 142.250.1.1"></div>
+          <div class="col-auto"><button class="btn btn-sm btn-outline-primary" onclick="dpiTest()">Detect</button></div>
+        </div>
+        <div id="dpiTestResult" class="mt-1" style="font-size:0.82rem"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card"><div class="card-header"><strong>Usage Summary</strong></div>
+      <div class="card-body py-2">
+        <div id="dpiUsage" style="font-size:0.82rem"><small class="text-muted">No data</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Tools -->
+<div class="card mt-3">
+  <div class="card-header"><strong>AI Tools</strong></div>
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3"><label class="form-label form-label-sm">AI: Generate rules for app</label>
+        <input type="text" class="form-control form-control-sm" id="dpiAiAppName" placeholder="Spotify"></div>
+      <div class="col-auto"><button class="btn btn-sm btn-outline-warning" style="margin-top:18px" onclick="dpiAiGenRules()">Generate PFD Rules</button></div>
+      <div class="col-md-3"><label class="form-label form-label-sm">AI: Classify unknown SNI/IP</label>
+        <input type="text" class="form-control form-control-sm" id="dpiAiClassifyVal" placeholder="cdn.example.com"></div>
+      <div class="col-auto"><button class="btn btn-sm btn-outline-warning" style="margin-top:18px" onclick="dpiAiClassify()">Classify</button></div>
+    </div>
+    <div id="dpiAiResult" class="mt-2" style="font-size:0.82rem;white-space:pre-wrap"></div>
+  </div>
+</div>
+
+<script>
+function dpiLoad() {
+  fetch('/api/dpi/apps').then(r=>r.json()).then(d=>{
+    const div=document.getElementById('dpiAppList');
+    if(!d.ok||!d.apps.length){div.innerHTML='<small class="text-muted">No apps — click Load Defaults</small>';return;}
+    div.innerHTML='<table class="table table-sm table-striped mb-0" style="font-size:0.8rem"><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>QoS</th><th></th></tr></thead><tbody>'+
+      d.apps.map(a=>`<tr><td><strong>${a.app_id}</strong></td><td>${a.app_name}</td><td>${a.category}</td><td>${a.qos_profile||'-'}</td><td><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="dpiDelApp('${a.app_id}')">x</button></td></tr>`).join('')+'</tbody></table>';
+  });
+  fetch('/api/dpi/rules').then(r=>r.json()).then(d=>{
+    const div=document.getElementById('dpiRuleList');
+    if(!d.ok||!d.rules.length){div.innerHTML='<small class="text-muted">No rules</small>';return;}
+    div.innerHTML='<table class="table table-sm table-striped mb-0" style="font-size:0.78rem"><thead><tr><th>App</th><th>Type</th><th>Pattern</th><th></th></tr></thead><tbody>'+
+      d.rules.map(r=>`<tr><td>${r.app_id}</td><td><span class="badge bg-secondary">${r.detection_type}</span></td><td><code>${r.pattern}</code></td><td><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="dpiDelRule(${r.id})">x</button></td></tr>`).join('')+'</tbody></table>';
+  });
+  fetch('/api/dpi/usage-summary').then(r=>r.json()).then(d=>{
+    const div=document.getElementById('dpiUsage');
+    if(!d.ok||!d.summary.length){div.innerHTML='<small class="text-muted">No detection data</small>';return;}
+    div.innerHTML=d.summary.map(s=>`<div><strong>${s.app_id}</strong>: ${s.users} users, DL ${(s.total_dl/1048576).toFixed(1)} MB, UL ${(s.total_ul/1048576).toFixed(1)} MB</div>`).join('');
+  });
+}
+function dpiAddApp(){
+  const d={app_id:document.getElementById('dpiAppId').value.trim(),app_name:document.getElementById('dpiAppName').value.trim(),category:document.getElementById('dpiCat').value,qos_profile:document.getElementById('dpiQos').value.trim()||null};
+  if(!d.app_id){alert('App ID required');return;}
+  if(!d.app_name)d.app_name=d.app_id;
+  fetch('/api/dpi/app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(r=>{if(r.ok){dpiLoad();document.getElementById('dpiAppId').value='';document.getElementById('dpiAppName').value='';}});
+}
+function dpiDelApp(id){fetch('/api/dpi/app/'+id+'/delete',{method:'POST'}).then(()=>dpiLoad());}
+function dpiAddRule(){
+  const d={app_id:document.getElementById('dpiRuleApp').value.trim(),detection_type:document.getElementById('dpiRuleType').value,pattern:document.getElementById('dpiRulePattern').value.trim()};
+  if(!d.app_id||!d.pattern){alert('App and pattern required');return;}
+  fetch('/api/dpi/rule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(r=>{if(r.ok){dpiLoad();document.getElementById('dpiRulePattern').value='';}});
+}
+function dpiDelRule(id){fetch('/api/dpi/rule/'+id+'/delete',{method:'POST'}).then(()=>dpiLoad());}
+function dpiTest(){
+  const v=document.getElementById('dpiTestVal').value.trim();
+  if(!v)return;
+  const isIp=/^\d+\.\d+\.\d+\.\d+$/.test(v);
+  const qs=isIp?`ip=${v}`:`sni=${v}&domain=${v}`;
+  fetch('/api/dpi/detect?'+qs).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('dpiTestResult');
+    const results=Object.entries(d).filter(([k,v])=>k!=='ok'&&v).map(([k,v])=>`<strong>${k}</strong>: ${v}`);
+    div.innerHTML=results.length?results.join(', '):'<span class="text-muted">No match</span>';
+  });
+}
+function dpiSeedDefaults(){fetch('/api/dpi/seed-defaults',{method:'POST'}).then(()=>dpiLoad());}
+function dpiAiGenRules(){
+  const name=document.getElementById('dpiAiAppName').value.trim();
+  if(!name){alert('Enter app name');return;}
+  document.getElementById('dpiAiResult').textContent='Generating...';
+  fetch('/api/dpi/ai/generate-rules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_name:name})}).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('dpiAiResult');
+    if(d.rules&&d.rules.length){div.textContent='Suggested rules for '+name+':\n'+d.rules.map(r=>r.detection_type+': '+r.pattern).join('\n');}
+    else div.textContent='No rules generated. AI response: '+(d.ai_response||'N/A');
+  });
+}
+function dpiAiClassify(){
+  const v=document.getElementById('dpiAiClassifyVal').value.trim();
+  if(!v)return;
+  document.getElementById('dpiAiResult').textContent='Classifying...';
+  const isIp=/^\d+\.\d+\.\d+\.\d+$/.test(v);
+  fetch('/api/dpi/ai/classify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(isIp?{dst_ip:v}:{sni:v})}).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('dpiAiResult');
+    if(d.app_id) div.textContent='Detected: '+d.app_id+' ('+d.category+', confidence: '+(d.confidence||'?')+')\n\nSuggested PFD rules:\n'+(d.pfd_rules||[]).map(r=>r.detection_type+': '+r.pattern).join('\n');
+    else div.textContent=d.ai_response||'Could not classify';
+  });
+}
+document.querySelector('a[href="#dpi-tab"]')?.addEventListener('shown.bs.tab',dpiLoad);
+</script>

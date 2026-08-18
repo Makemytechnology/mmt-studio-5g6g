@@ -1,0 +1,206 @@
+<!-- templates/ai_assistant.html — AI Assistant (Chat + Troubleshoot + Config) -->
+
+<style>
+.ai-chat-box { border: 1px solid #dee2e6; border-radius: 8px; background: #fff; height: 350px; overflow-y: auto; padding: 12px; margin-bottom: 10px; }
+.ai-msg { margin-bottom: 10px; }
+.ai-msg.user { text-align: right; }
+.ai-msg .bubble { display: inline-block; max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 0.88rem; white-space: pre-wrap; word-wrap: break-word; }
+.ai-msg.user .bubble { background: #0d6efd; color: #fff; border-bottom-right-radius: 4px; }
+.ai-msg.assistant .bubble { background: #f1f3f5; color: #333; border-bottom-left-radius: 4px; }
+.ai-status { font-size: 0.78rem; color: #666; }
+.ai-config-row { display: flex; gap: 8px; align-items: end; margin-bottom: 6px; }
+.ai-config-row label { font-size: 0.78rem; margin-bottom: 2px; }
+.ai-config-row input, .ai-config-row select { font-size: 0.82rem; }
+</style>
+
+<!-- Status Bar -->
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div>
+    <strong>AI Assistant</strong>
+    <span class="ai-status ms-2" id="aiStatus">Loading...</span>
+  </div>
+  <div>
+    <button class="btn btn-sm btn-outline-secondary" onclick="aiLoadConfig()" data-bs-toggle="collapse" data-bs-target="#aiConfigPanel">Settings</button>
+  </div>
+</div>
+
+<!-- Config Panel (collapsible) -->
+<div class="collapse mb-3" id="aiConfigPanel">
+  <div class="card card-body py-2">
+    <div class="ai-config-row">
+      <div style="flex:1">
+        <label>Provider</label>
+        <select class="form-select form-select-sm" id="aiProvider">
+          <option value="local">Local (Ollama)</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="openai">OpenAI (ChatGPT)</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="custom">Custom HTTP</option>
+        </select>
+      </div>
+      <div style="flex:1" id="aiModelDiv">
+        <label>Model</label>
+        <input type="text" class="form-control form-control-sm" id="aiModel" placeholder="llama3.2">
+      </div>
+      <div style="flex:1" id="aiKeyDiv" style="display:none">
+        <label>API Key</label>
+        <input type="password" class="form-control form-control-sm" id="aiApiKey" placeholder="sk-...">
+      </div>
+      <div>
+        <button class="btn btn-sm btn-primary" onclick="aiSaveConfig()">Save</button>
+      </div>
+    </div>
+    <div class="ai-config-row">
+      <div style="flex:1">
+        <label>Local Endpoint</label>
+        <input type="text" class="form-control form-control-sm" id="aiEndpoint" value="http://localhost:11434">
+      </div>
+      <div style="width:100px">
+        <label>Temp</label>
+        <input type="number" step="0.1" min="0" max="2" class="form-control form-control-sm" id="aiTemp" value="0.3">
+      </div>
+      <div style="width:100px">
+        <label>Max Tokens</label>
+        <input type="number" class="form-control form-control-sm" id="aiMaxTok" value="4096">
+      </div>
+      <div>
+        <label class="form-check-label" style="font-size:0.78rem">
+          <input type="checkbox" class="form-check-input" id="aiRag"> RAG
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chat -->
+<div class="ai-chat-box" id="aiChatBox"></div>
+<div class="input-group">
+  <input type="text" class="form-control" id="aiInput" placeholder="Ask about the network, troubleshoot a UE, analyze logs..." onkeydown="if(event.key==='Enter')aiSend()">
+  <button class="btn btn-primary" onclick="aiSend()">Send</button>
+</div>
+
+<!-- Quick Actions -->
+<div class="mt-2">
+  <small class="text-muted">Quick:</small>
+  <button class="btn btn-sm btn-outline-secondary" onclick="aiQuick('What is the current network health status?')">Health</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="aiQuick('Show me active alarms and their probable causes')">Alarms</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('aiTsImsi').focus()">Troubleshoot UE</button>
+</div>
+
+<!-- Troubleshoot Panel -->
+<div class="card mt-2">
+  <div class="card-body py-2">
+    <div class="d-flex gap-2 align-items-end">
+      <div style="flex:1">
+        <label class="form-label form-label-sm mb-0">Troubleshoot UE</label>
+        <input type="text" class="form-control form-control-sm" id="aiTsImsi" placeholder="IMSI">
+      </div>
+      <div style="flex:2">
+        <input type="text" class="form-control form-control-sm" id="aiTsQ" placeholder="Question (optional)">
+      </div>
+      <button class="btn btn-sm btn-warning" onclick="aiTroubleshoot()">Diagnose</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let aiSessionId = 'chat-' + Math.random().toString(36).substr(2,8);
+
+function aiLoadStatus() {
+  fetch('/api/ai/status').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const h = d.provider_health || {};
+    const avail = h.available !== false;
+    document.getElementById('aiStatus').innerHTML =
+      `<span class="badge ${avail?'bg-success':'bg-warning'}">${d.active_provider}</span> ` +
+      `<span>${d.model||''}</span>` +
+      (d.rag_enabled ? ' <span class="badge bg-info">RAG</span>' : '');
+  }).catch(()=>{});
+}
+
+function aiLoadConfig() {
+  fetch('/api/ai/config').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const c = d.config;
+    document.getElementById('aiProvider').value = c.active_provider || 'local';
+    document.getElementById('aiEndpoint').value = c.local_endpoint || 'http://localhost:11434';
+    document.getElementById('aiTemp').value = c.temperature || 0.3;
+    document.getElementById('aiMaxTok').value = c.max_tokens || 4096;
+    document.getElementById('aiRag').checked = !!c.rag_enabled;
+    // Set model based on provider
+    const prov = c.active_provider || 'local';
+    document.getElementById('aiModel').value = c[prov+'_model'] || c.local_model || '';
+  }).catch(()=>{});
+}
+
+function aiSaveConfig() {
+  const prov = document.getElementById('aiProvider').value;
+  const model = document.getElementById('aiModel').value;
+  const apiKey = document.getElementById('aiApiKey').value;
+  const data = {
+    active_provider: prov,
+    local_endpoint: document.getElementById('aiEndpoint').value,
+    temperature: parseFloat(document.getElementById('aiTemp').value),
+    max_tokens: parseInt(document.getElementById('aiMaxTok').value),
+    rag_enabled: document.getElementById('aiRag').checked ? 1 : 0,
+  };
+  data[prov+'_model'] = model;
+  if (apiKey && !apiKey.includes('...')) data[prov+'_api_key'] = apiKey;
+
+  fetch('/api/ai/config', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)}).then(r=>r.json()).then(d => {
+    if (d.ok) { aiLoadStatus(); alert('Config saved'); }
+  });
+}
+
+function aiSend() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  _addMsg('user', msg);
+
+  fetch('/api/ai/chat', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({message: msg, session_id: aiSessionId, rag: document.getElementById('aiRag').checked})
+  }).then(r=>r.json()).then(d => {
+    _addMsg('assistant', d.response || d.error || 'No response');
+    if (d.provider) {
+      _addMeta(`${d.provider}/${d.model} — ${d.tokens} tokens, ${d.latency_ms}ms`);
+    }
+  }).catch(e => _addMsg('assistant', '[Error: ' + e + ']'));
+}
+
+function aiQuick(msg) {
+  document.getElementById('aiInput').value = msg;
+  aiSend();
+}
+
+function aiTroubleshoot() {
+  const imsi = document.getElementById('aiTsImsi').value.trim();
+  if (!imsi) { alert('IMSI required'); return; }
+  const q = document.getElementById('aiTsQ').value.trim();
+  _addMsg('user', `[Troubleshoot] ${imsi}${q ? ': '+q : ''}`);
+
+  fetch('/api/ai/troubleshoot', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({imsi, question: q||undefined})
+  }).then(r=>r.json()).then(d => {
+    _addMsg('assistant', d.analysis || 'No analysis');
+  }).catch(e => _addMsg('assistant', '[Error: ' + e + ']'));
+}
+
+function _addMsg(role, content) {
+  const box = document.getElementById('aiChatBox');
+  box.innerHTML += `<div class="ai-msg ${role}"><div class="bubble">${_esc(content)}</div></div>`;
+  box.scrollTop = box.scrollHeight;
+}
+function _addMeta(text) {
+  const box = document.getElementById('aiChatBox');
+  box.innerHTML += `<div class="ai-status text-end">${_esc(text)}</div>`;
+}
+function _esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+document.querySelector('a[href="#ai-tab"]')?.addEventListener('shown.bs.tab', () => {
+  aiLoadStatus();
+  aiLoadConfig();
+});
+</script>

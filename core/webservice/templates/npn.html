@@ -1,0 +1,394 @@
+<!-- templates/npn.html — Non-Public Network Management (TS 23.501 section 5.30) -->
+
+<style>
+.npn-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.npn-card .t-val { font-size: 1.5rem; font-weight: 700; }
+.npn-card .t-lbl { font-size: 0.78rem; opacity: 0.9; }
+.nc-blue { background: #0d6efd; }
+.nc-green { background: #28a745; }
+.nc-orange { background: #fd7e14; }
+.nc-teal { background: #20c997; }
+.nc-red { background: #dc3545; }
+.nc-gray { background: #6c757d; }
+.npn-badge-snpn { background: #6f42c1; color: #fff; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; }
+.npn-badge-pni { background: #0d6efd; color: #fff; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; }
+.npn-badge-active { background: #28a745; color: #fff; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; }
+.npn-badge-inactive { background: #dc3545; color: #fff; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; }
+</style>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3" id="npnSummary">
+  <div class="col"><div class="npn-card nc-blue"><div class="t-val" id="npnNetCount">--</div><div class="t-lbl">NPN Networks</div></div></div>
+  <div class="col"><div class="npn-card nc-green"><div class="t-val" id="npnSnpnCount">--</div><div class="t-lbl">SNPN</div></div></div>
+  <div class="col"><div class="npn-card nc-orange"><div class="t-val" id="npnPniCount">--</div><div class="t-lbl">PNI-NPN</div></div></div>
+  <div class="col"><div class="npn-card nc-teal"><div class="t-val" id="npnCagCount">--</div><div class="t-lbl">CAGs</div></div></div>
+  <div class="col"><div class="npn-card nc-gray"><div class="t-val" id="npnMemberCount">--</div><div class="t-lbl">Members</div></div></div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#npn-networks-tab">NPN Networks</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#npn-cag-tab">Closed Access Groups</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#npn-auth-tab">Authorization Test</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#npn-log-tab">Access Log</a></li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- NPN Networks -->
+  <div class="tab-pane fade show active" id="npn-networks-tab">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0">NPN Networks</h6>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary" onclick="npnLoadNetworks()">Refresh</button>
+        <button class="btn btn-sm btn-primary ms-1" data-bs-toggle="modal" data-bs-target="#npnAddModal">Add Network</button>
+      </div>
+    </div>
+    <table class="table table-sm table-hover" id="npnNetTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>PLMN</th><th>NID</th><th>Status</th><th>Created</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- CAGs -->
+  <div class="tab-pane fade" id="npn-cag-tab">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0">Closed Access Groups (CAG)</h6>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary" onclick="npnLoadCags()">Refresh</button>
+        <button class="btn btn-sm btn-primary ms-1" data-bs-toggle="modal" data-bs-target="#npnAddCagModal">Add CAG</button>
+      </div>
+    </div>
+    <table class="table table-sm table-hover" id="npnCagTable">
+      <thead><tr><th>ID</th><th>CAG-ID</th><th>NPN</th><th>Name</th><th>Created</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Members panel (shown when a CAG is selected) -->
+    <div id="npnMemberPanel" class="card mt-3" style="display:none;">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Members of CAG <span id="npnMemberCagLabel"></span></strong>
+        <div>
+          <input type="text" class="form-control form-control-sm d-inline-block" style="width:160px;" id="npnAddMemberImsi" placeholder="IMSI">
+          <button class="btn btn-sm btn-success ms-1" onclick="npnAddMember()">Add</button>
+        </div>
+      </div>
+      <div class="card-body p-2">
+        <table class="table table-sm table-hover mb-0" id="npnMemberTable">
+          <thead><tr><th>IMSI</th><th>Authorized</th><th>Added</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authorization Test -->
+  <div class="tab-pane fade" id="npn-auth-tab">
+    <h6 class="fw-bold mb-2">Authorization Test</h6>
+    <p class="text-muted small">Check if a UE (IMSI) is authorized to access an NPN network.</p>
+    <div class="row g-2 align-items-end mb-3">
+      <div class="col-md-3">
+        <label class="form-label form-label-sm">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="npnAuthImsi" placeholder="001010000000097">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm">NPN Network</label>
+        <select class="form-select form-select-sm" id="npnAuthNpnId"></select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-primary w-100" onclick="npnTestAuth()">Check</button>
+      </div>
+      <div class="col-md-4" id="npnAuthResult"></div>
+    </div>
+  </div>
+
+  <!-- Access Log -->
+  <div class="tab-pane fade" id="npn-log-tab">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0">Access Log</h6>
+      <button class="btn btn-sm btn-outline-secondary" onclick="npnLoadLog()">Refresh</button>
+    </div>
+    <table class="table table-sm table-hover" id="npnLogTable">
+      <thead><tr><th>Time</th><th>IMSI</th><th>NPN</th><th>CAG</th><th>Action</th><th>Reason</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Add NPN Modal -->
+<div class="modal fade" id="npnAddModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Add NPN Network</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Name</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewName" placeholder="Factory Floor NPN">
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Type</label>
+          <select class="form-select form-select-sm" id="npnNewType" onchange="npnTypeChanged()">
+            <option value="SNPN">SNPN (Standalone)</option>
+            <option value="PNI-NPN">PNI-NPN (Public Integrated)</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">PLMN (MCC+MNC)</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewPlmn" placeholder="00101">
+        </div>
+        <div class="mb-2" id="npnNidGroup">
+          <label class="form-label form-label-sm">NID (10 hex digits)</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewNid" placeholder="0123456789" maxlength="10">
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Description</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewDesc">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="npnCreateNetwork()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add CAG Modal -->
+<div class="modal fade" id="npnAddCagModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h6 class="modal-title">Add Closed Access Group</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label form-label-sm">CAG-ID (8 hex digits)</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewCagId" placeholder="0000ABCD" maxlength="8">
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">NPN Network</label>
+          <select class="form-select form-select-sm" id="npnNewCagNpn"></select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Name</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewCagName" placeholder="Building A Access">
+        </div>
+        <div class="mb-2">
+          <label class="form-label form-label-sm">Description</label>
+          <input type="text" class="form-control form-control-sm" id="npnNewCagDesc">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="npnCreateCag()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let _npnSelectedCag = null;
+
+function npnLoad() {
+  npnLoadStats();
+  npnLoadNetworks();
+  npnLoadCags();
+  npnLoadLog();
+}
+
+function npnLoadStats() {
+  fetch('/api/npn/stats').then(r=>r.json()).then(d => {
+    document.getElementById('npnNetCount').textContent = d.networks || 0;
+    document.getElementById('npnSnpnCount').textContent = d.snpn || 0;
+    document.getElementById('npnPniCount').textContent = d.pni_npn || 0;
+    document.getElementById('npnCagCount').textContent = d.cags || 0;
+    document.getElementById('npnMemberCount').textContent = d.members || 0;
+  }).catch(()=>{});
+}
+
+function npnLoadNetworks() {
+  fetch('/api/npn/networks').then(r=>r.json()).then(d => {
+    const tb = document.querySelector('#npnNetTable tbody');
+    tb.innerHTML = '';
+    (d.items||[]).forEach(n => {
+      const typeBadge = n.npn_type === 'SNPN'
+        ? '<span class="npn-badge-snpn">SNPN</span>'
+        : '<span class="npn-badge-pni">PNI-NPN</span>';
+      const statusBadge = n.status === 'active'
+        ? '<span class="npn-badge-active">active</span>'
+        : '<span class="npn-badge-inactive">inactive</span>';
+      tb.innerHTML += `<tr>
+        <td>${n.id}</td><td>${n.name}</td><td>${typeBadge}</td>
+        <td>${n.plmn||''}</td><td>${n.nid||'--'}</td><td>${statusBadge}</td>
+        <td><small>${n.created_at||''}</small></td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="npnDeleteNetwork(${n.id})">Del</button></td>
+      </tr>`;
+    });
+    // Populate auth dropdown
+    const sel = document.getElementById('npnAuthNpnId');
+    sel.innerHTML = '<option value="">-- select --</option>';
+    (d.items||[]).forEach(n => {
+      sel.innerHTML += `<option value="${n.id}">${n.name} (${n.npn_type})</option>`;
+    });
+    // Populate CAG NPN dropdown
+    const cagSel = document.getElementById('npnNewCagNpn');
+    cagSel.innerHTML = '';
+    (d.items||[]).forEach(n => {
+      cagSel.innerHTML += `<option value="${n.id}">${n.name}</option>`;
+    });
+  }).catch(()=>{});
+}
+
+function npnLoadCags() {
+  fetch('/api/npn/cag').then(r=>r.json()).then(d => {
+    const tb = document.querySelector('#npnCagTable tbody');
+    tb.innerHTML = '';
+    (d.items||[]).forEach(c => {
+      tb.innerHTML += `<tr>
+        <td>${c.id}</td><td><code>${c.cag_id}</code></td><td>${c.npn_id}</td>
+        <td>${c.name}</td><td><small>${c.created_at||''}</small></td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="npnSelectCag(${c.id},'${c.cag_id}')">Members</button>
+          <button class="btn btn-sm btn-outline-danger ms-1" onclick="npnDeleteCag(${c.id})">Del</button>
+        </td>
+      </tr>`;
+    });
+  }).catch(()=>{});
+}
+
+function npnSelectCag(rowId, cagId) {
+  _npnSelectedCag = rowId;
+  document.getElementById('npnMemberPanel').style.display = '';
+  document.getElementById('npnMemberCagLabel').textContent = cagId;
+  npnLoadMembers();
+}
+
+function npnLoadMembers() {
+  if (!_npnSelectedCag) return;
+  fetch(`/api/npn/cag/${_npnSelectedCag}/members`).then(r=>r.json()).then(d => {
+    const tb = document.querySelector('#npnMemberTable tbody');
+    tb.innerHTML = '';
+    (d.items||[]).forEach(m => {
+      tb.innerHTML += `<tr>
+        <td><code>${m.imsi}</code></td>
+        <td>${m.authorized ? 'Yes' : 'No'}</td>
+        <td><small>${m.added_at||''}</small></td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="npnRemoveMember('${m.imsi}')">Remove</button></td>
+      </tr>`;
+    });
+  }).catch(()=>{});
+}
+
+function npnAddMember() {
+  const imsi = document.getElementById('npnAddMemberImsi').value.trim();
+  if (!imsi || !_npnSelectedCag) return;
+  fetch(`/api/npn/cag/${_npnSelectedCag}/members`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({imsi})
+  }).then(r=>r.json()).then(() => {
+    document.getElementById('npnAddMemberImsi').value = '';
+    npnLoadMembers();
+    npnLoadStats();
+  });
+}
+
+function npnRemoveMember(imsi) {
+  if (!_npnSelectedCag) return;
+  fetch(`/api/npn/cag/${_npnSelectedCag}/members/${imsi}`, {method:'DELETE'})
+    .then(()=>{ npnLoadMembers(); npnLoadStats(); });
+}
+
+function npnTypeChanged() {
+  const t = document.getElementById('npnNewType').value;
+  document.getElementById('npnNidGroup').style.display = (t === 'SNPN') ? '' : 'none';
+}
+
+function npnCreateNetwork() {
+  const d = {
+    name: document.getElementById('npnNewName').value.trim(),
+    npn_type: document.getElementById('npnNewType').value,
+    plmn: document.getElementById('npnNewPlmn').value.trim(),
+    nid: document.getElementById('npnNewNid').value.trim() || null,
+    description: document.getElementById('npnNewDesc').value.trim() || null,
+  };
+  if (!d.name || !d.plmn) { alert('Name and PLMN are required'); return; }
+  fetch('/api/npn/networks', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(d)
+  }).then(r=>r.json()).then(res => {
+    if (res.error) { alert(res.error); return; }
+    bootstrap.Modal.getInstance(document.getElementById('npnAddModal')).hide();
+    npnLoad();
+  });
+}
+
+function npnDeleteNetwork(id) {
+  if (!confirm('Delete this NPN network and all its CAGs?')) return;
+  fetch(`/api/npn/networks/${id}`, {method:'DELETE'}).then(()=>npnLoad());
+}
+
+function npnCreateCag() {
+  const d = {
+    cag_id: document.getElementById('npnNewCagId').value.trim(),
+    npn_id: parseInt(document.getElementById('npnNewCagNpn').value),
+    name: document.getElementById('npnNewCagName').value.trim(),
+    description: document.getElementById('npnNewCagDesc').value.trim() || null,
+  };
+  if (!d.cag_id || !d.name) { alert('CAG-ID and Name are required'); return; }
+  fetch('/api/npn/cag', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(d)
+  }).then(r=>r.json()).then(res => {
+    if (res.error) { alert(res.error); return; }
+    bootstrap.Modal.getInstance(document.getElementById('npnAddCagModal')).hide();
+    npnLoadCags();
+    npnLoadStats();
+  });
+}
+
+function npnDeleteCag(id) {
+  if (!confirm('Delete this CAG and all its members?')) return;
+  fetch(`/api/npn/cag/${id}`, {method:'DELETE'}).then(()=>{ npnLoadCags(); npnLoadStats(); });
+}
+
+function npnTestAuth() {
+  const imsi = document.getElementById('npnAuthImsi').value.trim();
+  const npnId = document.getElementById('npnAuthNpnId').value;
+  if (!imsi || !npnId) { alert('IMSI and NPN are required'); return; }
+  fetch('/api/npn/authorize', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({imsi, npn_id: parseInt(npnId)})
+  }).then(r=>r.json()).then(res => {
+    const el = document.getElementById('npnAuthResult');
+    if (res.authorized) {
+      el.innerHTML = `<span class="badge bg-success">AUTHORIZED</span> <small>${res.reason||''}</small>`;
+    } else {
+      el.innerHTML = `<span class="badge bg-danger">DENIED</span> <small>${res.reason||''}</small>`;
+    }
+  });
+}
+
+function npnLoadLog() {
+  fetch('/api/npn/access-log?limit=50').then(r=>r.json()).then(d => {
+    const tb = document.querySelector('#npnLogTable tbody');
+    tb.innerHTML = '';
+    (d.items||[]).forEach(e => {
+      const cls = e.action === 'admitted' ? 'text-success' : (e.action === 'denied' ? 'text-danger' : 'text-warning');
+      tb.innerHTML += `<tr>
+        <td><small>${e.created_at||''}</small></td>
+        <td><code>${e.imsi}</code></td>
+        <td>${e.npn_id||'--'}</td><td>${e.cag_id||'--'}</td>
+        <td><strong class="${cls}">${e.action}</strong></td>
+        <td><small>${e.reason||''}</small></td>
+      </tr>`;
+    });
+  }).catch(()=>{});
+}
+
+// Auto-load on tab show
+document.addEventListener('DOMContentLoaded', () => {
+  const tabEl = document.querySelector('a[href="#npn-tab"]');
+  if (tabEl) tabEl.addEventListener('shown.bs.tab', npnLoad);
+  // Also try click-based activation used by this project
+  if (tabEl) tabEl.addEventListener('click', () => setTimeout(npnLoad, 100));
+});
+</script>

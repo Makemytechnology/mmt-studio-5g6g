@@ -1,0 +1,310 @@
+<!-- Tracking Area Management (TS 23.501 §5.4) -->
+<h5>Tracking Areas <small class="text-muted">TS 23.501 §5.4</small></h5>
+
+<!-- Tracking Areas Table -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Tracking Areas
+    <button class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#tac-add-form">Add TA</button>
+  </div>
+  <div class="collapse" id="tac-add-form">
+    <div class="card-body border-bottom bg-light">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label small">TAC (hex)</label>
+          <input type="text" class="form-control form-control-sm" id="tac-new-tac" placeholder="0001"></div>
+        <div class="col-md-3"><label class="form-label small">PLMN</label>
+          <select class="form-select form-select-sm" id="tac-new-plmn"></select></div>
+        <div class="col-md-3"><label class="form-label small">Name</label>
+          <input type="text" class="form-control form-control-sm" id="tac-new-name" placeholder="Downtown"></div>
+        <div class="col-md-1"><label class="form-label small">Priority</label>
+          <input type="number" class="form-control form-control-sm" id="tac-new-prio" value="5" min="1" max="10"></div>
+        <div class="col-md-2"><button class="btn btn-success btn-sm w-100" onclick="tacCreate()">Create</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>TAC</th><th>PLMN</th><th>Name</th><th>Priority</th><th>gNBs</th><th>Cells</th><th>Status</th><th></th></tr></thead>
+      <tbody id="tac-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Registration Areas -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Registration Areas <small class="text-muted ms-2">TS 23.501 §5.4.2</small>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#ra-add-form">Add RA</button>
+  </div>
+  <div class="collapse" id="ra-add-form">
+    <div class="card-body border-bottom bg-light">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3"><label class="form-label small">Name</label>
+          <input type="text" class="form-control form-control-sm" id="ra-new-name" placeholder="City Center"></div>
+        <div class="col-md-5"><label class="form-label small">Select TAs (hold Ctrl/Cmd for multiple)</label>
+          <select class="form-select form-select-sm" id="ra-new-tas" multiple size="4"></select></div>
+        <div class="col-md-2"><button class="btn btn-success btn-sm w-100" onclick="raCreate()">Create</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>ID</th><th>Name</th><th>TAs</th><th></th></tr></thead>
+      <tbody id="ra-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Per-TA Policies -->
+<div class="card">
+  <div class="card-header">Per-TA Policies <small class="text-muted ms-2">TS 23.501 §5.15.5.2</small></div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-md-2"><label class="form-label small">TAC</label>
+        <select class="form-select form-select-sm" id="pol-tac"></select></div>
+      <div class="col-md-2"><label class="form-label small">Type</label>
+        <select class="form-select form-select-sm" id="pol-type" onchange="polTypeChanged()">
+          <option value="nssai">NSSAI</option>
+          <option value="dnn">DNN</option>
+        </select></div>
+      <div class="col-md-3" id="pol-nssai-grp"><label class="form-label small">S-NSSAI</label>
+        <select class="form-select form-select-sm" id="pol-nssai"></select></div>
+      <div class="col-md-3 d-none" id="pol-dnn-grp"><label class="form-label small">DNN</label>
+        <select class="form-select form-select-sm" id="pol-dnn"></select></div>
+      <div class="col-md-2"><label class="form-label small">Allowed</label>
+        <select class="form-select form-select-sm" id="pol-allowed">
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select></div>
+      <div class="col-md-2"><button class="btn btn-success btn-sm w-100" onclick="polAdd()">Add Policy</button></div>
+    </div>
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr><th>TAC</th><th>Type</th><th>Value</th><th>SD</th><th>Allowed</th><th></th></tr></thead>
+      <tbody id="pol-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function tacApi(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('/api/tac' + path, opts).then(r => {
+    if (!r.ok) return r.text().then(t => { throw new Error(t); });
+    return r.json();
+  });
+}
+
+function tacLoadAll() { tacLoadPlmnDropdown(); tacLoadTAs(); tacLoadRAs(); tacLoadPolicies(); }
+
+function tacLoadPlmnDropdown() {
+  fetch('/api/plmn/supported').then(r=>r.json()).then(plmns => {
+    const sel = document.getElementById('tac-new-plmn');
+    sel.innerHTML = '';
+    plmns.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.mcc + '|' + p.mnc;
+      opt.textContent = p.mcc + '/' + p.mnc + (p.name ? ' — ' + p.name : '');
+      sel.appendChild(opt);
+    });
+    if (!plmns.length) {
+      sel.innerHTML = '<option value="">No PLMNs — configure in PLMN tab first</option>';
+    }
+  }).catch(() => {});
+}
+
+function tacLoadTAs() {
+  tacApi('GET', '/tracking-areas').then(tas => {
+    const tb = document.getElementById('tac-list');
+    if (!tas.length) { tb.innerHTML = '<tr><td colspan="8" class="text-muted text-center">No TAs configured</td></tr>'; return; }
+    tb.innerHTML = '';
+    tas.forEach(t => {
+      const st = t.enabled ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Disabled</span>';
+      // Fetch gnbs/cells counts
+      tb.innerHTML += `<tr>
+        <td><code>${t.tac}</code></td><td>${t.plmn_mcc}/${t.plmn_mnc}</td>
+        <td>${t.name||'-'}</td><td>${t.paging_priority}</td>
+        <td><span class="badge bg-info" id="gnb-${t.tac}">...</span></td>
+        <td><span class="badge bg-info" id="cell-${t.tac}">...</span></td>
+        <td>${st}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="tacDelete('${t.tac}')">Del</button></td>
+      </tr>`;
+      tacApi('GET', '/tracking-areas/' + t.tac).then(d => {
+        const ge = document.getElementById('gnb-' + t.tac);
+        const ce = document.getElementById('cell-' + t.tac);
+        if (ge) ge.textContent = (d.gnbs||[]).length;
+        if (ce) ce.textContent = (d.cells||[]).length;
+      });
+    });
+  });
+}
+
+function tacCreate() {
+  const tac = document.getElementById('tac-new-tac').value.trim();
+  const plmnVal = document.getElementById('tac-new-plmn').value;
+  if (!tac) { alert('TAC required'); return; }
+  if (!plmnVal) { alert('Select a PLMN — configure in PLMN Support tab first'); return; }
+  const [mcc, mnc] = plmnVal.split('|');
+  tacApi('POST', '/tracking-areas', {
+    tac, plmn_mcc: mcc, plmn_mnc: mnc,
+    name: document.getElementById('tac-new-name').value,
+    paging_priority: parseInt(document.getElementById('tac-new-prio').value) || 5
+  }).then(() => tacLoadTAs());
+}
+
+function tacDelete(tac) { tacApi('DELETE', '/tracking-areas/' + tac).then(() => tacLoadTAs()); }
+
+function tacLoadRAs() {
+  // Populate TA multi-select dropdown from configured TAs
+  tacApi('GET', '/tracking-areas').then(tas => {
+    const sel = document.getElementById('ra-new-tas');
+    sel.innerHTML = '';
+    tas.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.tac;
+      opt.textContent = t.tac + (t.name ? ' — ' + t.name : '');
+      sel.appendChild(opt);
+    });
+    if (!tas.length) sel.innerHTML = '<option value="">No TAs — configure above first</option>';
+  });
+
+  // Load existing RAs
+  tacApi('GET', '/registration-areas').then(ras => {
+    const tb = document.getElementById('ra-list');
+    if (!ras.length) { tb.innerHTML = '<tr><td colspan="4" class="text-muted text-center">No RAs</td></tr>'; return; }
+    tb.innerHTML = '';
+    ras.forEach(r => {
+      tb.innerHTML += `<tr><td>${r.ra_id}</td><td>${r.name||'-'}</td>
+        <td>${(r.tas||[]).map(t=>'<code>'+t+'</code>').join(', ')||'none'}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="raDelete(${r.ra_id})">Del</button></td></tr>`;
+    });
+  });
+}
+
+function raCreate() {
+  const name = document.getElementById('ra-new-name').value;
+  const sel = document.getElementById('ra-new-tas');
+  const tacs = Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
+  if (!tacs.length) { alert('Select at least one TA'); return; }
+  tacApi('POST', '/registration-areas', {name}).then(d => {
+    if (d.ra_id) {
+      Promise.all(tacs.map(tac => tacApi('POST', '/registration-areas/' + d.ra_id + '/tas', {tac})))
+        .then(() => tacLoadRAs());
+    } else tacLoadRAs();
+  });
+}
+
+function raDelete(id) { tacApi('DELETE', '/registration-areas/' + id).then(() => tacLoadRAs()); }
+
+function tacLoadPolicies() {
+  // Populate TAC dropdown from configured TAs
+  tacApi('GET', '/tracking-areas').then(tas => {
+    const tacSel = document.getElementById('pol-tac');
+    tacSel.innerHTML = '';
+    tas.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.tac;
+      opt.textContent = t.tac + (t.name ? ' — ' + t.name : '');
+      tacSel.appendChild(opt);
+    });
+    if (!tas.length) tacSel.innerHTML = '<option value="">No TAs configured</option>';
+  });
+
+  // Populate NSSAI dropdown from PLMN slice support (plmn_nssai)
+  fetch('/api/plmn/supported').then(r=>r.json()).then(plmns => {
+    const nsSel = document.getElementById('pol-nssai');
+    nsSel.innerHTML = '';
+    const seen = new Set();
+    plmns.forEach(p => {
+      (p.nssai || []).forEach(n => {
+        const key = n.sst + '|' + (n.sd || '');
+        if (!seen.has(key)) {
+          seen.add(key);
+          const opt = document.createElement('option');
+          opt.value = n.sst + '|' + (n.sd || '');
+          opt.textContent = 'SST=' + n.sst + (n.sd ? ' SD=' + n.sd : '') + ' (' + p.mcc + '/' + p.mnc + ')';
+          nsSel.appendChild(opt);
+        }
+      });
+    });
+    if (!seen.size) nsSel.innerHTML = '<option value="">No slices — configure in PLMN tab</option>';
+  }).catch(() => {});
+
+  // Populate DNN dropdown from apn_config
+  fetch('/api/apn').then(r=>r.json()).then(d => {
+    const apns = d.items || [];
+    const dnnSel = document.getElementById('pol-dnn');
+    dnnSel.innerHTML = '';
+    apns.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.apn_name;
+      opt.textContent = a.apn_name;
+      dnnSel.appendChild(opt);
+    });
+    if (!apns.length) dnnSel.innerHTML = '<option value="">No DNNs — configure in APN tab</option>';
+  }).catch(() => {});
+
+  // Load existing policies
+  tacApi('GET', '/tracking-areas').then(tas => {
+    const tb = document.getElementById('pol-list');
+    tb.innerHTML = '';
+    if (!tas.length) { tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center">No policies</td></tr>'; return; }
+    const promises = tas.map(t =>
+      Promise.all([
+        tacApi('GET', '/tracking-areas/' + t.tac + '/nssai'),
+        tacApi('GET', '/tracking-areas/' + t.tac + '/dnn')
+      ]).then(([nssai, dnn]) => ({tac: t.tac, name: t.name, nssai, dnn}))
+    );
+    Promise.all(promises).then(results => {
+      let html = '';
+      results.forEach(r => {
+        r.nssai.forEach(p => {
+          const al = p.allowed ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-danger">No</span>';
+          html += `<tr><td><code>${r.tac}</code></td><td>NSSAI</td><td>SST=${p.sst}</td><td>${p.sd||'-'}</td><td>${al}</td>
+            <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="polDelNssai('${r.tac}',${p.sst},'${p.sd||''}')">Del</button></td></tr>`;
+        });
+        r.dnn.forEach(p => {
+          const al = p.allowed ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-danger">No</span>';
+          html += `<tr><td><code>${r.tac}</code></td><td>DNN</td><td>${p.dnn}</td><td>-</td><td>${al}</td>
+            <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="polDelDnn('${r.tac}','${p.dnn}')">Del</button></td></tr>`;
+        });
+      });
+      tb.innerHTML = html || '<tr><td colspan="6" class="text-muted text-center">No policies</td></tr>';
+    });
+  });
+}
+
+function polTypeChanged() {
+  const type = document.getElementById('pol-type').value;
+  document.getElementById('pol-nssai-grp').classList.toggle('d-none', type !== 'nssai');
+  document.getElementById('pol-dnn-grp').classList.toggle('d-none', type !== 'dnn');
+}
+
+function polAdd() {
+  const tac = document.getElementById('pol-tac').value;
+  const type = document.getElementById('pol-type').value;
+  const allowed = document.getElementById('pol-allowed').value === '1';
+  if (!tac) { alert('Select a TAC'); return; }
+  if (type === 'nssai') {
+    const val = document.getElementById('pol-nssai').value;
+    if (!val) { alert('Select an S-NSSAI'); return; }
+    const [sst, sd] = val.split('|');
+    tacApi('POST', '/tracking-areas/' + tac + '/nssai', {sst: parseInt(sst), sd: sd || null, allowed});
+  } else {
+    const dnn = document.getElementById('pol-dnn').value;
+    if (!dnn) { alert('Select a DNN'); return; }
+    tacApi('POST', '/tracking-areas/' + tac + '/dnn', {dnn, allowed});
+  }
+  setTimeout(tacLoadPolicies, 300);
+}
+
+function polDelNssai(tac, sst, sd) {
+  tacApi('DELETE', '/tracking-areas/' + tac + '/nssai/' + sst + (sd ? '?sd=' + sd : '')).then(() => tacLoadPolicies());
+}
+function polDelDnn(tac, dnn) {
+  tacApi('DELETE', '/tracking-areas/' + tac + '/dnn/' + dnn).then(() => tacLoadPolicies());
+}
+
+document.querySelector('[href="#tac-tab"]')?.addEventListener('shown.bs.tab', tacLoadAll);
+try { tacLoadAll(); } catch(e) { console.warn('TAC init:', e); }
+</script>
