@@ -1,0 +1,111 @@
+<!-- templates/li.html — Lawful Interception (Admin only, TS 33.127) -->
+
+<style>
+.li-warn { background: #fff3cd; border: 1px solid #ffc107; padding: 8px 14px; border-radius: 6px; font-size: 0.82rem; margin-bottom: 12px; }
+</style>
+
+<div class="li-warn">
+  <strong>Lawful Interception</strong> — Authorized access only. All operations are audit-logged (TS 33.127 §8).
+</div>
+
+<!-- Add Warrant -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Create Warrant</strong></div>
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label class="form-label form-label-sm">Warrant ID</label>
+        <input type="text" class="form-control form-control-sm" id="liWarrantId" placeholder="W-2026-001"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">Target IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="liImsi" placeholder="001011234567001"></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">Authority</label>
+        <input type="text" class="form-control form-control-sm" id="liAuthority" placeholder="Court Order #"></div>
+      <div class="col-md-1"><label class="form-label form-label-sm">Scope</label>
+        <select class="form-select form-select-sm" id="liScope">
+          <option value="iri">IRI</option><option value="cc">CC</option><option value="iri+cc">IRI+CC</option>
+        </select></div>
+      <div class="col-md-2"><label class="form-label form-label-sm">MDF Endpoint</label>
+        <input type="text" class="form-control form-control-sm" id="liMdf" placeholder="https://lemf/hi2"></div>
+      <div class="col-md-1"><button class="btn btn-sm btn-danger w-100" onclick="liCreate()">Activate</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Warrants -->
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h6 class="fw-bold mb-0">Warrants</h6>
+  <button class="btn btn-sm btn-outline-secondary" onclick="liLoad()">Refresh</button>
+</div>
+<div id="liWarrants"><small class="text-muted">No warrants</small></div>
+
+<!-- IRI Events -->
+<div id="liIriPanel" style="display:none" class="mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h6 class="fw-bold mb-0">IRI Events: <span id="liIriRef">--</span></h6>
+    <div>
+      <button class="btn btn-sm btn-outline-warning" onclick="liAiCorrelate()">AI: Timeline</button>
+      <button class="btn btn-sm btn-outline-warning ms-1" onclick="liAiPatterns()">AI: Patterns</button>
+    </div>
+  </div>
+  <div id="liIriEvents" style="max-height:250px;overflow-y:auto"><small class="text-muted">No events</small></div>
+  <div id="liAiResult" class="mt-2" style="font-size:0.82rem;white-space:pre-wrap;display:none"></div>
+</div>
+
+<!-- Audit -->
+<h6 class="fw-bold mt-3">Audit Trail</h6>
+<div id="liAudit" style="max-height:200px;overflow-y:auto;font-size:0.78rem"><small class="text-muted">No audit entries</small></div>
+
+<script>
+function liLoad() {
+  fetch('/api/li/warrants',{headers:{'X-LI-Auth-Token':'session'}}).then(r=>r.json()).then(d => {
+    const div = document.getElementById('liWarrants');
+    if (!d.ok||!d.warrants.length){div.innerHTML='<small class="text-muted">No warrants</small>';return;}
+    div.innerHTML='<table class="table table-sm table-striped mb-0" style="font-size:0.8rem"><thead><tr><th>ID</th><th>IMSI</th><th>Scope</th><th>Authority</th><th>Status</th><th></th></tr></thead><tbody>'+
+      d.warrants.map(w=>{
+        const st=w.status==='active'?'<span class="badge bg-danger">active</span>':'<span class="badge bg-secondary">'+w.status+'</span>';
+        return`<tr><td><strong>${w.warrant_id}</strong></td><td>${w.target_imsi}</td><td>${w.scope}</td><td>${w.authority}</td><td>${st}</td><td>${w.status==='active'?'<button class="btn btn-sm btn-outline-warning py-0 px-1" onclick="liRevoke(\''+w.warrant_id+'\')">Revoke</button>':''} <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="liViewIri(\''+w.warrant_id+'\')">IRI</button></td></tr>`;
+      }).join('')+'</tbody></table>';
+  }).catch(()=>{});
+  // Audit
+  fetch('/api/li/audit',{headers:{'X-LI-Auth-Token':'session'}}).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('liAudit');
+    if(!d.ok||!d.audit.length){div.innerHTML='<small class="text-muted">No audit</small>';return;}
+    div.innerHTML='<table class="table table-sm mb-0"><tbody>'+d.audit.slice(0,30).map(a=>{
+      const ts=new Date(a.timestamp*1000).toLocaleString();
+      return`<tr><td>${ts}</td><td>${a.action}</td><td>${a.warrant_id||'-'}</td><td>${a.operator}</td><td>${a.detail||''}</td></tr>`;
+    }).join('')+'</tbody></table>';
+  }).catch(()=>{});
+}
+function liCreate(){
+  const data={warrant_id:document.getElementById('liWarrantId').value.trim(),target_imsi:document.getElementById('liImsi').value.trim(),authority:document.getElementById('liAuthority').value.trim(),scope:document.getElementById('liScope').value,mdf_endpoint:document.getElementById('liMdf').value.trim()};
+  if(!data.warrant_id||!data.target_imsi||!data.authority){alert('Warrant ID, IMSI, and Authority required');return;}
+  fetch('/api/li/warrant',{method:'POST',headers:{'Content-Type':'application/json','X-LI-Auth-Token':'session'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{if(d.ok)liLoad();else alert(d.error||'Failed');});
+}
+function liRevoke(id){if(!confirm('Revoke warrant '+id+'?'))return;fetch('/api/li/warrant/'+id+'/revoke',{method:'POST',headers:{'X-LI-Auth-Token':'session'}}).then(()=>liLoad());}
+function liViewIri(id){
+  document.getElementById('liIriRef').textContent=id;
+  document.getElementById('liIriPanel').style.display='';
+  fetch('/api/li/warrant/'+id+'/iri',{headers:{'X-LI-Auth-Token':'session'}}).then(r=>r.json()).then(d=>{
+    const div=document.getElementById('liIriEvents');
+    if(!d.ok||!d.events.length){div.innerHTML='<small class="text-muted">No IRI events</small>';return;}
+    div.innerHTML='<table class="table table-sm table-striped mb-0" style="font-size:0.78rem"><thead><tr><th>Time</th><th>Event</th><th>IMSI</th><th>Data</th></tr></thead><tbody>'+
+      d.events.map(e=>`<tr><td>${new Date(e.timestamp*1000).toLocaleTimeString()}</td><td>${e.event_type}</td><td>${e.target_imsi}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${JSON.stringify(e.event_data)}</td></tr>`).join('')+'</tbody></table>';
+  });
+}
+function liAiCorrelate(){
+  const ref=document.getElementById('liIriRef').textContent;
+  if(!ref||ref==='--')return;
+  const div=document.getElementById('liAiResult');
+  div.style.display='';div.textContent='AI analyzing...';
+  fetch('/api/li/warrant/'+ref+'/ai/correlate',{headers:{'X-LI-Auth-Token':'session'}}).then(r=>r.json()).then(d=>{div.textContent=d.summary||'No analysis';});
+}
+function liAiPatterns(){
+  const ref=document.getElementById('liIriRef').textContent;
+  if(!ref||ref==='--')return;
+  const div=document.getElementById('liAiResult');
+  div.style.display='';div.textContent='AI analyzing patterns...';
+  fetch('/api/li/warrant/'+ref+'/ai/patterns',{headers:{'X-LI-Auth-Token':'session'}}).then(r=>r.json()).then(d=>{
+    div.textContent=d.observations?d.observations.join('\n'):JSON.stringify(d,null,2);
+  });
+}
+document.querySelector('a[href="#li-tab"]')?.addEventListener('shown.bs.tab',liLoad);
+</script>

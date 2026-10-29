@@ -1,0 +1,298 @@
+<!-- templates/eas.html — EAS Discovery (TS 23.548 §6.2 / TS 23.558 §8.5) -->
+
+<!-- Status Overview -->
+<div class="row g-2 mb-3" id="easStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="easTotalEas">0</div><div class="small text-muted">Total EAS</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="easActiveEas">0</div><div class="small text-muted">Active</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="easDnsEntries">0</div><div class="small text-muted">DNS Entries</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="easDnaiMaps">0</div><div class="small text-muted">DNAI Mappings</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="easDiscReqs">0</div><div class="small text-muted">Discoveries</div></div></div>
+</div>
+
+<!-- EAS Registry -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#easRegistryCollapse"><div class="w-100 text-center">EAS Registry (TS 23.558 §8.5)</div></button></h2>
+  <div id="easRegistryCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>App ID</th><th>Name</th><th>Endpoint</th><th>DNAI</th><th>Location</th><th>DNNs</th><th>Capacity</th><th>Conns</th><th>Status</th><th></th></tr>
+    </thead><tbody id="easRegistryBody"><tr><td colspan="11" class="text-muted text-center">No EAS registered</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">App ID</label><input id="easRegAppId" class="form-control form-control-sm" style="width:120px" placeholder="app-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="easRegName" class="form-control form-control-sm" style="width:120px" placeholder="My Edge App"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Endpoint URL</label><input id="easRegEndpoint" class="form-control form-control-sm" style="width:200px" placeholder="http://10.0.0.10:8080"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">DNAI</label><input id="easRegDnai" class="form-control form-control-sm" style="width:100px" placeholder="dnai-1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Lat</label><input id="easRegLat" class="form-control form-control-sm" style="width:80px" type="number" step="0.001" placeholder="0.0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Lon</label><input id="easRegLon" class="form-control form-control-sm" style="width:80px" type="number" step="0.001" placeholder="0.0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">DNNs (csv)</label><input id="easRegDnns" class="form-control form-control-sm" style="width:120px" placeholder="internet,ims"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Capacity</label><input id="easRegCap" class="form-control form-control-sm" style="width:70px" type="number" value="100"></div>
+      <div class="col-auto"><button id="btnEasRegister" class="btn btn-success btn-sm">+ Register EAS</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Discovery Test Panel -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#easDiscoverCollapse"><div class="w-100 text-center">EAS Discovery Test (TS 23.548 §6.2)</div></button></h2>
+  <div id="easDiscoverCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">IMSI</label><input id="easDiscImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000097"></div>
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">App ID</label><input id="easDiscAppId" class="form-control form-control-sm" style="width:120px" placeholder="app-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">DNN</label><input id="easDiscDnn" class="form-control form-control-sm" style="width:100px" placeholder="internet"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SST</label><input id="easDiscSst" class="form-control form-control-sm" style="width:60px" type="number" placeholder="1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">DNAI</label><input id="easDiscDnai" class="form-control form-control-sm" style="width:100px" placeholder="dnai-1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">UE Lat</label><input id="easDiscLat" class="form-control form-control-sm" style="width:80px" type="number" step="0.001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">UE Lon</label><input id="easDiscLon" class="form-control form-control-sm" style="width:80px" type="number" step="0.001"></div>
+      <div class="col-auto"><button id="btnEasDiscover" class="btn btn-primary btn-sm">Discover</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>Rank</th><th>ID</th><th>Name</th><th>App ID</th><th>Endpoint</th><th>DNAI</th><th>Distance (km)</th><th>Score</th><th>Status</th></tr>
+    </thead><tbody id="easDiscResultBody"><tr><td colspan="9" class="text-muted text-center">Run a discovery to see results</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- DNAI Mappings -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#easDnaiCollapse"><div class="w-100 text-center">DNAI Mappings (TS 23.548 §6.2)</div></button></h2>
+  <div id="easDnaiCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>DNAI</th><th>Description</th><th>Location Hint</th><th>UPF Instance</th><th></th></tr>
+    </thead><tbody id="easDnaiBody"><tr><td colspan="6" class="text-muted text-center">No DNAI mappings</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">DNAI</label><input id="easDnaiName" class="form-control form-control-sm" style="width:120px" placeholder="dnai-1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Description</label><input id="easDnaiDesc" class="form-control form-control-sm" style="width:160px" placeholder="Edge site A"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Location Hint</label><input id="easDnaiLoc" class="form-control form-control-sm" style="width:120px" placeholder="NYC-DC1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">UPF Instance</label><input id="easDnaiUpf" class="form-control form-control-sm" style="width:120px" placeholder="upf-edge-1"></div>
+      <div class="col-auto"><button id="btnEasDnaiAdd" class="btn btn-success btn-sm">+ Add DNAI</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- DNS Entries (EASDF) -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#easDnsCollapse"><div class="w-100 text-center">DNS Entries — EASDF (TS 23.548 §6.2.3)</div></button></h2>
+  <div id="easDnsCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>FQDN</th><th>EAS ID</th><th>EAS Name</th><th>Endpoint</th><th>Created</th><th></th></tr>
+    </thead><tbody id="easDnsBody"><tr><td colspan="7" class="text-muted text-center">No DNS entries</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">FQDN</label><input id="easDnsFqdn" class="form-control form-control-sm" style="width:220px" placeholder="app.edge.example.com"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">EAS ID</label><input id="easDnsEasId" class="form-control form-control-sm" style="width:80px" type="number" placeholder="1"></div>
+      <div class="col-auto"><button id="btnEasDnsAdd" class="btn btn-success btn-sm">+ Add DNS Entry</button></div>
+    </div>
+    <!-- DNS Resolve test -->
+    <hr class="my-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small fw-bold">Resolve FQDN</label><input id="easDnsResolveFqdn" class="form-control form-control-sm" style="width:250px" placeholder="app.edge.example.com"></div>
+      <div class="col-auto"><button id="btnEasDnsResolve" class="btn btn-outline-primary btn-sm">Resolve</button></div>
+      <div class="col-auto" id="easDnsResolveResult"></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Discovery Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-secondary text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#easLogCollapse"><div class="w-100 text-center">Discovery Log</div></button></h2>
+  <div id="easLogCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Filter IMSI</label><input id="easLogImsi" class="form-control form-control-sm" style="width:160px" placeholder=""></div>
+      <div class="col-auto"><button id="btnEasLogRefresh" class="btn btn-outline-secondary btn-sm">Refresh</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>IMSI</th><th>App ID</th><th>Results</th><th>Selected EAS</th><th>Time</th></tr>
+    </thead><tbody id="easLogBody"><tr><td colspan="6" class="text-muted text-center">No discovery logs</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/eas';
+
+  // ── Helpers ──
+  function escH(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  async function fetchJ(url,opts){
+    const r=await fetch(url,opts);
+    return r.json();
+  }
+  function statusBadge(s){
+    const c=s==='active'?'success':s==='maintenance'?'warning':'secondary';
+    return `<span class="badge bg-${c}">${escH(s)}</span>`;
+  }
+
+  // ── Stats ──
+  async function loadStats(){
+    try{
+      const d=await fetchJ(API+'/stats');
+      document.getElementById('easTotalEas').textContent=d.total_eas||0;
+      document.getElementById('easActiveEas').textContent=d.active_eas||0;
+      document.getElementById('easDnsEntries').textContent=d.dns_entries||0;
+      document.getElementById('easDnaiMaps').textContent=d.dnai_mappings||0;
+      document.getElementById('easDiscReqs').textContent=d.discovery_requests||0;
+    }catch(e){}
+  }
+
+  // ── Registry ──
+  async function loadRegistry(){
+    const d=await fetchJ(API+'/registry');
+    const tb=document.getElementById('easRegistryBody');
+    const items=d.items||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="11" class="text-muted text-center">No EAS registered</td></tr>';return;}
+    tb.innerHTML=items.map(e=>`<tr>
+      <td>${e.id}</td><td>${escH(e.app_id)}</td><td>${escH(e.name||'')}</td>
+      <td><code class="small">${escH(e.endpoint_url)}</code></td>
+      <td>${escH(e.dnai||'')}</td>
+      <td>${e.latitude!=null?e.latitude+', '+e.longitude:''}</td>
+      <td class="small">${escH(e.supported_dnns||'')}</td>
+      <td>${e.active_connections||0}/${e.capacity||100}</td>
+      <td>${e.active_connections||0}</td>
+      <td>${statusBadge(e.status)}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="easDeleteReg(${e.id})">x</button></td>
+    </tr>`).join('');
+  }
+  window.easDeleteReg=async function(id){
+    if(!confirm('Delete EAS #'+id+'?'))return;
+    await fetch(API+'/registry/'+id,{method:'DELETE'});
+    loadRegistry();loadStats();
+  };
+  document.getElementById('btnEasRegister').onclick=async function(){
+    const dnnsRaw=document.getElementById('easRegDnns').value.trim();
+    const dnns=dnnsRaw?dnnsRaw.split(',').map(s=>s.trim()):[];
+    const lat=document.getElementById('easRegLat').value;
+    const lon=document.getElementById('easRegLon').value;
+    const body={
+      app_id:document.getElementById('easRegAppId').value.trim(),
+      name:document.getElementById('easRegName').value.trim()||null,
+      endpoint_url:document.getElementById('easRegEndpoint').value.trim(),
+      dnai:document.getElementById('easRegDnai').value.trim()||null,
+      latitude:lat?parseFloat(lat):null,
+      longitude:lon?parseFloat(lon):null,
+      supported_dnns:dnns.length?dnns:null,
+      capacity:parseInt(document.getElementById('easRegCap').value)||100,
+    };
+    const r=await fetch(API+'/registry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok){alert(d.error||'Error');return;}
+    loadRegistry();loadStats();
+  };
+
+  // ── Discovery ──
+  document.getElementById('btnEasDiscover').onclick=async function(){
+    const lat=document.getElementById('easDiscLat').value;
+    const lon=document.getElementById('easDiscLon').value;
+    const sst=document.getElementById('easDiscSst').value;
+    const body={
+      imsi:document.getElementById('easDiscImsi').value.trim(),
+      app_id:document.getElementById('easDiscAppId').value.trim(),
+      dnn:document.getElementById('easDiscDnn').value.trim()||undefined,
+      sst:sst?parseInt(sst):undefined,
+      dnai:document.getElementById('easDiscDnai').value.trim()||undefined,
+    };
+    if(lat&&lon) body.ue_location={latitude:parseFloat(lat),longitude:parseFloat(lon)};
+    const r=await fetch(API+'/discover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    const tb=document.getElementById('easDiscResultBody');
+    const items=d.items||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="9" class="text-muted text-center">No matching EAS found</td></tr>';return;}
+    tb.innerHTML=items.map((e,i)=>`<tr class="${i===0?'table-success':''}">
+      <td><strong>#${i+1}</strong></td><td>${e.id}</td><td>${escH(e.name||'')}</td>
+      <td>${escH(e.app_id)}</td><td><code class="small">${escH(e.endpoint_url)}</code></td>
+      <td>${escH(e.dnai||'')}</td>
+      <td>${e.distance_km!=null&&e.distance_km<99999?e.distance_km:'-'}</td>
+      <td><strong>${e.score}</strong></td>
+      <td>${statusBadge(e.status)}</td>
+    </tr>`).join('');
+    loadStats();loadLog();
+  };
+
+  // ── DNAI ──
+  async function loadDnai(){
+    const d=await fetchJ(API+'/dnai');
+    const tb=document.getElementById('easDnaiBody');
+    const items=d.items||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No DNAI mappings</td></tr>';return;}
+    tb.innerHTML=items.map(e=>`<tr>
+      <td>${e.id}</td><td><code>${escH(e.dnai)}</code></td><td>${escH(e.description||'')}</td>
+      <td>${escH(e.location_hint||'')}</td><td>${escH(e.upf_instance||'')}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="easDeleteDnai(${e.id})">x</button></td>
+    </tr>`).join('');
+  }
+  window.easDeleteDnai=async function(id){
+    if(!confirm('Delete DNAI #'+id+'?'))return;
+    await fetch(API+'/dnai/'+id,{method:'DELETE'});
+    loadDnai();loadStats();
+  };
+  document.getElementById('btnEasDnaiAdd').onclick=async function(){
+    const body={
+      dnai:document.getElementById('easDnaiName').value.trim(),
+      description:document.getElementById('easDnaiDesc').value.trim()||null,
+      location_hint:document.getElementById('easDnaiLoc').value.trim()||null,
+      upf_instance:document.getElementById('easDnaiUpf').value.trim()||null,
+    };
+    const r=await fetch(API+'/dnai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok){alert(d.error||'Error');return;}
+    loadDnai();loadStats();
+  };
+
+  // ── DNS ──
+  async function loadDns(){
+    const d=await fetchJ(API+'/dns');
+    const tb=document.getElementById('easDnsBody');
+    const items=d.items||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No DNS entries</td></tr>';return;}
+    tb.innerHTML=items.map(e=>`<tr>
+      <td>${e.id}</td><td><code>${escH(e.fqdn)}</code></td><td>${e.eas_id}</td>
+      <td>${escH(e.eas_name||'')}</td><td><code class="small">${escH(e.endpoint_url||'')}</code></td>
+      <td class="small">${escH(e.created_at||'')}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="easDeleteDns(${e.id})">x</button></td>
+    </tr>`).join('');
+  }
+  window.easDeleteDns=async function(id){
+    if(!confirm('Delete DNS entry #'+id+'?'))return;
+    await fetch(API+'/dns/'+id,{method:'DELETE'});
+    loadDns();loadStats();
+  };
+  document.getElementById('btnEasDnsAdd').onclick=async function(){
+    const body={
+      fqdn:document.getElementById('easDnsFqdn').value.trim(),
+      eas_id:parseInt(document.getElementById('easDnsEasId').value)||0,
+    };
+    const r=await fetch(API+'/dns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok){alert(d.error||'Error');return;}
+    loadDns();loadStats();
+  };
+  document.getElementById('btnEasDnsResolve').onclick=async function(){
+    const fqdn=document.getElementById('easDnsResolveFqdn').value.trim();
+    if(!fqdn)return;
+    const r=await fetch(API+'/dns/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fqdn})});
+    const d=await r.json();
+    const el=document.getElementById('easDnsResolveResult');
+    if(!r.ok){el.innerHTML=`<span class="text-danger small">${escH(d.error)}</span>`;return;}
+    el.innerHTML=`<span class="text-success small"><strong>${escH(d.endpoint_url)}</strong> (EAS #${d.eas_id} ${escH(d.eas_name||'')})</span>`;
+  };
+
+  // ── Log ──
+  async function loadLog(){
+    const imsi=document.getElementById('easLogImsi').value.trim();
+    const url=API+'/discovery-log'+(imsi?'?imsi='+encodeURIComponent(imsi):'');
+    const d=await fetchJ(url);
+    const tb=document.getElementById('easLogBody');
+    const items=d.items||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No discovery logs</td></tr>';return;}
+    tb.innerHTML=items.map(e=>`<tr>
+      <td>${e.id}</td><td>${escH(e.imsi)}</td><td>${escH(e.app_id)}</td>
+      <td>${e.results_count}</td><td>${e.selected_eas_id||'-'}</td>
+      <td class="small">${escH(e.created_at||'')}</td>
+    </tr>`).join('');
+  }
+  document.getElementById('btnEasLogRefresh').onclick=loadLog;
+
+  // ── Init ──
+  function easInit(){loadStats();loadRegistry();loadDnai();loadDns();loadLog();}
+  // Load when tab shown
+  const tab=document.querySelector('a[href="#eas-tab"]');
+  if(tab){tab.addEventListener('shown.bs.tab',easInit);tab.addEventListener('click',easInit);}
+  // Also load if already visible
+  if(document.getElementById('eas-tab')&&document.getElementById('eas-tab').classList.contains('active'))easInit();
+})();
+</script>

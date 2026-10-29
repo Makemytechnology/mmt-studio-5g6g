@@ -1,0 +1,137 @@
+{
+  "sequences": [
+    {
+      "name": "basic_registration",
+      "description": "Register a single UE and verify state",
+      "steps": [
+        {
+          "action": "register",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "assert_state",
+          "params": {
+            "target": "ue",
+            "state": "REGISTERED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "full_attach_pdu",
+      "description": "Register UE, establish internet PDU session, then deregister",
+      "steps": [
+        {
+          "action": "register",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "pdu_session",
+          "params": {
+            "dnn": "internet",
+            "psi": 1,
+            "timeout": 15
+          }
+        },
+        {
+          "action": "wait",
+          "params": {
+            "seconds": 3
+          }
+        },
+        {
+          "action": "deregister",
+          "params": {
+            "timeout": 15
+          }
+        }
+      ]
+    },
+    {
+      "name": "attach_detach_loop",
+      "description": "Register and deregister 3 times in a row",
+      "steps": [
+        {
+          "action": "register",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "deregister",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "wait",
+          "params": {
+            "seconds": 1
+          }
+        },
+        {
+          "action": "register",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "deregister",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "wait",
+          "params": {
+            "seconds": 1
+          }
+        },
+        {
+          "action": "register",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "deregister",
+          "params": {
+            "timeout": 15
+          }
+        }
+      ]
+    },
+    {
+      "name": "ims_pdu_session",
+      "description": "Register UE and establish IMS PDU session",
+      "steps": [
+        {
+          "action": "register",
+          "params": {
+            "timeout": 15
+          }
+        },
+        {
+          "action": "pdu_session",
+          "params": {
+            "dnn": "ims",
+            "psi": 2,
+            "sst": 1,
+            "timeout": 15
+          }
+        },
+        {
+          "action": "assert_state",
+          "params": {
+            "target": "ue",
+            "state": "REGISTERED"
+          }
+        }
+      ]
+    }
+  ]
+}

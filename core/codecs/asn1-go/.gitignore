@@ -1,0 +1,16 @@
+# Go build artifacts
+*.exe
+*.test
+*.out
+/asn1go
+/cmd/asn1go/asn1go
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,469 @@
+<!-- templates/faults.html — Fault Management (TS 28.532, ITU-T X.733) -->
+
+<!-- Alarm Summary -->
+<div class="row g-2 mb-3" id="fmSummary">
+  <div class="col"><div class="fm-sev-card fm-critical"><div class="fm-sev-count" id="fmCritical">0</div><div class="fm-sev-label">Critical</div></div></div>
+  <div class="col"><div class="fm-sev-card fm-major"><div class="fm-sev-count" id="fmMajor">0</div><div class="fm-sev-label">Major</div></div></div>
+  <div class="col"><div class="fm-sev-card fm-minor"><div class="fm-sev-count" id="fmMinor">0</div><div class="fm-sev-label">Minor</div></div></div>
+  <div class="col"><div class="fm-sev-card fm-warning"><div class="fm-sev-count" id="fmWarning">0</div><div class="fm-sev-label">Warning</div></div></div>
+  <div class="col"><div class="fm-sev-card fm-total"><div class="fm-sev-count" id="fmTotal">0</div><div class="fm-sev-label">Total Active</div></div></div>
+</div>
+
+<!-- Active Alarms -->
+<div class="accordion mb-3" id="fmActiveAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="fmActiveToggleBtn"
+        class="accordion-button bg-danger text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="fmActiveCollapse">
+        <div class="w-100">Active Alarms <span id="fmActiveCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="fmActiveCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <!-- Filter row -->
+        <div class="row g-2 mb-2">
+          <div class="col-auto">
+            <select id="fmFilterSev" class="form-select form-select-sm">
+              <option value="">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="Major">Major</option>
+              <option value="Minor">Minor</option>
+              <option value="Warning">Warning</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select id="fmFilterType" class="form-select form-select-sm">
+              <option value="">All Types</option>
+              <option value="Communications">Communications</option>
+              <option value="Processing">Processing</option>
+              <option value="QoS">QoS</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Environmental">Environmental</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <input id="fmFilterMO" type="text" class="form-control form-control-sm" placeholder="Filter by NF..." style="width:150px">
+          </div>
+          <div class="col-auto ms-auto">
+            <button id="btnFmClearAll" class="btn btn-outline-danger btn-sm">Clear All</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="fmActiveTable">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Severity</th>
+                <th>Managed Object</th>
+                <th>Type</th>
+                <th>Specific Problem</th>
+                <th>Probable Cause</th>
+                <th>Time</th>
+                <th>Count</th>
+                <th>Ack</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fmActiveBody">
+              <tr><td colspan="10" class="text-muted text-center">No active alarms</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alarm History -->
+<div class="accordion mb-3" id="fmHistAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="fmHistToggleBtn"
+        class="accordion-button bg-secondary text-white fw-bold d-flex justify-content-center text-center collapsed"
+        type="button" aria-expanded="false" aria-controls="fmHistCollapse">
+        <div class="w-100">Alarm History</div>
+      </button>
+    </h2>
+    <div id="fmHistCollapse" class="accordion-collapse collapse">
+      <div class="accordion-body py-2">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="fmHistTable">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Severity</th>
+                <th>Managed Object</th>
+                <th>Type</th>
+                <th>Specific Problem</th>
+                <th>Probable Cause</th>
+                <th>Raised</th>
+                <th>Cleared</th>
+                <th>Ack</th>
+              </tr>
+            </thead>
+            <tbody id="fmHistBody">
+              <tr><td colspan="9" class="text-muted text-center">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Raise Alarm (test/operator) -->
+<div class="accordion mb-3" id="fmRaiseAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="fmRaiseToggleBtn"
+        class="accordion-button bg-warning text-dark fw-bold d-flex justify-content-center text-center collapsed"
+        type="button" aria-expanded="false" aria-controls="fmRaiseCollapse">
+        <div class="w-100">Raise Alarm (Manual / Test)</div>
+      </button>
+    </h2>
+    <div id="fmRaiseCollapse" class="accordion-collapse collapse">
+      <div class="accordion-body py-2">
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label">Managed Object</label>
+            <input id="fmRaiseMO" type="text" class="form-control form-control-sm" placeholder="e.g. AMF, UPF, gNB/10.0.0.1">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Alarm Type</label>
+            <select id="fmRaiseType" class="form-select form-select-sm">
+              <option>Communications</option>
+              <option>Processing</option>
+              <option>QoS</option>
+              <option>Equipment</option>
+              <option>Environmental</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Severity</label>
+            <select id="fmRaiseSev" class="form-select form-select-sm">
+              <option>Critical</option>
+              <option>Major</option>
+              <option>Minor</option>
+              <option selected>Warning</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Probable Cause</label>
+            <select id="fmRaiseCause" class="form-select form-select-sm">
+              <option value="communicationsSubsystemFailure">communicationsSubsystemFailure</option>
+              <option value="lossOfSignal">lossOfSignal</option>
+              <option value="connectionEstablishmentError">connectionEstablishmentError</option>
+              <option value="callSetUpFailure">callSetUpFailure</option>
+              <option value="degradedSignal">degradedSignal</option>
+              <option value="softwareError">softwareError</option>
+              <option value="softwareProgramError">softwareProgramError</option>
+              <option value="configurationOrCustomizationError">configurationOrCustomizationError</option>
+              <option value="outOfMemory">outOfMemory</option>
+              <option value="storageCapacityProblem">storageCapacityProblem</option>
+              <option value="thresholdCrossed" selected>thresholdCrossed</option>
+              <option value="resourcesNotAvailable">resourcesNotAvailable</option>
+              <option value="responseTimeExcessive">responseTimeExcessive</option>
+              <option value="bandwidthReduced">bandwidthReduced</option>
+              <option value="equipmentMalfunction">equipmentMalfunction</option>
+              <option value="powerProblem">powerProblem</option>
+              <option value="applicationSubsystemFailure">applicationSubsystemFailure</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-4">
+            <label class="form-label">Specific Problem</label>
+            <input id="fmRaiseProblem" type="text" class="form-control form-control-sm" placeholder="e.g. SCTP association lost">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Additional Text</label>
+            <input id="fmRaiseText" type="text" class="form-control form-control-sm" placeholder="Optional detail">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button id="btnFmRaise" class="btn btn-warning btn-sm w-100">Raise Alarm</button>
+          </div>
+        </div>
+        <div id="fmRaiseStatus" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex gap-2 align-items-center">
+    <button id="btnFmRefresh" type="button" class="btn btn-primary btn-sm">Refresh</button>
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input" type="checkbox" id="fmAutoRefresh">
+      <label class="form-check-label" for="fmAutoRefresh">Live</label>
+    </div>
+    <div class="input-group input-group-sm" style="width:130px;">
+      <input type="number" class="form-control" id="fmPollInterval" value="5" min="1" max="60" step="1">
+      <span class="input-group-text">sec</span>
+    </div>
+  </div>
+  <small id="fmLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .fm-sev-card {
+    border-radius: 6px; padding: 10px 8px; text-align: center;
+    border: 1px solid #dee2e6;
+  }
+  .fm-sev-count { font-size: 28px; font-weight: 700; font-family: 'Consolas','Courier New',monospace; }
+  .fm-sev-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .fm-critical { background: #f8d7da; color: #842029; border-color: #f5c2c7; }
+  .fm-major    { background: #fff3cd; color: #664d03; border-color: #ffecb5; }
+  .fm-minor    { background: #cff4fc; color: #055160; border-color: #b6effb; }
+  .fm-warning  { background: #e2e3e5; color: #41464b; border-color: #d3d6d8; }
+  .fm-total    { background: #f8f9fa; color: #212529; border-color: #dee2e6; }
+
+  .fm-sev-badge { font-size: 11px; padding: 2px 8px; border-radius: 3px; font-weight: 600; }
+  .fm-sev-Critical      { background: #dc3545; color: #fff; }
+  .fm-sev-Major         { background: #ffc107; color: #000; }
+  .fm-sev-Minor         { background: #0dcaf0; color: #000; }
+  .fm-sev-Warning       { background: #6c757d; color: #fff; }
+  .fm-sev-Indeterminate { background: #adb5bd; color: #000; }
+  .fm-sev-Cleared       { background: #198754; color: #fff; }
+
+  .fm-ack-yes { color: #198754; font-weight: 600; }
+  .fm-ack-no  { color: #dc3545; }
+
+  #fmActiveTable th, #fmHistTable th { font-size: 12px; white-space: nowrap; }
+  #fmActiveTable td, #fmHistTable td { font-size: 12px; vertical-align: middle; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+    const esc = (s) => {
+      if (s == null) return '';
+      const el = document.createElement('span');
+      el.textContent = String(s);
+      return el.innerHTML;
+    };
+
+    const fmtTime = (ts) => {
+      if (!ts) return '-';
+      const d = new Date(ts * 1000);
+      return d.toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    };
+
+    /* Accordion toggles */
+    for (const [btnId, colId] of [
+      ['fmActiveToggleBtn','fmActiveCollapse'],
+      ['fmHistToggleBtn','fmHistCollapse'],
+      ['fmRaiseToggleBtn','fmRaiseCollapse']
+    ]) {
+      const btn = document.getElementById(btnId);
+      const col = document.getElementById(colId);
+      if (btn && col && !btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(col, {toggle:false});
+        btn.addEventListener('click', () => inst.toggle());
+      }
+    }
+
+    /* ── Poll active alarms ── */
+    const pollActive = async () => {
+      try {
+        const [rAlarms, rCounts] = await Promise.all([
+          fetch('/api/fm/active-alarms'),
+          fetch('/api/fm/alarm-counts'),
+        ]);
+        const dAlarms = await rAlarms.json();
+        const dCounts = await rCounts.json();
+
+        // Summary cards
+        document.getElementById('fmCritical').textContent = dCounts.Critical || 0;
+        document.getElementById('fmMajor').textContent = dCounts.Major || 0;
+        document.getElementById('fmMinor').textContent = dCounts.Minor || 0;
+        document.getElementById('fmWarning').textContent = (dCounts.Warning || 0) + (dCounts.Indeterminate || 0);
+        document.getElementById('fmTotal').textContent = dCounts.total || 0;
+        document.getElementById('fmActiveCount').textContent = dCounts.total || 0;
+
+        // Filters
+        const filterSev = document.getElementById('fmFilterSev').value;
+        const filterType = document.getElementById('fmFilterType').value;
+        const filterMO = document.getElementById('fmFilterMO').value.toLowerCase();
+
+        let alarms = dAlarms.alarms || [];
+        if (filterSev) alarms = alarms.filter(a => a.perceived_severity === filterSev);
+        if (filterType) alarms = alarms.filter(a => a.alarm_type === filterType);
+        if (filterMO) alarms = alarms.filter(a => (a.managed_object || '').toLowerCase().includes(filterMO));
+
+        const tbody = document.getElementById('fmActiveBody');
+        if (!alarms.length) {
+          tbody.innerHTML = '<tr><td colspan="10" class="text-muted text-center">No active alarms</td></tr>';
+          return;
+        }
+
+        let html = '';
+        for (const a of alarms) {
+          const sevClass = 'fm-sev-' + a.perceived_severity;
+          const ackIcon = a.ack_state === 'Acknowledged'
+            ? '<span class="fm-ack-yes" title="Acknowledged">ACK</span>'
+            : '<span class="fm-ack-no" title="Unacknowledged">-</span>';
+          html += '<tr>';
+          html += `<td><strong>${a.alarm_id}</strong></td>`;
+          html += `<td><span class="fm-sev-badge ${sevClass}">${esc(a.perceived_severity)}</span></td>`;
+          html += `<td><code>${esc(a.managed_object)}</code></td>`;
+          html += `<td>${esc(a.alarm_type)}</td>`;
+          html += `<td>${esc(a.specific_problem)}`;
+          if (a.additional_text) html += `<br><small class="text-muted">${esc(a.additional_text)}</small>`;
+          html += '</td>';
+          html += `<td><small>${esc(a.probable_cause)}</small></td>`;
+          html += `<td><small>${fmtTime(a.last_raised)}</small></td>`;
+          html += `<td>${a.raise_count > 1 ? a.raise_count : ''}</td>`;
+          html += `<td>${ackIcon}</td>`;
+          html += '<td class="text-nowrap">';
+          if (a.ack_state !== 'Acknowledged') {
+            html += `<button class="btn btn-outline-primary btn-sm py-0 px-1 me-1" onclick="fmAck(${a.alarm_id})" title="Acknowledge">Ack</button>`;
+          }
+          html += `<button class="btn btn-outline-success btn-sm py-0 px-1" onclick="fmClear(${a.alarm_id})" title="Clear">Clear</button>`;
+          html += '</td>';
+          html += '</tr>';
+        }
+        tbody.innerHTML = html;
+      } catch(e) { /* ignore */ }
+    };
+
+    /* ── Poll history ── */
+    const pollHistory = async () => {
+      try {
+        const r = await fetch('/api/fm/alarm-history?limit=100');
+        const d = await r.json();
+        const tbody = document.getElementById('fmHistBody');
+        const alarms = d.alarms || [];
+        if (!alarms.length) {
+          tbody.innerHTML = '<tr><td colspan="9" class="text-muted text-center">No alarm history</td></tr>';
+          return;
+        }
+        let html = '';
+        for (const a of alarms) {
+          const sevClass = 'fm-sev-' + a.perceived_severity;
+          html += '<tr>';
+          html += `<td>${a.alarm_id}</td>`;
+          html += `<td><span class="fm-sev-badge ${sevClass}">${esc(a.perceived_severity)}</span></td>`;
+          html += `<td><code>${esc(a.managed_object)}</code></td>`;
+          html += `<td>${esc(a.alarm_type)}</td>`;
+          html += `<td>${esc(a.specific_problem)}</td>`;
+          html += `<td><small>${esc(a.probable_cause)}</small></td>`;
+          html += `<td><small>${fmtTime(a.event_time)}</small></td>`;
+          html += `<td><small>${fmtTime(a.clear_time)}</small></td>`;
+          html += `<td>${a.ack_state === 'Acknowledged' ? '<span class="fm-ack-yes">ACK</span>' : '-'}</td>`;
+          html += '</tr>';
+        }
+        tbody.innerHTML = html;
+      } catch(e) { /* ignore */ }
+    };
+
+    /* ── Actions ── */
+    window.fmAck = async (id) => {
+      await fetch('/api/fm/acknowledge', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({alarm_id: id})
+      });
+      poll();
+    };
+
+    window.fmClear = async (id) => {
+      await fetch('/api/fm/clear', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({alarm_id: id})
+      });
+      poll();
+    };
+
+    document.getElementById('btnFmClearAll').addEventListener('click', async () => {
+      if (!confirm('Clear all active alarms?')) return;
+      await fetch('/api/fm/clear-all', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: '{}'
+      });
+      poll();
+    });
+
+    /* ── Raise alarm form ── */
+    const raiseStatus = document.getElementById('fmRaiseStatus');
+    document.getElementById('btnFmRaise').addEventListener('click', async () => {
+      const mo = document.getElementById('fmRaiseMO').value.trim();
+      const problem = document.getElementById('fmRaiseProblem').value.trim();
+      if (!mo || !problem) {
+        raiseStatus.style.display = '';
+        raiseStatus.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">Managed Object and Specific Problem required</div>';
+        return;
+      }
+      try {
+        const r = await fetch('/api/fm/raise', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            managed_object: mo,
+            alarm_type: document.getElementById('fmRaiseType').value,
+            perceived_severity: document.getElementById('fmRaiseSev').value,
+            probable_cause: document.getElementById('fmRaiseCause').value,
+            specific_problem: problem,
+            additional_text: document.getElementById('fmRaiseText').value.trim(),
+          })
+        });
+        const d = await r.json();
+        raiseStatus.style.display = '';
+        raiseStatus.innerHTML = `<div class="alert alert-success py-1 px-2 mb-0">Alarm raised (ID: ${d.alarm_id})</div>`;
+        poll();
+      } catch(e) {
+        raiseStatus.style.display = '';
+        raiseStatus.innerHTML = `<div class="alert alert-danger py-1 px-2 mb-0">${e.message}</div>`;
+      }
+    });
+
+    /* ── Filter change triggers refresh ── */
+    for (const id of ['fmFilterSev', 'fmFilterType', 'fmFilterMO']) {
+      document.getElementById(id).addEventListener('input', pollActive);
+    }
+
+    /* ── Poll loop ── */
+    const poll = async () => {
+      await Promise.all([pollActive(), pollHistory()]);
+      document.getElementById('fmLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+
+    document.getElementById('btnFmRefresh').addEventListener('click', poll);
+
+    let timer = null;
+    const autoCheck = document.getElementById('fmAutoRefresh');
+    const intervalInput = document.getElementById('fmPollInterval');
+    const getMs = () => Math.max(1000, (parseFloat(intervalInput.value) || 5) * 1000);
+    const startTimer = () => { stopTimer(); timer = setInterval(poll, getMs()); };
+    const stopTimer = () => { if (timer) { clearInterval(timer); timer = null; } };
+
+    autoCheck.addEventListener('change', () => {
+      if (autoCheck.checked) startTimer(); else stopTimer();
+    });
+    intervalInput.addEventListener('change', () => {
+      if (autoCheck.checked && timer) startTimer();
+    });
+
+    /* Tab visibility */
+    const tabPane = document.getElementById('faults');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        const active = tabPane.classList.contains('active');
+        if (active) { poll(); if (autoCheck.checked && !timer) startTimer(); }
+        else { stopTimer(); }
+      });
+      observer.observe(tabPane, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    if (tabPane && tabPane.classList.contains('active')) poll();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

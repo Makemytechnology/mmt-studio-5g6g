@@ -1,0 +1,16 @@
+Package: mmt-studio-core
+Version: __VERSION__
+Architecture: __ARCH__
+Maintainer: MakeMyTechnology <release@makemytechnology.com>
+Description: MMT Studio Core — 5G SA Core Network
+ Single-binary 5G core with web GUI, real-time NGAP/NAS signalling,
+ DPDK-accelerated UPF data plane, and SQLite subscriber DB.
+ .
+ Implements TS 24.501 (NAS), TS 38.413 (NGAP), TS 29.244 (PFCP),
+ TS 33.501 (5G security), TS 35.205-207 (Milenage). Bundles a kernel
+ SCTP NGAP transport, a cgo bridge to a DPDK 25.11 user-plane fast
+ path, and a Chi/pongo2 web GUI.
+Section: net
+Priority: optional
+Homepage: https://github.com/Makemytechnology/mmt-studio-core
+Depends: libc6 (>= 2.35), libnuma1

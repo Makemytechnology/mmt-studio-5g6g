@@ -1,0 +1,293 @@
+<!-- RACS — Restricted Access Control (TS 23.501 §5.18) -->
+<h5>RACS <small class="text-muted">TS 23.501 §5.18 — Unified Access Control</small></h5>
+
+<!-- Status Banner -->
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card text-center" id="racs-status-card">
+      <div class="card-body py-3">
+        <div class="small text-muted">Restriction Level</div>
+        <span class="fs-3 fw-bold" id="racs-level">-</span>
+        <div class="small" id="racs-reason"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Total Checks</div>
+    <span class="fs-4 fw-bold" id="racs-total">0</span>
+  </div></div></div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Allowed</div>
+    <span class="fs-4 fw-bold text-success" id="racs-allowed">0</span>
+  </div></div></div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Barred</div>
+    <span class="fs-4 fw-bold text-danger" id="racs-barred">0</span>
+  </div></div></div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Affected Areas</div>
+    <span class="fs-5 fw-bold" id="racs-areas">-</span>
+  </div></div></div>
+</div>
+
+<!-- Activate / Deactivate Panel -->
+<div class="card mb-3">
+  <div class="card-header">Restriction Control</div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">Restriction Level</label>
+        <select class="form-select form-select-sm" id="racs-act-level">
+          <option value="normal">Normal (All Access)</option>
+          <option value="restricted">Restricted (Priority + Emergency)</option>
+          <option value="emergency_only">Emergency Only</option>
+          <option value="full_lockdown">Full Lockdown</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Reason</label>
+        <input type="text" class="form-control form-control-sm" id="racs-act-reason"
+               placeholder="e.g. Network overload">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Affected Areas (TACs)</label>
+        <input type="text" class="form-control form-control-sm" id="racs-act-areas"
+               placeholder="e.g. 0x0001,0x0002">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-warning btn-sm" onclick="racsActivate()">Activate</button>
+        <button class="btn btn-success btn-sm" onclick="racsDeactivate()">Deactivate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Barring Config per Category -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Access Category Barring (TS 24.501 §9.11.3.2)
+    <button class="btn btn-outline-secondary btn-sm" onclick="racsLoadBarring()">Refresh</button>
+  </div>
+  <div class="card-body">
+    <table class="table table-sm table-striped mb-2">
+      <thead><tr>
+        <th>Category</th><th>Description</th><th>Barring Factor</th>
+        <th>Time (s)</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody id="racs-barring-body"></tbody>
+    </table>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label small">Category</label>
+        <select class="form-select form-select-sm" id="racs-bar-cat">
+          <option value="0">0 - MT Access</option>
+          <option value="1">1 - Delay Tolerant</option>
+          <option value="2">2 - Emergency</option>
+          <option value="3">3 - MO Signalling</option>
+          <option value="4">4 - MO SMS</option>
+          <option value="5">5 - MO Data</option>
+          <option value="6">6 - MO Voice</option>
+          <option value="7">7 - Operator Defined</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Barring Factor: <span id="racs-bar-val">1.00</span></label>
+        <input type="range" class="form-range" min="0" max="1" step="0.05"
+               value="1" id="racs-bar-factor"
+               oninput="document.getElementById('racs-bar-val').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">Time (s)</label>
+        <input type="number" class="form-control form-control-sm" id="racs-bar-time" value="320">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary btn-sm" onclick="racsSaveBarring()">Set Barring</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Access Check Tester -->
+<div class="card mb-3">
+  <div class="card-header">Access Check Tester</div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="racs-chk-imsi"
+               placeholder="001010000000001">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">Access Category</label>
+        <select class="form-select form-select-sm" id="racs-chk-cat">
+          <option value="0">0 - MT</option>
+          <option value="1">1 - Delay Tolerant</option>
+          <option value="2">2 - Emergency</option>
+          <option value="3">3 - MO Signalling</option>
+          <option value="7">7 - Operator</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-info btn-sm" onclick="racsCheckAccess()">Check</button>
+      </div>
+      <div class="col-md-5">
+        <div class="alert alert-secondary py-1 mb-0 small" id="racs-chk-result">
+          Enter IMSI and category to test access.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Access Log -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Access Log
+    <button class="btn btn-outline-secondary btn-sm" onclick="racsLoadLog()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr>
+        <th>Time</th><th>IMSI</th><th>Category</th><th>Level</th>
+        <th>Decision</th><th>Reason</th>
+      </tr></thead>
+      <tbody id="racs-log-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const RACS_LEVEL_COLORS = {
+  normal: 'bg-success text-white',
+  restricted: 'bg-warning text-dark',
+  emergency_only: 'bg-danger text-white',
+  full_lockdown: 'bg-dark text-white'
+};
+const RACS_CAT_NAMES = {
+  0:'MT Access', 1:'Delay Tolerant', 2:'Emergency', 3:'MO Signalling',
+  4:'MO SMS', 5:'MO Data', 6:'MO Voice', 7:'Operator Defined'
+};
+
+function racsLoadStatus() {
+  fetch('/api/racs/status').then(r=>r.json()).then(d=>{
+    const lv = d.restriction_level || 'normal';
+    const el = document.getElementById('racs-level');
+    el.textContent = lv.replace('_',' ').toUpperCase();
+    const card = document.getElementById('racs-status-card');
+    card.className = 'card text-center ' + (RACS_LEVEL_COLORS[lv]||'');
+    document.getElementById('racs-reason').textContent = d.reason || '';
+    document.getElementById('racs-areas').textContent = d.affected_areas || '-';
+  }).catch(()=>{});
+  fetch('/api/racs/stats').then(r=>r.json()).then(d=>{
+    document.getElementById('racs-total').textContent = d.total||0;
+    document.getElementById('racs-allowed').textContent = d.allowed||0;
+    document.getElementById('racs-barred').textContent = d.barred||0;
+  }).catch(()=>{});
+}
+
+function racsActivate() {
+  const level = document.getElementById('racs-act-level').value;
+  const reason = document.getElementById('racs-act-reason').value;
+  const areas = document.getElementById('racs-act-areas').value;
+  fetch('/api/racs/activate', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({level, reason, areas})
+  }).then(r=>r.json()).then(()=>{ racsLoadStatus(); racsLoadLog(); });
+}
+
+function racsDeactivate() {
+  if(!confirm('Deactivate all restrictions and return to normal access?')) return;
+  fetch('/api/racs/deactivate', {method:'POST'})
+    .then(r=>r.json()).then(()=>{ racsLoadStatus(); racsLoadLog(); });
+}
+
+function racsLoadBarring() {
+  fetch('/api/racs/barring').then(r=>r.json()).then(rows=>{
+    const tb = document.getElementById('racs-barring-body');
+    tb.innerHTML = '';
+    rows.forEach(r=>{
+      const pct = (r.barring_factor*100).toFixed(0);
+      const st = r.enabled ? '<span class="badge bg-warning">Active</span>'
+                           : '<span class="badge bg-secondary">Off</span>';
+      tb.innerHTML += `<tr>
+        <td>${r.access_category}</td>
+        <td>${RACS_CAT_NAMES[r.access_category]||'Unknown'}</td>
+        <td><div class="progress" style="height:18px">
+          <div class="progress-bar ${r.barring_factor<0.5?'bg-danger':'bg-success'}"
+               style="width:${pct}%">${pct}%</div></div></td>
+        <td>${r.barring_time_s}s</td>
+        <td>${st}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0"
+              onclick="racsRemoveBarring(${r.access_category})">Reset</button></td>
+      </tr>`;
+    });
+  });
+}
+
+function racsSaveBarring() {
+  const cat = parseInt(document.getElementById('racs-bar-cat').value);
+  const factor = parseFloat(document.getElementById('racs-bar-factor').value);
+  const time_s = parseInt(document.getElementById('racs-bar-time').value);
+  fetch('/api/racs/barring', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({access_category:cat, barring_factor:factor, barring_time_s:time_s})
+  }).then(r=>r.json()).then(()=>racsLoadBarring());
+}
+
+function racsRemoveBarring(cat) {
+  fetch('/api/racs/barring', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({access_category:cat, barring_factor:1.0, barring_time_s:320})
+  }).then(r=>r.json()).then(()=>racsLoadBarring());
+}
+
+function racsCheckAccess() {
+  const imsi = document.getElementById('racs-chk-imsi').value;
+  const cat = parseInt(document.getElementById('racs-chk-cat').value);
+  if(!imsi) { alert('Enter IMSI'); return; }
+  fetch('/api/racs/check-access', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({imsi, access_category:cat})
+  }).then(r=>r.json()).then(d=>{
+    const el = document.getElementById('racs-chk-result');
+    if(d.allowed) {
+      el.className = 'alert alert-success py-1 mb-0 small';
+      el.textContent = 'ALLOWED: ' + d.reason;
+    } else {
+      el.className = 'alert alert-danger py-1 mb-0 small';
+      el.textContent = 'BARRED: ' + d.reason;
+    }
+    racsLoadLog();
+  });
+}
+
+function racsLoadLog() {
+  fetch('/api/racs/access-log?limit=50').then(r=>r.json()).then(rows=>{
+    const tb = document.getElementById('racs-log-body');
+    tb.innerHTML = '';
+    rows.forEach(r=>{
+      const cls = r.decision==='allowed' ? 'table-success' : 'table-danger';
+      tb.innerHTML += `<tr class="${cls}">
+        <td class="small">${r.created_at||''}</td>
+        <td>${r.imsi}</td>
+        <td>${r.access_category} (${RACS_CAT_NAMES[r.access_category]||'?'})</td>
+        <td>${r.restriction_level}</td>
+        <td><span class="badge ${r.decision==='allowed'?'bg-success':'bg-danger'}">${r.decision}</span></td>
+        <td class="small">${r.reason||''}</td>
+      </tr>`;
+    });
+  });
+}
+
+// Init
+document.addEventListener('shown.bs.tab', function(e){
+  if(e.target.getAttribute('href')==='#racs-tab'){
+    racsLoadStatus(); racsLoadBarring(); racsLoadLog();
+  }
+});
+racsLoadStatus(); racsLoadBarring(); racsLoadLog();
+</script>

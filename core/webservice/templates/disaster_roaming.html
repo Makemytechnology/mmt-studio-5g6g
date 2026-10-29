@@ -1,0 +1,259 @@
+<!-- Disaster Roaming (TS 23.501 §5.17.3) -->
+<h5>Disaster Roaming <small class="text-muted">TS 23.501 §5.17.3</small></h5>
+
+<!-- Status Banner -->
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card text-center" id="dr-status-card">
+      <div class="card-body py-3">
+        <div class="small text-muted">Disaster Status</div>
+        <span class="fs-3 fw-bold" id="dr-status">-</span>
+        <div class="small" id="dr-decl-name"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Roaming UEs</div>
+    <span class="fs-4 fw-bold text-primary" id="dr-ue-count">0</span>
+  </div></div></div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Admitted</div>
+    <span class="fs-4 fw-bold text-success" id="dr-admitted">0</span>
+  </div></div></div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Denied</div>
+    <span class="fs-4 fw-bold text-danger" id="dr-denied">0</span>
+  </div></div></div>
+  <div class="col-md-2"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Declarations</div>
+    <span class="fs-4 fw-bold" id="dr-total-decl">0</span>
+  </div></div></div>
+</div>
+
+<!-- Declare / End Panel -->
+<div class="card mb-3">
+  <div class="card-header">Disaster Declaration</div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">Disaster Name</label>
+        <input type="text" class="form-control form-control-sm" id="dr-decl-name-input"
+               placeholder="e.g. Earthquake Region A">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Reason</label>
+        <input type="text" class="form-control form-control-sm" id="dr-decl-reason"
+               placeholder="e.g. Major earthquake, infrastructure down">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Affected Areas</label>
+        <input type="text" class="form-control form-control-sm" id="dr-decl-areas"
+               placeholder="e.g. TAC 0x0001, TAC 0x0002">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-danger btn-sm" onclick="drDeclare()">Declare Disaster</button>
+        <button class="btn btn-success btn-sm" onclick="drEnd()">End Disaster</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Check Roaming Tester -->
+<div class="card mb-3">
+  <div class="card-header">Disaster Roaming Check</div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">IMSI</label>
+        <input type="text" class="form-control form-control-sm" id="dr-chk-imsi"
+               placeholder="001010000000001">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Home PLMN (MCC+MNC)</label>
+        <input type="text" class="form-control form-control-sm" id="dr-chk-hplmn"
+               placeholder="310260">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-info btn-sm" onclick="drCheck()">Check</button>
+      </div>
+      <div class="col-md-4">
+        <div class="alert alert-secondary py-1 mb-0 small" id="dr-chk-result">
+          Enter IMSI and HPLMN to test disaster roaming.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Roaming UEs -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Currently Roaming UEs (Disaster)
+    <button class="btn btn-outline-secondary btn-sm" onclick="drLoadUes()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr>
+        <th>IMSI</th><th>Home PLMN</th><th>Connected</th>
+        <th>Services</th><th>Disaster</th>
+      </tr></thead>
+      <tbody id="dr-ues-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Declaration History -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Declaration History
+    <button class="btn btn-outline-secondary btn-sm" onclick="drLoadDecl()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr>
+        <th>ID</th><th>Name</th><th>Reason</th><th>Areas</th>
+        <th>Status</th><th>Declared</th><th>Ended</th><th>By</th>
+      </tr></thead>
+      <tbody id="dr-decl-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Disaster Roaming Log
+    <button class="btn btn-outline-secondary btn-sm" onclick="drLoadLog()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead><tr>
+        <th>Time</th><th>IMSI</th><th>HPLMN</th><th>Action</th><th>Reason</th>
+      </tr></thead>
+      <tbody id="dr-log-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function drLoadStatus() {
+  fetch('/api/disaster-roaming/status').then(r=>r.json()).then(d=>{
+    const card = document.getElementById('dr-status-card');
+    const el = document.getElementById('dr-status');
+    if(d.disaster_active) {
+      el.textContent = 'DISASTER ACTIVE';
+      card.className = 'card text-center bg-danger text-white';
+      document.getElementById('dr-decl-name').textContent =
+        d.declaration ? d.declaration.name : '';
+    } else {
+      el.textContent = 'NORMAL';
+      card.className = 'card text-center bg-success text-white';
+      document.getElementById('dr-decl-name').textContent = '';
+    }
+  }).catch(()=>{});
+  fetch('/api/disaster-roaming/stats').then(r=>r.json()).then(d=>{
+    document.getElementById('dr-ue-count').textContent = d.current_roaming_ues||0;
+    document.getElementById('dr-admitted').textContent = d.total_admitted||0;
+    document.getElementById('dr-denied').textContent = d.total_denied||0;
+    document.getElementById('dr-total-decl').textContent = d.total_declarations||0;
+  }).catch(()=>{});
+}
+
+function drDeclare() {
+  const name = document.getElementById('dr-decl-name-input').value;
+  const reason = document.getElementById('dr-decl-reason').value;
+  const areas = document.getElementById('dr-decl-areas').value;
+  if(!name) { alert('Enter disaster name'); return; }
+  if(!confirm('Declare disaster "'+name+'"? This will allow roaming from any PLMN.')) return;
+  fetch('/api/disaster-roaming/declare', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, reason, affected_areas: areas})
+  }).then(r=>r.json()).then(()=>{ drLoadStatus(); drLoadDecl(); });
+}
+
+function drEnd() {
+  if(!confirm('End all active disaster declarations?')) return;
+  fetch('/api/disaster-roaming/end', {method:'POST'})
+    .then(r=>r.json()).then(()=>{ drLoadStatus(); drLoadDecl(); drLoadUes(); });
+}
+
+function drCheck() {
+  const imsi = document.getElementById('dr-chk-imsi').value;
+  const hplmn = document.getElementById('dr-chk-hplmn').value;
+  if(!imsi || !hplmn) { alert('Enter IMSI and HPLMN'); return; }
+  fetch('/api/disaster-roaming/check', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({imsi, hplmn})
+  }).then(r=>r.json()).then(d=>{
+    const el = document.getElementById('dr-chk-result');
+    if(d.allowed) {
+      el.className = 'alert alert-success py-1 mb-0 small';
+      el.textContent = 'ALLOWED: ' + d.reason;
+    } else {
+      el.className = 'alert alert-danger py-1 mb-0 small';
+      el.textContent = 'DENIED: ' + d.reason;
+    }
+    drLoadUes(); drLoadLog();
+  });
+}
+
+function drLoadUes() {
+  fetch('/api/disaster-roaming/roaming-ues').then(r=>r.json()).then(rows=>{
+    const tb = document.getElementById('dr-ues-body');
+    tb.innerHTML = '';
+    rows.forEach(r=>{
+      tb.innerHTML += `<tr>
+        <td>${r.imsi}</td><td>${r.hplmn}</td>
+        <td class="small">${r.connected_at||''}</td>
+        <td>${r.services_used||'-'}</td>
+        <td>${r.disaster_name||r.declaration_id||''}</td>
+      </tr>`;
+    });
+    if(!rows.length) tb.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No disaster-roaming UEs</td></tr>';
+  });
+}
+
+function drLoadDecl() {
+  fetch('/api/disaster-roaming/declarations').then(r=>r.json()).then(rows=>{
+    const tb = document.getElementById('dr-decl-body');
+    tb.innerHTML = '';
+    rows.forEach(r=>{
+      const st = r.status==='active'
+        ? '<span class="badge bg-danger">Active</span>'
+        : '<span class="badge bg-secondary">Ended</span>';
+      tb.innerHTML += `<tr>
+        <td>${r.id}</td><td>${r.name}</td><td>${r.reason||'-'}</td>
+        <td>${r.affected_areas||'-'}</td><td>${st}</td>
+        <td class="small">${r.declared_at||''}</td>
+        <td class="small">${r.ended_at||'-'}</td>
+        <td>${r.declared_by||'-'}</td>
+      </tr>`;
+    });
+  });
+}
+
+function drLoadLog() {
+  fetch('/api/disaster-roaming/log?limit=50').then(r=>r.json()).then(rows=>{
+    const tb = document.getElementById('dr-log-body');
+    tb.innerHTML = '';
+    rows.forEach(r=>{
+      const cls = r.action==='admitted' ? 'table-success' : r.action==='denied' ? 'table-danger' : '';
+      tb.innerHTML += `<tr class="${cls}">
+        <td class="small">${r.created_at||''}</td>
+        <td>${r.imsi}</td><td>${r.hplmn}</td>
+        <td><span class="badge ${r.action==='admitted'?'bg-success':r.action==='denied'?'bg-danger':'bg-info'}">${r.action}</span></td>
+        <td class="small">${r.reason||''}</td>
+      </tr>`;
+    });
+  });
+}
+
+document.addEventListener('shown.bs.tab', function(e){
+  if(e.target.getAttribute('href')==='#disaster-roaming-tab'){
+    drLoadStatus(); drLoadUes(); drLoadDecl(); drLoadLog();
+  }
+});
+drLoadStatus(); drLoadUes(); drLoadDecl(); drLoadLog();
+</script>

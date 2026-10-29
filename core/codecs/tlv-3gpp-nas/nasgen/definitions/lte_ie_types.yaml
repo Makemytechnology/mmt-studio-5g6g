@@ -1,0 +1,683 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# LTE NAS IE type definitions — TS 24.301 clause 9.9 and TS 24.008 clause 10.5.
+#
+# Shared IEs (TS 24.008) that are also used by 5G NAS are NOT duplicated here;
+# they live in 5g_ie_types.yaml (NetworkName, TimeZone, GPRSTimer*, EAPMessage,
+# DaylightSavingTime, TimeZoneAndTime, EmergencyNumberList, ABBA, NSSAI, DNN,
+# ExtendedProtocolConfigurationOptions, AuthenticationParameterRAND/AUTN,
+# AuthenticationFailureParameter, AuthenticationResponseParameter).
+
+ie_types:
+
+  # ===================================================================
+  # Half-octet / bit-field IEs (Type 1 V and TV)
+  # ===================================================================
+
+  - name: EPSAttachType
+    description: "EPS attach type — TS 24.301 9.9.3.11"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "eps_attach"
+          2: "combined_eps_imsi_attach"
+          6: "eps_emergency_attach"
+          7: "reserved"
+
+  - name: EPSAttachResult
+    description: "EPS attach result — TS 24.301 9.9.3.10"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "eps_only"
+          2: "combined_eps_imsi"
+
+  - name: DetachType
+    description: "Detach type — TS 24.301 9.9.3.6"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: SwitchOff
+        bits: 1
+        offset: 3
+      - name: Type
+        bits: 3
+        offset: 0
+        values:
+          1: "eps_detach"
+          2: "imsi_detach"
+          3: "combined_eps_imsi_detach"
+          6: "reserved_6"
+          7: "reserved_7"
+
+  - name: EPSUpdateType
+    description: "EPS update type — TS 24.301 9.9.3.14"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: ActiveFlag
+        bits: 1
+        offset: 3
+      - name: UpdateType
+        bits: 3
+        offset: 0
+        values:
+          0: "ta_updating"
+          1: "combined_ta_la_updating"
+          2: "combined_ta_la_updating_with_imsi_attach"
+          3: "periodic_updating"
+
+  - name: EPSUpdateResult
+    description: "EPS update result — TS 24.301 9.9.3.13"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          0: "ta_updated"
+          1: "combined_ta_la_updated"
+          4: "ta_updated_isr_activated"
+          5: "combined_ta_la_updated_isr_activated"
+
+  - name: ServiceType_EMM
+    description: "Service type (EMM) — TS 24.301 9.9.3.27"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+        values:
+          0: "mobile_originating_cs_fallback"
+          1: "mobile_terminating_cs_fallback"
+          2: "mobile_originating_cs_fallback_emergency"
+          3: "mobile_originating_packet_services"
+          4: "mobile_terminating_packet_services"
+
+  - name: CSFBResponse
+    description: "CSFB response — TS 24.301 9.9.3.5"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          0: "csfb_rejected_by_ue"
+          1: "csfb_accepted_by_ue"
+
+  - name: PagingIdentity
+    description: "Paging identity — TS 24.301 9.9.3.25"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 1
+        offset: 0
+        values:
+          0: "imsi"
+          1: "tmsi"
+
+  - name: AdditionalUpdateType
+    description: "Additional update type — TS 24.301 9.9.3.0B"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: AUTV
+        bits: 1
+        offset: 0
+        values:
+          0: "no_additional_information"
+          1: "sms_only"
+
+  - name: AdditionalUpdateResult
+    description: "Additional update result — TS 24.301 9.9.3.0A"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 2
+        offset: 0
+        values:
+          0: "no_additional_information"
+          1: "csfb_not_preferred"
+          2: "sms_only"
+
+  - name: IdentityType2
+    description: "Identity type 2 — TS 24.008 10.5.5.9"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "imsi"
+          2: "imei"
+          3: "imeisv"
+          4: "tmsi"
+
+  # ESM bit-field IEs
+
+  - name: EPSBearerContextStatus_LTE
+    description: "EPS bearer context status — TS 24.301 9.9.2.1"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: Bitmap
+        bytes: 2
+
+  - name: ESMCause
+    description: "ESM cause — TS 24.301 9.9.4.4"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: EMMCause
+    description: "EMM cause — TS 24.301 9.9.3.9"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: PDNType
+    description: "PDN type — TS 24.301 9.9.4.10"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "ipv4"
+          2: "ipv6"
+          3: "ipv4v6"
+          4: "unused"
+          5: "non_ip"
+          6: "ethernet"
+
+  - name: RequestType_LTE
+    description: "Request type — TS 24.008 10.5.6.17"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "initial_request"
+          2: "handover"
+          3: "unused"
+          4: "emergency"
+
+  - name: ESMInformationTransferFlag
+    description: "ESM information transfer flag — TS 24.301 9.9.4.5"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 1
+        offset: 0
+
+  - name: LLCServiceAccessPointIdentifier
+    description: "LLC service access point identifier — TS 24.008 10.5.6.9"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: RadioPriority
+    description: "Radio priority — TS 24.008 10.5.7.2"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+        values:
+          1: "priority_level_1"
+          2: "priority_level_2"
+          3: "priority_level_3"
+          4: "priority_level_4"
+
+  - name: TransactionIdentifier
+    description: "Transaction identifier — TS 24.008 10.5.6.7"
+    min_length: 1
+    max_length: 2
+
+  # ===================================================================
+  # Structured IEs
+  # ===================================================================
+
+  - name: TrackingAreaIdentity
+    description: "Tracking area identity — TS 24.301 9.9.3.32"
+    min_length: 5
+    max_length: 5
+    fields:
+      - name: PLMN
+        bytes: 3
+      - name: TAC
+        bytes: 2
+
+  - name: NASSecurityAlgorithmsLTE
+    description: "NAS security algorithms — TS 24.301 9.9.3.23"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: IntegrityAlgorithm
+        bits: 3
+        offset: 0
+      - name: CipheringAlgorithm
+        bits: 3
+        offset: 4
+
+  - name: KSIAndSequenceNumber
+    description: "KSI and sequence number — TS 24.301 9.9.3.19"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: KSI
+        bits: 3
+        offset: 5
+      - name: SequenceNumber
+        bits: 5
+        offset: 0
+
+  - name: NonceValue
+    description: "Nonce value (32 bits) — TS 24.301 9.9.3.25"
+    min_length: 4
+    max_length: 4
+    fields:
+      - name: Value
+        bytes: 4
+
+  - name: DRXParameter
+    description: "DRX parameter — TS 24.008 10.5.5.6"
+    min_length: 2
+    max_length: 2
+    fields:
+      - name: SplitPGCycleCode
+        bytes: 1
+      - name: CNSpecific
+        bytes: 1
+
+  - name: MobileStationClassmark2
+    description: "Mobile station classmark 2 — TS 24.008 10.5.1.6"
+    min_length: 3
+    max_length: 3
+    fields:
+      - name: Octet1
+        bytes: 1
+      - name: Octet2
+        bytes: 1
+      - name: Octet3
+        bytes: 1
+
+  - name: LocationAreaIdentification
+    description: "Location area identification — TS 24.008 10.5.1.3"
+    min_length: 5
+    max_length: 5
+    fields:
+      - name: PLMN
+        bytes: 3
+      - name: LAC
+        bytes: 2
+
+  - name: NASKeySetIdentifierLTE
+    description: "NAS key set identifier (EPS) — TS 24.301 9.9.3.21"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: TSC
+        bits: 1
+        offset: 3
+        values:
+          0: "native_security_context"
+          1: "mapped_security_context"
+      - name: NasKeySetId
+        bits: 3
+        offset: 0
+        values:
+          7: "no_key_available"
+
+  - name: CipheringKeySequenceNumber
+    description: "Ciphering key sequence number — TS 24.008 10.5.1.2"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 3
+        offset: 0
+
+  - name: GPRSTimerLTE
+    description: "GPRS timer — TS 24.008 10.5.7.3"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  # ===================================================================
+  # Byte-container IEs — opaque payload, round-trip safe.
+  # ===================================================================
+
+  - name: EPSMobileIdentity
+    description: "EPS mobile identity (IMSI/IMEI/GUTI) — TS 24.301 9.9.3.12"
+    min_length: 5
+    max_length: 12
+
+  - name: EPSBearerIdentityIE
+    description: "EPS bearer identity (as IE, half-octet value) — TS 24.301 9.9.2.1A"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+
+  - name: AuthenticationResponseParameterLTE
+    description: "Authentication response parameter — TS 24.301 9.9.3.4"
+    min_length: 4
+    max_length: 16
+
+  - name: UENetworkCapability
+    description: "UE network capability — TS 24.301 9.9.3.34"
+    min_length: 2
+    max_length: 13
+
+  - name: MSNetworkCapability
+    description: "MS network capability — TS 24.008 10.5.5.12"
+    min_length: 3
+    max_length: 10
+
+  - name: LocationAreaIdentificationLTE
+    description: "Location area identification — TS 24.008 10.5.1.3"
+    min_length: 5
+    max_length: 5
+
+  - name: EPSNetworkFeatureSupport
+    description: "EPS network feature support — TS 24.301 9.9.3.12A"
+    min_length: 1
+    max_length: 2
+
+  - name: TrackingAreaIdentityList
+    description: "Tracking area identity list — TS 24.301 9.9.3.33"
+    min_length: 6
+    max_length: 96
+
+  - name: ESMMessageContainer
+    description: "ESM message container — TS 24.301 9.9.3.15"
+    min_length: 1
+    max_length: 65535
+
+  - name: GUTIType
+    description: "GUTI type — TS 24.301 9.9.3.45"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 1
+        offset: 0
+
+  - name: UERadioCapabilityInformationUpdateNeeded
+    description: "UE radio capability information update needed — TS 24.301 9.9.3.35"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: URC
+        bits: 1
+        offset: 0
+
+  - name: MSClassmark3
+    description: "Mobile station classmark 3 — TS 24.008 10.5.1.7"
+    min_length: 2
+    max_length: 34
+
+  - name: SupportedCodecList
+    description: "Supported codec list — TS 24.008 10.5.4.32"
+    min_length: 5
+    max_length: 255
+
+  - name: VoiceDomainPreferenceAndUsageSetting
+    description: "Voice domain preference and UE's usage setting — TS 24.008 10.5.5.28"
+    min_length: 1
+    max_length: 1
+
+  - name: DeviceProperties
+    description: "Device properties — TS 24.008 10.5.7.8"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: LowPriority
+        bits: 1
+        offset: 0
+
+  - name: GUTIReallocationCommandGUTI
+    description: "GUTI (IE body of GUTI reallocation command) — TS 24.301 9.9.3.12"
+    min_length: 11
+    max_length: 11
+
+  - name: MobileIdentity
+    description: "Mobile identity — TS 24.008 10.5.1.4"
+    min_length: 1
+    max_length: 11
+
+  - name: AccessPointName
+    description: "APN — TS 24.008 10.5.6.1"
+    min_length: 1
+    max_length: 102
+
+  - name: PDNAddress
+    description: "PDN address — TS 24.301 9.9.4.9"
+    min_length: 5
+    max_length: 14
+
+  - name: LinkedEPSBearerIdentity
+    description: "Linked EPS bearer identity — TS 24.301 9.9.4.6"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+
+  - name: APNAggregateMaximumBitRate
+    description: "APN aggregate maximum bit rate — TS 24.301 9.9.4.2"
+    min_length: 2
+    max_length: 8
+
+  - name: EPSQualityOfService
+    description: "EPS quality of service — TS 24.301 9.9.4.3"
+    min_length: 1
+    max_length: 14
+
+  - name: QoS
+    description: "Quality of service — TS 24.008 10.5.6.5"
+    min_length: 12
+    max_length: 22
+
+  - name: TrafficFlowTemplate
+    description: "Traffic flow template — TS 24.008 10.5.6.12"
+    min_length: 3
+    max_length: 257
+
+  - name: TrafficFlowAggregate
+    description: "Traffic flow aggregate description — TS 24.301 9.9.4.15"
+    min_length: 3
+    max_length: 257
+
+  - name: ProtocolConfigurationOptions
+    description: "Protocol configuration options — TS 24.008 10.5.6.3"
+    min_length: 1
+    max_length: 253
+
+  - name: TransactionIdentifierIE
+    description: "Transaction identifier — TS 24.008 10.5.6.7 (as IE)"
+    min_length: 1
+    max_length: 2
+
+  - name: NegotiatedQoS
+    description: "Negotiated QoS — TS 24.008 10.5.6.5"
+    min_length: 12
+    max_length: 22
+
+  - name: NegotiatedLLCSAPI
+    description: "Negotiated LLC SAPI — TS 24.008 10.5.6.9"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: PacketFlowIdentifier
+    description: "Packet flow identifier — TS 24.008 10.5.6.11"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: APNAggregateMaximumBitRateExtended
+    description: "APN aggregate maximum bit rate — extended — TS 24.301 9.9.4.2"
+    min_length: 2
+    max_length: 8
+
+  - name: ConnectivityType
+    description: "Connectivity type — TS 24.008 10.5.6.19"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 4
+        offset: 0
+
+  - name: WLANOffloadAcceptability
+    description: "WLAN offload acceptability — TS 24.008 10.5.6.20"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Value
+        bits: 2
+        offset: 0
+
+  - name: NBIFOMContainer
+    description: "NBIFOM container — TS 24.008 10.5.6.21"
+    min_length: 1
+    max_length: 255
+
+  - name: HeaderCompressionConfiguration
+    description: "Header compression configuration — TS 24.301 9.9.4.22"
+    min_length: 3
+    max_length: 255
+
+  - name: ControlPlaneOnlyIndicator
+    description: "Control plane only indicator — TS 24.301 9.9.4.23"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: CPOI
+        bits: 1
+        offset: 0
+
+  - name: HeaderCompressionConfigurationStatus
+    description: "Header compression configuration status — TS 24.301 9.9.4.27"
+    min_length: 2
+    max_length: 2
+
+  - name: ExtendedAPNAMBR
+    description: "Extended APN aggregate maximum bit rate — TS 24.301 9.9.4.29"
+    min_length: 8
+    max_length: 8
+
+  - name: ExtendedEPSQoS
+    description: "Extended EPS quality of service — TS 24.301 9.9.4.30"
+    min_length: 12
+    max_length: 12
+
+  - name: BackOffTimerValue_LTE
+    description: "T3396 value — TS 24.301 9.9.3.16A"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: TMSIStatus
+    description: "TMSI status — TS 24.008 10.5.5.4"
+    min_length: 0
+    max_length: 0
+    fields:
+      - name: Flag
+        bits: 1
+        offset: 0
+
+  - name: NetworkResourceIdentifierContainer
+    description: "Network resource identifier container — TS 24.008 10.5.5.31"
+    min_length: 2
+    max_length: 2
+
+  - name: CLIContainer
+    description: "CLI container — TS 24.008 10.5.4.33"
+    min_length: 1
+    max_length: 255
+
+  - name: SSCode
+    description: "SS code — TS 24.080"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: LCSIndicator
+    description: "LCS indicator — TS 24.301 9.9.3.39"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: LCSClientIdentity
+    description: "LCS client identity — TS 24.080"
+    min_length: 1
+    max_length: 255
+
+  - name: GenericMessageContainerType
+    description: "Generic message container type — TS 24.301 9.9.3.42"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1
+
+  - name: GenericMessageContainer
+    description: "Generic message container — TS 24.301 9.9.3.43"
+    min_length: 1
+    max_length: 65535
+
+  - name: PDUSessionReactivationResult_LTE
+    description: "PDU session reactivation result — TS 24.301 (relay to 5G)"
+    min_length: 2
+    max_length: 32
+
+  - name: SubscribedQCI
+    description: "Subscribed QCI — TS 24.301"
+    min_length: 1
+    max_length: 1
+    fields:
+      - name: Value
+        bytes: 1

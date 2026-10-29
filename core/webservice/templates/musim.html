@@ -1,0 +1,434 @@
+<!-- MUSIM (Multi-USIM) Management — TS 23.501 section 5.35 -->
+<h5 class="mb-3">MUSIM (Multi-USIM) Management</h5>
+<p class="text-muted small mb-3">
+  TS 23.501 section 5.35 — Manage multi-USIM device groups, paging coordination, and capability negotiation.
+</p>
+
+<!-- Stats Row -->
+<div class="row mb-3" id="musim-stats-row">
+  <div class="col-md-3"><div class="card text-center p-2"><div class="fw-bold" id="ms-total-groups">0</div><small class="text-muted">Groups</small></div></div>
+  <div class="col-md-3"><div class="card text-center p-2"><div class="fw-bold" id="ms-total-members">0</div><small class="text-muted">Members</small></div></div>
+  <div class="col-md-3"><div class="card text-center p-2"><div class="fw-bold" id="ms-capable-ues">0</div><small class="text-muted">MUSIM-Capable UEs</small></div></div>
+  <div class="col-md-3"><div class="card text-center p-2"><div class="fw-bold" id="ms-paging-events">0</div><small class="text-muted">Paging Events</small></div></div>
+</div>
+
+<!-- Nav Tabs -->
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#ms-groups-tab">Groups</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ms-paging-tab">Paging</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ms-caps-tab">Capabilities</a></li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- ── Groups Tab ── -->
+  <div class="tab-pane fade show active" id="ms-groups-tab">
+    <div class="d-flex justify-content-between mb-2">
+      <h6>Device Groups</h6>
+      <button class="btn btn-sm btn-primary" onclick="musimShowCreateGroup()">+ New Group</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped" id="musim-groups-table">
+        <thead><tr>
+          <th>ID</th><th>Device ID</th><th>Description</th><th>Active USIM</th><th>Members</th><th>Created</th><th>Actions</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Paging Tab ── -->
+  <div class="tab-pane fade" id="ms-paging-tab">
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h6>Trigger Paging</h6>
+          <div class="mb-2">
+            <label class="form-label small">Device ID</label>
+            <input type="text" class="form-control form-control-sm" id="ms-page-device">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Target IMSI</label>
+            <input type="text" class="form-control form-control-sm" id="ms-page-imsi">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Reason</label>
+            <select class="form-select form-select-sm" id="ms-page-reason">
+              <option value="mt_service">MT Service</option>
+              <option value="mt_sms">MT SMS</option>
+              <option value="mt_call">MT Call</option>
+              <option value="network_triggered">Network Triggered</option>
+            </select>
+          </div>
+          <button class="btn btn-sm btn-warning" onclick="musimTriggerPaging()">Send Page</button>
+          <div id="ms-page-result" class="mt-2 small"></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h6>Filter Log</h6>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" class="form-control" id="ms-log-filter" placeholder="Device ID (blank=all)">
+            <button class="btn btn-outline-secondary" onclick="musimLoadPagingLog()">Filter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped" id="musim-paging-table">
+        <thead><tr>
+          <th>ID</th><th>Device</th><th>Source IMSI</th><th>Target IMSI</th><th>Reason</th><th>Outcome</th><th>Time</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Capabilities Tab ── -->
+  <div class="tab-pane fade" id="ms-caps-tab">
+    <div class="d-flex justify-content-between mb-2">
+      <h6>MUSIM Capabilities</h6>
+      <button class="btn btn-sm btn-primary" onclick="musimShowAddCap()">+ Set Capability</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped" id="musim-caps-table">
+        <thead><tr>
+          <th>IMSI</th><th>Supported</th><th>Max USIMs</th><th>Min Paging Interval (ms)</th><th>Negotiated</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Create/Edit Group Modal ── -->
+<div class="modal fade" id="musimGroupModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="musimGroupModalTitle">New MUSIM Group</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="ms-grp-edit-id">
+        <div class="mb-2">
+          <label class="form-label small">Device ID</label>
+          <input type="text" class="form-control form-control-sm" id="ms-grp-device" placeholder="e.g. MUSIM-DEV-001">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Description</label>
+          <input type="text" class="form-control form-control-sm" id="ms-grp-desc">
+        </div>
+        <div class="mb-2" id="ms-grp-imsis-div">
+          <label class="form-label small">IMSIs (comma-separated)</label>
+          <input type="text" class="form-control form-control-sm" id="ms-grp-imsis" placeholder="001010000000097,001010000000098">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="musimSaveGroup()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Member Modal ── -->
+<div class="modal fade" id="musimMemberModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Member</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="ms-mbr-grp-id">
+        <div class="mb-2">
+          <label class="form-label small">IMSI</label>
+          <input type="text" class="form-control form-control-sm" id="ms-mbr-imsi">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Priority</label>
+          <input type="number" class="form-control form-control-sm" id="ms-mbr-priority" value="0">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">USIM Index</label>
+          <input type="number" class="form-control form-control-sm" id="ms-mbr-index" value="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="musimSaveMember()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Set Capability Modal ── -->
+<div class="modal fade" id="musimCapModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Set MUSIM Capability</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label small">IMSI</label>
+          <input type="text" class="form-control form-control-sm" id="ms-cap-imsi">
+        </div>
+        <div class="mb-2 form-check">
+          <input type="checkbox" class="form-check-input" id="ms-cap-supported" checked>
+          <label class="form-check-label small">MUSIM Supported</label>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Max USIM Count</label>
+          <input type="number" class="form-control form-control-sm" id="ms-cap-max" value="2" min="1" max="8">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Min Paging Interval (ms)</label>
+          <input type="number" class="form-control form-control-sm" id="ms-cap-interval" value="1280" min="320" max="10240">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="musimSaveCap()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MUSIM = '/api/musim';
+
+// ── Load all data ──
+function musimRefresh() {
+  musimLoadStats();
+  musimLoadGroups();
+  musimLoadPagingLog();
+  musimLoadCaps();
+}
+
+function musimLoadStats() {
+  fetch(MUSIM + '/stats').then(r => r.json()).then(d => {
+    if (!d.ok) return;
+    const s = d.stats;
+    document.getElementById('ms-total-groups').textContent = s.total_groups;
+    document.getElementById('ms-total-members').textContent = s.total_members;
+    document.getElementById('ms-capable-ues').textContent = s.musim_capable_ues;
+    document.getElementById('ms-paging-events').textContent = s.total_paging_events;
+  });
+}
+
+function musimLoadGroups() {
+  fetch(MUSIM + '/groups').then(r => r.json()).then(d => {
+    const tb = document.querySelector('#musim-groups-table tbody');
+    tb.innerHTML = '';
+    if (!d.ok) return;
+    d.groups.forEach(g => {
+      const members = (g.members || []).map(m =>
+        `<span class="badge ${m.imsi === g.active_imsi ? 'bg-success' : 'bg-secondary'} me-1">${m.imsi}</span>`
+      ).join('');
+      tb.innerHTML += `<tr>
+        <td>${g.id}</td>
+        <td><code>${g.device_id}</code></td>
+        <td>${g.description || ''}</td>
+        <td><code>${g.active_imsi || '-'}</code></td>
+        <td>${members}</td>
+        <td class="small">${g.created_at || ''}</td>
+        <td>
+          <button class="btn btn-xs btn-outline-primary me-1" onclick="musimShowEditGroup(${g.id})">Edit</button>
+          <button class="btn btn-xs btn-outline-success me-1" onclick="musimShowAddMember(${g.id})">+Member</button>
+          <button class="btn btn-xs btn-outline-danger" onclick="musimDeleteGroup(${g.id})">Del</button>
+        </td>
+      </tr>`;
+    });
+  });
+}
+
+function musimLoadPagingLog() {
+  const dev = document.getElementById('ms-log-filter').value.trim();
+  const url = dev ? MUSIM + '/paging-log?device_id=' + encodeURIComponent(dev) : MUSIM + '/paging-log';
+  fetch(url).then(r => r.json()).then(d => {
+    const tb = document.querySelector('#musim-paging-table tbody');
+    tb.innerHTML = '';
+    if (!d.ok) return;
+    d.log.forEach(e => {
+      const cls = e.outcome === 'delivered' || e.outcome === 'switched' ? 'text-success' : 'text-danger';
+      tb.innerHTML += `<tr>
+        <td>${e.id}</td>
+        <td><code>${e.device_id}</code></td>
+        <td>${e.source_imsi || '-'}</td>
+        <td>${e.target_imsi}</td>
+        <td>${e.reason || ''}</td>
+        <td><span class="${cls} fw-bold">${e.outcome}</span></td>
+        <td class="small">${e.created_at || ''}</td>
+      </tr>`;
+    });
+  });
+}
+
+function musimLoadCaps() {
+  fetch(MUSIM + '/capabilities').then(r => r.json()).then(d => {
+    const tb = document.querySelector('#musim-caps-table tbody');
+    tb.innerHTML = '';
+    if (!d.ok) return;
+    d.capabilities.forEach(c => {
+      tb.innerHTML += `<tr>
+        <td><code>${c.imsi}</code></td>
+        <td>${c.musim_supported ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+        <td>${c.max_usim_count}</td>
+        <td>${c.min_paging_interval_ms}</td>
+        <td class="small">${c.negotiated_at || ''}</td>
+      </tr>`;
+    });
+  });
+}
+
+// ── Group CRUD ──
+function musimShowCreateGroup() {
+  document.getElementById('ms-grp-edit-id').value = '';
+  document.getElementById('ms-grp-device').value = '';
+  document.getElementById('ms-grp-desc').value = '';
+  document.getElementById('ms-grp-imsis').value = '';
+  document.getElementById('ms-grp-imsis-div').style.display = '';
+  document.getElementById('musimGroupModalTitle').textContent = 'New MUSIM Group';
+  new bootstrap.Modal(document.getElementById('musimGroupModal')).show();
+}
+
+function musimShowEditGroup(id) {
+  fetch(MUSIM + '/groups/' + id).then(r => r.json()).then(d => {
+    if (!d.ok) return;
+    const g = d.group;
+    document.getElementById('ms-grp-edit-id').value = g.id;
+    document.getElementById('ms-grp-device').value = g.device_id;
+    document.getElementById('ms-grp-desc').value = g.description || '';
+    document.getElementById('ms-grp-imsis').value = '';
+    document.getElementById('ms-grp-imsis-div').style.display = 'none';
+    document.getElementById('musimGroupModalTitle').textContent = 'Edit MUSIM Group';
+    new bootstrap.Modal(document.getElementById('musimGroupModal')).show();
+  });
+}
+
+function musimSaveGroup() {
+  const editId = document.getElementById('ms-grp-edit-id').value;
+  const device_id = document.getElementById('ms-grp-device').value.trim();
+  const description = document.getElementById('ms-grp-desc').value.trim();
+
+  if (editId) {
+    fetch(MUSIM + '/groups/' + editId, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({device_id, description})
+    }).then(() => {
+      bootstrap.Modal.getInstance(document.getElementById('musimGroupModal')).hide();
+      musimRefresh();
+    });
+  } else {
+    const imsis = document.getElementById('ms-grp-imsis').value.split(',').map(s => s.trim()).filter(Boolean);
+    fetch(MUSIM + '/groups', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({device_id, imsis, description})
+    }).then(r => r.json()).then(d => {
+      bootstrap.Modal.getInstance(document.getElementById('musimGroupModal')).hide();
+      if (!d.ok) alert(d.error || 'Failed');
+      musimRefresh();
+    });
+  }
+}
+
+function musimDeleteGroup(id) {
+  if (!confirm('Delete this MUSIM group?')) return;
+  fetch(MUSIM + '/groups/' + id, {method: 'DELETE'}).then(() => musimRefresh());
+}
+
+// ── Member management ──
+function musimShowAddMember(groupId) {
+  document.getElementById('ms-mbr-grp-id').value = groupId;
+  document.getElementById('ms-mbr-imsi').value = '';
+  document.getElementById('ms-mbr-priority').value = '0';
+  document.getElementById('ms-mbr-index').value = '0';
+  new bootstrap.Modal(document.getElementById('musimMemberModal')).show();
+}
+
+function musimSaveMember() {
+  const groupId = document.getElementById('ms-mbr-grp-id').value;
+  fetch(MUSIM + '/groups/' + groupId + '/members', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      imsi: document.getElementById('ms-mbr-imsi').value.trim(),
+      priority: parseInt(document.getElementById('ms-mbr-priority').value) || 0,
+      usim_index: parseInt(document.getElementById('ms-mbr-index').value) || 0
+    })
+  }).then(r => r.json()).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('musimMemberModal')).hide();
+    if (!d.ok) alert(d.error || 'Failed');
+    musimRefresh();
+  });
+}
+
+// ── Paging ──
+function musimTriggerPaging() {
+  const device_id = document.getElementById('ms-page-device').value.trim();
+  const target_imsi = document.getElementById('ms-page-imsi').value.trim();
+  const reason = document.getElementById('ms-page-reason').value;
+  const el = document.getElementById('ms-page-result');
+  if (!device_id || !target_imsi) { el.innerHTML = '<span class="text-danger">Fill all fields</span>'; return; }
+  fetch(MUSIM + '/page', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({device_id, target_imsi, reason})
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      el.innerHTML = `<span class="text-success">Outcome: <strong>${d.outcome}</strong>${d.switch_needed ? ' (switch)' : ''}</span>`;
+    } else {
+      el.innerHTML = `<span class="text-danger">${d.error || 'Failed'}</span>`;
+    }
+    musimLoadPagingLog();
+    musimLoadStats();
+  });
+}
+
+// ── Capabilities ──
+function musimShowAddCap() {
+  document.getElementById('ms-cap-imsi').value = '';
+  document.getElementById('ms-cap-supported').checked = true;
+  document.getElementById('ms-cap-max').value = '2';
+  document.getElementById('ms-cap-interval').value = '1280';
+  new bootstrap.Modal(document.getElementById('musimCapModal')).show();
+}
+
+function musimSaveCap() {
+  fetch(MUSIM + '/capabilities', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      imsi: document.getElementById('ms-cap-imsi').value.trim(),
+      musim_supported: document.getElementById('ms-cap-supported').checked ? 1 : 0,
+      max_usim_count: parseInt(document.getElementById('ms-cap-max').value) || 2,
+      min_paging_interval_ms: parseInt(document.getElementById('ms-cap-interval').value) || 1280
+    })
+  }).then(r => r.json()).then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('musimCapModal')).hide();
+    if (!d.ok) alert(d.error || 'Failed');
+    musimRefresh();
+  });
+}
+
+// ── Auto-load on tab show ──
+document.addEventListener('DOMContentLoaded', () => {
+  const tab = document.getElementById('musim-tab');
+  if (tab) {
+    const observer = new MutationObserver(() => {
+      if (tab.classList.contains('active')) musimRefresh();
+    });
+    observer.observe(tab, {attributes: true, attributeFilter: ['class']});
+  }
+  // Also load if already visible
+  if (document.getElementById('musim-tab') &&
+      document.getElementById('musim-tab').classList.contains('active')) {
+    musimRefresh();
+  }
+});
+</script>

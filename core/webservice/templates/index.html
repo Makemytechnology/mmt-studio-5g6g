@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="theme-color" content="#0b5ed7" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MMT STUDIO CORE</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', 'bootstrap/css/bootstrap.min.css') }}">
+  <style>
+    #sidebar .accordion-button {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; padding: 8px 12px; color: #495057;
+      background: #f8f9fa; box-shadow: none;
+    }
+    #sidebar .accordion-button:not(.collapsed) { color: #0558b6; background: #e8f0fe; }
+    #sidebar .accordion-button::after { width: 12px; height: 12px; background-size: 12px; }
+    #sidebar .accordion-body { padding: 0; }
+    #sidebar .list-group-item {
+      font-size: 13px; padding: 5px 12px 5px 20px;
+      border: none; border-radius: 0; cursor: pointer;
+    }
+    #sidebar .list-group-item:hover { background: #e8f0fe; }
+    #sidebar .list-group-item.active {
+      background: #0d6efd; color: #fff;
+      border-left: 3px solid #0558b6; padding-left: 17px;
+    }
+    #sidebar .accordion-item { border: none; }
+    #sidebar .badge { font-size: 9px; vertical-align: middle; }
+    /* Nested collapsible nav (e.g. Network Slicing under Network Config) —
+       buttons share list-group-item styling but get a tiny caret rotate
+       so expand/collapse state is visually obvious. */
+    #sidebar .nav-collapser { background: transparent; }
+    #sidebar .nav-collapser .nav-caret { transition: transform 0.15s ease; display: inline-block; }
+    #sidebar .nav-collapser[aria-expanded="true"] .nav-caret { transform: rotate(180deg); }
+    #sidebar .nav-collapser[aria-expanded="true"] { color: #0558b6; }
+  </style>
+</head>
+
+<body class="bg-light">
+
+  <!-- Top Brand Bar -->
+  <div class="d-flex align-items-center px-3 py-2 border-bottom"
+       style="background:#0558b6; position:sticky; top:0; z-index:10;">
+    <div class="fw-bold text-white">
+      MAKE<span style="color:#ff2b2b;">MY</span>TECHNOLOGY
+    </div>
+    <div class="position-absolute start-50 translate-middle-x text-white fw-bold" style="font-size:1.1rem; letter-spacing:2px;">
+      MMT STUDIO CORE
+    </div>
+    <div class="ms-auto d-flex align-items-center gap-2">
+    </div>
+  </div>
+
+  <div class="container-fluid mt-4">
+    <div class="row">
+
+      <!-- LEFT SIDE PANE — Accordion Sidebar -->
+      <div class="col-12 col-md-3 col-lg-2 border-end" style="max-height:calc(100vh - 56px); overflow-y:auto;">
+        <nav id="sidebar">
+          <div class="accordion accordion-flush" id="sidebarAccordion">
+
+            <!-- NETWORK CONFIG -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#acc-network">Network Config</button></h2>
+              <div id="acc-network" class="accordion-collapse collapse show" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action active" data-bs-toggle="list" href="#network" role="tab">Core Network</a>
+                    <!-- Network Slicing — nested collapsible under Network
+                         Config (TS 23.501 §5.15.2.1). Closed by default;
+                         the toggle uses a <button> with data-bs-target so
+                         every click flips Bootstrap's collapse cleanly
+                         (anchors with href="#…" hit a navigation race that
+                         left the panel stuck open after one expand). The
+                         caret rotates 180° when expanded via the
+                         [aria-expanded] selector below. -->
+                    <!-- Bootstrap's data-bs-toggle="collapse" auto-init
+                         conflicts with the parent list-group's tablist
+                         role on second click — the tab plugin intercepts
+                         and the collapse never sees the toggle. Bind
+                         the click manually instead (see initNavCollapsers
+                         in the script block below). -->
+                    <button type="button"
+                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center w-100 text-start nav-collapser"
+                            data-target="#nav-slicing-group"
+                            aria-expanded="false"
+                            aria-controls="nav-slicing-group">
+                      <span>Network Slicing</span>
+                      <span class="text-muted small nav-caret">▾</span>
+                    </button>
+                    <div id="nav-slicing-group" class="collapse">
+                      <a class="list-group-item list-group-item-action ps-4" data-bs-toggle="list" href="#slices-tab" role="tab">Slice Config</a>
+                      <a class="list-group-item list-group-item-action ps-4" data-bs-toggle="list" href="#nsaas-tab" role="tab">Slice as a Service</a>
+                      <a class="list-group-item list-group-item-action ps-4" data-bs-toggle="list" href="#nsacf-tab" role="tab">Admission Control</a>
+                      <a class="list-group-item list-group-item-action ps-4" data-bs-toggle="list" href="#npn-tab" role="tab">Non-Public Network</a>
+                    </div>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#plmn-tab" role="tab">PLMN Support</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#apn-tab" role="tab">APN / DNN</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#tac-tab" role="tab">Tracking Areas</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#upf-config-tab" role="tab">UPF</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#infra-tab" role="tab">Infrastructure</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUBSCRIBERS -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-subscribers">Subscribers</button></h2>
+              <div id="acc-subscribers" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ue-config" role="tab">UE / SIM</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#esim-tab" role="tab">eSIM Provisioning</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#musim-tab" role="tab">Multi-USIM</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#services" role="tab">QoS Services</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Network Slicing entries moved under Network Config above. -->
+
+            <!-- SESSIONS & DATA PLANE -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-sessions">Sessions & Data</button></h2>
+              <div id="acc-sessions" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#utils" role="tab">Live Sessions</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#upf" role="tab">Data Plane (UPF)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#dpi-tab" role="tab">App Detection (DPI)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ursp-tab" role="tab">URSP Rules</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- UTILITIES -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-utils">Utilities</button></h2>
+              <div id="acc-utils" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#admin-utils" role="tab">Utilities (DB Reset / Wipe)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#traffic-tab" role="tab">Traffic Engine</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BILLING & CHARGING -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-billing">Billing & Charging</button></h2>
+              <div id="acc-billing" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#charging" role="tab">Charging Profiles</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#chf-tab" role="tab">Converged Charging</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#billing-tab" role="tab">Billing & Invoices</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMS & VOICE -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-ims">IMS & Voice</button></h2>
+              <div id="acc-ims" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ims-tab" role="tab">IMS / VoNR</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#smsf-tab" role="tab">SMS (SMSF)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ss-tab" role="tab">Supplementary Services</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ussd-tab" role="tab">USSD</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#mcx" role="tab">Mission Critical (MCX)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#mbs-tab" role="tab">MBS Multicast</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IoT -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-iot">IoT & Devices</button></h2>
+              <div id="acc-iot" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#iot-tab" role="tab">IoT Manager</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#nidd-tab" role="tab">NIDD (Non-IP)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#pin-tab" role="tab">Personal IoT (PIN)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#tsn-tab" role="tab">TSN / Timing</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- EDGE COMPUTING -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-edge">Edge Computing</button></h2>
+              <div id="acc-edge" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#mec-tab" role="tab">Edge Computing</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#eas-tab" role="tab">EAS Discovery</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- POSITIONING & LOCATION -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-positioning">Positioning & Location</button></h2>
+              <div id="acc-positioning" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#positioning-tab" role="tab">Positioning (LCS)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ranging-tab" role="tab">Ranging / Sidelink</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SENSING -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-sensing">Sensing</button></h2>
+              <div id="acc-sensing" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#isac-tab" role="tab">ISAC (Sensing & Comm)</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VERTICALS -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-verticals">Verticals</button></h2>
+              <div id="acc-verticals" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#v2x-tab" role="tab">V2X (Automotive)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#uas-tab" role="tab">UAS / UAV (Drone)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#prose-tab" role="tab">ProSe (D2D)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#seal-tab" role="tab">SEAL Enablers</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ACCESS & MOBILITY -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-access">Access & Mobility</button></h2>
+              <div id="acc-access" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#n3iwf-tab" role="tab">Wi-Fi Offload (N3IWF)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ntn-tab" role="tab">Satellite (NTN)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ntn-phase2-tab" role="tab">NTN Phase 2</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#n26-tab" role="tab">N26 Handover (4G/5G)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#roaming-tab" role="tab">Roaming</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ran-sharing-tab" role="tab">RAN Sharing</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PUBLIC SAFETY -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-safety">Public Safety</button></h2>
+              <div id="acc-safety" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#emergency-tab" role="tab">Emergency Calls</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#pws-tab" role="tab">Public Warning (CBS)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#iops-tab" role="tab">IOPS (Isolated Op)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#racs-tab" role="tab">Access Restriction</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#disaster-roaming-tab" role="tab">Disaster Roaming</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ANALYTICS & OAM -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-analytics">Analytics & OAM</button></h2>
+              <div id="acc-analytics" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#kpis" role="tab">Performance KPIs</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#benchmark-tab" role="tab">Live Benchmark</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#nwdaf-tab" role="tab">NWDAF Analytics</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#nwdaf-exposure-tab" role="tab">Analytics Exposure</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#traces-tab" role="tab">Traces</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#faults" role="tab">Alarms (FM)</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#logger" role="tab">Logs</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECURITY -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-security">Security</button></h2>
+              <div id="acc-security" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#security-tab" role="tab">Firewall & IDS</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#li-tab" role="tab">Lawful Intercept</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SYSTEM -->
+            <div class="accordion-item">
+              <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc-system">System</button></h2>
+              <div id="acc-system" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div class="accordion-body">
+                  <div class="list-group list-group-flush" role="tablist">
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#resilience-tab" role="tab">Resilience / HA</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#health-tab" role="tab">Health Monitor</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#ai-tab" role="tab">AI Assistant</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </nav>
+      </div>
+
+      <!-- RIGHT SIDE PANE -->
+      <div class="col-12 col-md-9 col-lg-10">
+        <div class="card shadow-sm">
+          <div class="card-body">
+
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="network" role="tabpanel">
+                {% include "network_config.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="plmn-tab" role="tabpanel">
+                {% include "plmn.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="apn-tab" role="tabpanel">
+                {% include "apn.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="slices-tab" role="tabpanel">
+                {% include "slices.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="nsaas-tab" role="tabpanel">
+                {% include "nsaas.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="nsacf-tab" role="tabpanel">
+                {% include "nsacf.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="upf-config-tab" role="tabpanel">
+                {% include "upf_config.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="tac-tab" role="tabpanel">
+                {% include "tac.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="services" role="tabpanel">
+                {% include "services.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="charging" role="tabpanel">
+                {% include "charging_profiles.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ue-config" role="tabpanel">
+                {% include "ue_config.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="esim-tab" role="tabpanel">
+                {% include "esim.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="musim-tab" role="tabpanel">
+                {% include "musim.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="billing-tab" role="tabpanel">
+                {% include "billing.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="chf-tab" role="tabpanel">
+                {% include "chf.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="utils" role="tabpanel">
+                {% include "contexts.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="upf" role="tabpanel">
+                {% include "upf.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="traffic-tab" role="tabpanel">
+                {% include "traffic.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="dpi-tab" role="tabpanel">
+                {% include "dpi.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ursp-tab" role="tabpanel">
+                {% include "ursp.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="kpis" role="tabpanel">
+                {% include "kpis.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="benchmark-tab" role="tabpanel">
+                {% include "benchmark.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="nwdaf-tab" role="tabpanel">
+                {% include "nwdaf.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="nwdaf-exposure-tab" role="tabpanel">
+                {% include "nwdaf_exposure.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="iot-tab" role="tabpanel">
+                {% include "iot.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="nidd-tab" role="tabpanel">
+                {% include "nidd.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="traces-tab" role="tabpanel">
+                {% include "traces.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="logger" role="tabpanel">
+                {% include "logger.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ims-tab" role="tabpanel">
+                {% include "ims.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="smsf-tab" role="tabpanel">
+                {% include "smsf.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="mcx" role="tabpanel">
+                {% include "mcx.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ss-tab" role="tabpanel">
+                {% include "supplementary.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ussd-tab" role="tabpanel">
+                {% include "ussd.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="seal-tab" role="tabpanel">
+                {% include "seal.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="mbs-tab" role="tabpanel">
+                {% include "mbs.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="n3iwf-tab" role="tabpanel">
+                {% include "n3iwf.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="prose-tab" role="tabpanel">
+                {% include "prose.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="mec-tab" role="tabpanel">
+                {% include "mec.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="eas-tab" role="tabpanel">
+                {% include "eas.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ntn-tab" role="tabpanel">
+                {% include "ntn.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ntn-phase2-tab" role="tabpanel">
+                {% include "ntn_phase2.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="pin-tab" role="tabpanel">
+                {% include "pin.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="n26-tab" role="tabpanel">
+                {% include "n26.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="roaming-tab" role="tabpanel">
+                {% include "roaming.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="emergency-tab" role="tabpanel">
+                {% include "emergency.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="pws-tab" role="tabpanel">
+                {% include "pws.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="racs-tab" role="tabpanel">
+                {% include "racs.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="disaster-roaming-tab" role="tabpanel">
+                {% include "disaster_roaming.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="iops-tab" role="tabpanel">
+                {% include "iops.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="npn-tab" role="tabpanel">
+                {% include "npn.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ranging-tab" role="tabpanel">
+                {% include "ranging.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="uas-tab" role="tabpanel">
+                {% include "uas.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="faults" role="tabpanel">
+                {% include "faults.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="health-tab" role="tabpanel">
+                {% include "health.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="security-tab" role="tabpanel">
+                {% include "security.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ai-tab" role="tabpanel">
+                {% include "ai_assistant.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="infra-tab" role="tabpanel">
+                {% include "infrastructure.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="admin-utils" role="tabpanel">
+                {% include "utils.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="li-tab" role="tabpanel">
+                {% include "li.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="tsn-tab" role="tabpanel">
+                {% include "tsn.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="isac-tab" role="tabpanel">
+                {% include "isac.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="resilience-tab" role="tabpanel">
+                {% include "resilience.html" %}
+              </div>
+
+              <div class="tab-pane fade" id="ran-sharing-tab" role="tabpanel">
+                {% include "ran_sharing.html" %}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IMPORTANT: Correct closing tag -->
+  <script src="{{ url_for('static', 'bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script>
+  // Fix cross-group tab activation — sidebar has multiple list-group divs
+  // but Bootstrap tab only deactivates within the same tablist scope.
+  document.querySelectorAll('#sidebar a[data-bs-toggle="list"]').forEach(link => {
+    link.addEventListener('click', () => {
+      // Deactivate all other tabs across all groups
+      document.querySelectorAll('#sidebar a.active').forEach(a => {
+        if (a !== link) a.classList.remove('active');
+      });
+      // Hide all tab panes
+      document.querySelectorAll('.tab-content .tab-pane').forEach(p => {
+        p.classList.remove('show', 'active');
+      });
+      // Show the target pane
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) {
+        target.classList.add('show', 'active');
+      }
+    });
+  });
+
+  // Manual binding for nested nav collapsers (e.g. Network Slicing inside
+  // Network Config). The Bootstrap data-bs-toggle="collapse" auto-init
+  // appeared to fight the parent list-group's tablist scope on second
+  // clicks — explicit Collapse.toggle() bypasses that and gives clean
+  // expand → collapse → expand behaviour.
+  document.querySelectorAll('#sidebar .nav-collapser[data-target]').forEach(btn => {
+    const target = document.querySelector(btn.getAttribute('data-target'));
+    if (!target) return;
+    const inst = bootstrap.Collapse.getOrCreateInstance(target, {toggle: false});
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inst.toggle();
+    });
+    target.addEventListener('show.bs.collapse', () => btn.setAttribute('aria-expanded', 'true'));
+    target.addEventListener('hide.bs.collapse', () => btn.setAttribute('aria-expanded', 'false'));
+  });
+
+  // ── Tab key accepts placeholder as the real value ────────────────
+  // Every text-style input/textarea in the panel typically carries a
+  // placeholder that doubles as a sensible default (e.g. "127.0.0.1"
+  // on the UPF N4 IP field, "internet" on the DNN list, …). If the
+  // operator hits Tab while the field is empty, copy the placeholder
+  // into .value before letting the focus move on. Same behaviour for
+  // Enter — for single-field forms the operator often just hits Enter
+  // expecting the example to commit. ArrowDown / ArrowRight don't
+  // trigger this to avoid surprising mid-edit accepts.
+  //
+  // Inputs opt out by adding the `data-no-default` attribute, useful
+  // for confirmation fields where the placeholder is illustrative
+  // only ("type DELETE to confirm").
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' && e.key !== 'Enter') return;
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
+    if (t.disabled || t.readOnly) return;
+    if (t.hasAttribute('data-no-default')) return;
+    if (t.value !== '' || !t.placeholder) return;
+    // Skip non-text input types (checkbox, file, color, range, etc.).
+    if (t.tagName === 'INPUT') {
+      const okTypes = ['text', 'search', 'email', 'url', 'tel',
+                       'password', 'number'];
+      if (!okTypes.includes((t.type || 'text').toLowerCase())) return;
+    }
+    t.value = t.placeholder;
+    // Fire input + change so any bound listeners (validation, live
+    // filters, dependent-select updates) react to the accept just as
+    // if the operator had typed the value.
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+    t.dispatchEvent(new Event('change', { bubbles: true }));
+    // Tab: don't preventDefault — let focus advance normally so a
+    // single Tab both accepts AND moves on, which matches the
+    // operator's mental model ("the example was right, go next").
+    // Enter: only swallow the keystroke when the parent isn't a
+    // <form> (we don't want to break Enter-submits on real forms).
+    if (e.key === 'Enter' && !t.form) {
+      e.preventDefault();
+    }
+  });
+  </script>
+</body>
+</html>

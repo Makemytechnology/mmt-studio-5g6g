@@ -1,0 +1,102 @@
+<!-- templates/ue_bulk_clone.html
+     Sits between the per-UE edit block and the "Configured UEs" table.
+     Deep-copies one template UE (auth, subscription AMBR, subscribed
+     NSSAI, slice-DNN authorisations, service bindings) into N
+     sequential IMSIs via POST /api/ue/clone/range. -->
+<div class="accordion mb-4" id="ueBulkCloneAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="ueBulkCloneHeader">
+      <button
+        class="accordion-button collapsed bg-secondary text-white fw-bold d-flex justify-content-center text-center"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#ueBulkCloneCollapse"
+        aria-expanded="false"
+        aria-controls="ueBulkCloneCollapse">
+        <div class="w-100">Bulk Clone UEs</div>
+      </button>
+    </h2>
+    <div id="ueBulkCloneCollapse" class="accordion-collapse collapse" aria-labelledby="ueBulkCloneHeader">
+      <div class="accordion-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Source IMSI (template)</label>
+            <input id="bulk_src_imsi" type="text" class="form-control" placeholder="001011234560001">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Start IMSI (new)</label>
+            <input id="bulk_start_imsi" type="text" class="form-control" placeholder="001011234560002">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Count</label>
+            <input id="bulk_count" type="number" class="form-control" min="1" max="10000" value="127">
+          </div>
+          <div class="col-md-2">
+            <button id="bulk_clone_btn" type="button" class="btn btn-primary w-100">Clone</button>
+          </div>
+        </div>
+        <div class="form-text mt-1">
+          Deep-clones auth, subscription AMBR, subscribed NSSAI, slice-DNN
+          authorisations, and service bindings. MSISDN = IMSI[5:] for each
+          new UE (drops the MCC+MNC prefix).
+        </div>
+        <div id="bulk_clone_status" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const init = () => {
+    const srcEl   = document.getElementById("bulk_src_imsi");
+    const startEl = document.getElementById("bulk_start_imsi");
+    const cntEl   = document.getElementById("bulk_count");
+    const btn     = document.getElementById("bulk_clone_btn");
+    const status  = document.getElementById("bulk_clone_status");
+    if (!btn) return;
+
+    const note = (msg, type) => {
+      status.style.display = "";
+      status.innerHTML = `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>`;
+    };
+
+    btn.addEventListener("click", async () => {
+      const source_imsi = (srcEl.value || "").trim();
+      const start_imsi  = (startEl.value || "").trim();
+      const count       = parseInt(cntEl.value || "0", 10);
+      if (!source_imsi || !start_imsi) return note("Source IMSI and Start IMSI required", "warning");
+      if (!(count > 0))                 return note("Count must be > 0", "warning");
+      if (source_imsi.length !== start_imsi.length)
+        return note("Source and Start IMSI must have the same width", "warning");
+
+      btn.disabled = true;
+      note(`Cloning ${count} UEs from ${source_imsi} starting at ${start_imsi}…`, "info");
+      try {
+        const r = await fetch("/api/ue/clone/range", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source_imsi, start_imsi, count })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        note(`✔ Cloned ${j.created} UE(s) — refresh the Configured UEs table below to see them.`, "success");
+        // Best-effort: ask the dashboard to reload if its refresh
+        // button is reachable in this DOM (they live on the same page).
+        const refreshBtn = document.getElementById("btnUeRefresh");
+        if (refreshBtn) refreshBtn.click();
+      } catch (e) {
+        note(e.message || "Clone failed", "danger");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

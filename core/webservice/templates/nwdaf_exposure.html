@@ -1,0 +1,335 @@
+<!-- NWDAF Analytics Exposure — TS 23.288 §7 -->
+<div class="container-fluid p-3">
+  <h4>NWDAF Analytics Exposure <small class="text-muted">TS 23.288 &sect;7</small></h4>
+  <p class="text-muted">3rd-party analytics consumer management, subscriptions, and one-shot queries.</p>
+
+  <!-- Stats row -->
+  <div class="row mb-3" id="exp-stats-row">
+    <div class="col-md-2">
+      <div class="card text-center"><div class="card-body py-2">
+        <div class="fs-3 fw-bold text-primary" id="exp-stat-consumers">-</div>
+        <small class="text-muted">Consumers</small>
+      </div></div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center"><div class="card-body py-2">
+        <div class="fs-3 fw-bold text-success" id="exp-stat-subs">-</div>
+        <small class="text-muted">Subscriptions</small>
+      </div></div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center"><div class="card-body py-2">
+        <div class="fs-3 fw-bold text-info" id="exp-stat-queries">-</div>
+        <small class="text-muted">Total Queries</small>
+      </div></div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center"><div class="card-body py-2">
+        <div class="fs-3 fw-bold text-warning" id="exp-stat-oneshot">-</div>
+        <small class="text-muted">One-Shot</small>
+      </div></div>
+    </div>
+    <div class="col-md-2">
+      <div class="card text-center"><div class="card-body py-2">
+        <div class="fs-3 fw-bold text-secondary" id="exp-stat-notif">-</div>
+        <small class="text-muted">Notifications</small>
+      </div></div>
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs" id="expTab" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#exp-consumers">Consumers</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#exp-subscriptions">Subscriptions</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#exp-query">One-Shot Query</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#exp-log">Audit Log</a></li>
+  </ul>
+
+  <div class="tab-content mt-3">
+
+    <!-- ── Consumers ── -->
+    <div class="tab-pane fade show active" id="exp-consumers">
+      <div class="card"><div class="card-body">
+        <h5>Register Consumer</h5>
+        <div class="row g-2 mb-3">
+          <div class="col-md-3">
+            <input id="exp-c-name" class="form-control form-control-sm" placeholder="Consumer name">
+          </div>
+          <div class="col-md-4">
+            <input id="exp-c-callback" class="form-control form-control-sm" placeholder="Callback URL (optional)">
+          </div>
+          <div class="col-md-3">
+            <input id="exp-c-allowed" class="form-control form-control-sm" placeholder="Allowed types (comma-sep, blank=all)">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary btn-sm w-100" onclick="expAddConsumer()">Register</button>
+          </div>
+        </div>
+        <table class="table table-sm table-striped" id="exp-consumers-table">
+          <thead><tr>
+            <th>ID</th><th>Name</th><th>API Key</th><th>Callback URL</th>
+            <th>Allowed Analytics</th><th>Active</th><th>Created</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── Subscriptions ── -->
+    <div class="tab-pane fade" id="exp-subscriptions">
+      <div class="card"><div class="card-body">
+        <h5>Create Subscription</h5>
+        <div class="row g-2 mb-3">
+          <div class="col-md-2">
+            <select id="exp-s-consumer" class="form-select form-select-sm">
+              <option value="">Consumer...</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select id="exp-s-type" class="form-select form-select-sm">
+              <option value="">Analytics type...</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input id="exp-s-imsi" class="form-control form-control-sm" placeholder="Target IMSI (opt)">
+          </div>
+          <div class="col-md-2">
+            <input id="exp-s-slice" class="form-control form-control-sm" placeholder="Target slice (opt)">
+          </div>
+          <div class="col-md-1">
+            <input id="exp-s-interval" class="form-control form-control-sm" placeholder="Int(s)" value="60">
+          </div>
+          <div class="col-md-2">
+            <input id="exp-s-callback" class="form-control form-control-sm" placeholder="Callback URL">
+          </div>
+          <div class="col-md-1">
+            <button class="btn btn-success btn-sm w-100" onclick="expAddSub()">Create</button>
+          </div>
+        </div>
+        <table class="table table-sm table-striped" id="exp-subs-table">
+          <thead><tr>
+            <th>ID</th><th>Consumer</th><th>Type</th><th>Target</th>
+            <th>Interval</th><th>Callback</th><th>Last Notified</th><th>Active</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- ── One-Shot Query ── -->
+    <div class="tab-pane fade" id="exp-query">
+      <div class="card"><div class="card-body">
+        <h5>One-Shot Analytics Query</h5>
+        <div class="row g-2 mb-3">
+          <div class="col-md-3">
+            <select id="exp-q-type" class="form-select form-select-sm">
+              <option value="">Select analytics type...</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <input id="exp-q-imsi" class="form-control form-control-sm" placeholder="IMSI (optional)">
+          </div>
+          <div class="col-md-3">
+            <input id="exp-q-slice" class="form-control form-control-sm" placeholder="Slice (optional)">
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-info btn-sm w-100" onclick="expRunQuery()">Query</button>
+          </div>
+        </div>
+        <pre id="exp-q-result" class="bg-dark text-light p-3 rounded" style="max-height:400px;overflow:auto;font-size:0.85em;">Select a type and click Query.</pre>
+      </div></div>
+    </div>
+
+    <!-- ── Audit Log ── -->
+    <div class="tab-pane fade" id="exp-log">
+      <div class="card"><div class="card-body">
+        <div class="d-flex justify-content-between mb-2">
+          <h5 class="mb-0">Exposure Audit Log</h5>
+          <button class="btn btn-outline-secondary btn-sm" onclick="expLoadLog()">Refresh</button>
+        </div>
+        <table class="table table-sm table-striped" id="exp-log-table">
+          <thead><tr>
+            <th>ID</th><th>Consumer</th><th>Analytics Type</th><th>Query Type</th>
+            <th>Response</th><th>Time</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const EXP_API = '/api/nwdaf/exposure';
+
+function expLoad() {
+  expLoadStats();
+  expLoadConsumers();
+  expLoadSubs();
+  expLoadTypes();
+  expLoadLog();
+}
+
+function expLoadStats() {
+  fetch(EXP_API + '/stats').then(r=>r.json()).then(d=>{
+    if (!d.ok) return;
+    document.getElementById('exp-stat-consumers').textContent = d.active_consumers;
+    document.getElementById('exp-stat-subs').textContent = d.active_subscriptions;
+    document.getElementById('exp-stat-queries').textContent = d.total_queries;
+    document.getElementById('exp-stat-oneshot').textContent = d.one_shot_queries;
+    document.getElementById('exp-stat-notif').textContent = d.subscription_notifications;
+  }).catch(()=>{});
+}
+
+function expLoadConsumers() {
+  fetch(EXP_API + '/consumers').then(r=>r.json()).then(d=>{
+    if (!d.ok) return;
+    const tb = document.querySelector('#exp-consumers-table tbody');
+    tb.innerHTML = '';
+    const sel = document.getElementById('exp-s-consumer');
+    sel.innerHTML = '<option value="">Consumer...</option>';
+    d.consumers.forEach(c=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${c.id}</td><td>${c.name}</td>
+        <td><code class="small">${c.api_key||''}</code></td>
+        <td class="small">${c.callback_url||''}</td>
+        <td class="small">${c.allowed_analytics||'all'}</td>
+        <td>${c.active?'<span class="badge bg-success">Yes</span>':'<span class="badge bg-secondary">No</span>'}</td>
+        <td class="small">${c.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm" onclick="expDelConsumer(${c.id})">Del</button></td>`;
+      tb.appendChild(tr);
+      const opt = document.createElement('option');
+      opt.value = c.id; opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+  }).catch(()=>{});
+}
+
+function expAddConsumer() {
+  const name = document.getElementById('exp-c-name').value.trim();
+  if (!name) return alert('Name required');
+  const allowed_str = document.getElementById('exp-c-allowed').value.trim();
+  const allowed = allowed_str ? allowed_str.split(',').map(s=>s.trim()) : [];
+  fetch(EXP_API + '/consumers', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name,
+      callback_url: document.getElementById('exp-c-callback').value.trim(),
+      allowed_analytics: allowed
+    })
+  }).then(r=>r.json()).then(d=>{
+    if (!d.ok) return alert(d.error||'Failed');
+    document.getElementById('exp-c-name').value = '';
+    document.getElementById('exp-c-callback').value = '';
+    document.getElementById('exp-c-allowed').value = '';
+    expLoad();
+  });
+}
+
+function expDelConsumer(id) {
+  if (!confirm('Delete consumer '+id+'?')) return;
+  fetch(EXP_API + '/consumers/' + id, {method:'DELETE'}).then(r=>r.json()).then(()=>expLoad());
+}
+
+function expLoadSubs() {
+  fetch(EXP_API + '/subscriptions').then(r=>r.json()).then(d=>{
+    if (!d.ok) return;
+    const tb = document.querySelector('#exp-subs-table tbody');
+    tb.innerHTML = '';
+    d.subscriptions.forEach(s=>{
+      const target = s.target_id ? `${s.target_type}: ${s.target_id}` : s.target_type;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${s.id}</td><td>${s.consumer_name||s.consumer_id}</td>
+        <td>${s.analytics_type}</td><td class="small">${target}</td>
+        <td>${s.interval_s}s</td><td class="small">${s.callback_url||''}</td>
+        <td class="small">${s.last_notified_at||'never'}</td>
+        <td>${s.active?'<span class="badge bg-success">Yes</span>':'<span class="badge bg-secondary">No</span>'}</td>
+        <td><button class="btn btn-outline-danger btn-sm" onclick="expDelSub(${s.id})">Del</button></td>`;
+      tb.appendChild(tr);
+    });
+  }).catch(()=>{});
+}
+
+function expAddSub() {
+  const consumer_id = document.getElementById('exp-s-consumer').value;
+  const analytics_type = document.getElementById('exp-s-type').value;
+  if (!consumer_id || !analytics_type) return alert('Consumer and type required');
+  fetch(EXP_API + '/subscriptions', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      consumer_id: parseInt(consumer_id),
+      analytics_type,
+      target_imsi: document.getElementById('exp-s-imsi').value.trim() || undefined,
+      target_slice: document.getElementById('exp-s-slice').value.trim() || undefined,
+      interval_s: parseInt(document.getElementById('exp-s-interval').value) || 60,
+      callback_url: document.getElementById('exp-s-callback').value.trim()
+    })
+  }).then(r=>r.json()).then(d=>{
+    if (!d.ok) return alert(d.error||'Failed');
+    expLoad();
+  });
+}
+
+function expDelSub(id) {
+  if (!confirm('Delete subscription '+id+'?')) return;
+  fetch(EXP_API + '/subscriptions/' + id, {method:'DELETE'}).then(r=>r.json()).then(()=>expLoad());
+}
+
+function expLoadTypes() {
+  fetch(EXP_API + '/types').then(r=>r.json()).then(d=>{
+    if (!d.ok) return;
+    ['exp-s-type','exp-q-type'].forEach(selId=>{
+      const sel = document.getElementById(selId);
+      sel.innerHTML = '<option value="">Select type...</option>';
+      d.types.forEach(t=>{
+        const opt = document.createElement('option');
+        opt.value = t.type; opt.textContent = t.description;
+        sel.appendChild(opt);
+      });
+    });
+  }).catch(()=>{});
+}
+
+function expRunQuery() {
+  const typ = document.getElementById('exp-q-type').value;
+  if (!typ) return alert('Select an analytics type');
+  const imsi = document.getElementById('exp-q-imsi').value.trim();
+  const slice = document.getElementById('exp-q-slice').value.trim();
+  let url = EXP_API + '/analytics/' + typ;
+  const params = [];
+  if (imsi) params.push('imsi=' + encodeURIComponent(imsi));
+  if (slice) params.push('slice=' + encodeURIComponent(slice));
+  if (params.length) url += '?' + params.join('&');
+  document.getElementById('exp-q-result').textContent = 'Loading...';
+  fetch(url).then(r=>r.json()).then(d=>{
+    document.getElementById('exp-q-result').textContent = JSON.stringify(d, null, 2);
+  }).catch(e=>{
+    document.getElementById('exp-q-result').textContent = 'Error: ' + e;
+  });
+}
+
+function expLoadLog() {
+  fetch(EXP_API + '/log?limit=50').then(r=>r.json()).then(d=>{
+    if (!d.ok) return;
+    const tb = document.querySelector('#exp-log-table tbody');
+    tb.innerHTML = '';
+    d.log.forEach(l=>{
+      const tr = document.createElement('tr');
+      const badge = l.query_type === 'one_shot'
+        ? '<span class="badge bg-info">one_shot</span>'
+        : '<span class="badge bg-warning">subscription</span>';
+      tr.innerHTML = `<td>${l.id}</td><td>${l.consumer_name||l.consumer_id||'-'}</td>
+        <td>${l.analytics_type||''}</td><td>${badge}</td>
+        <td>${l.response_code||''}</td><td class="small">${l.created_at||''}</td>`;
+      tb.appendChild(tr);
+    });
+  }).catch(()=>{});
+}
+
+// Auto-load when tab becomes visible
+document.addEventListener('shown.bs.tab', function(e) {
+  if (e.target.getAttribute('href') === '#nwdaf-exposure-tab') expLoad();
+});
+// Also load if already visible
+if (document.getElementById('nwdaf-exposure-tab')) expLoad();
+</script>

@@ -1,0 +1,305 @@
+<!-- templates/nsaas.html — Network Slice as a Service (TS 28.531 / TS 28.541) -->
+
+<!-- NSaaS Status Overview -->
+<div class="row g-2 mb-3" id="nsaasStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="nsaasTenants">0</div><div class="small text-muted">Tenants</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="nsaasTemplates">0</div><div class="small text-muted">Templates</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="nsaasActive">0</div><div class="small text-muted">Active Slices</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="nsaasProvisioned">0</div><div class="small text-muted">Provisioned</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="nsaasSlaViolations">0</div><div class="small text-muted">SLA Violations</div></div></div>
+</div>
+
+<!-- Tenants -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#nsaasTenantCollapse"><div class="w-100 text-center">Tenants</div></button></h2>
+  <div id="nsaasTenantCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>Email</th><th>API Key</th><th>Created</th><th></th></tr>
+    </thead><tbody id="nsaasTenantBody"><tr><td colspan="6" class="text-muted text-center">No tenants</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="nsaasTenantName" class="form-control form-control-sm" style="width:140px" placeholder="Acme Corp"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Email</label><input id="nsaasTenantEmail" class="form-control form-control-sm" style="width:180px" placeholder="admin@acme.com"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">API Key</label><input id="nsaasTenantApiKey" class="form-control form-control-sm" style="width:160px" placeholder="(auto-generate)"></div>
+      <div class="col-auto"><button id="btnNsaasAddTenant" class="btn btn-success btn-sm">+ Add Tenant</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Templates -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsaasTemplateCollapse"><div class="w-100 text-center">Slice Templates (TS 28.541)</div></button></h2>
+  <div id="nsaasTemplateCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>SST</th><th>SD</th><th>DNN</th><th>Description</th><th></th></tr>
+    </thead><tbody id="nsaasTemplateBody"><tr><td colspan="7" class="text-muted text-center">No templates</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><button id="btnNsaasSeedTemplates" class="btn btn-outline-info btn-sm">Seed Standard Templates</button></div>
+      <div class="col-auto ms-3"><label class="form-label mb-0 small">Name</label><input id="nsaasTemplateName" class="form-control form-control-sm" style="width:120px"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SST</label><input id="nsaasTemplateSst" class="form-control form-control-sm" style="width:60px" type="number" value="1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SD</label><input id="nsaasTemplateSd" class="form-control form-control-sm" style="width:90px" placeholder="000001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">DNN</label><input id="nsaasTemplateDnn" class="form-control form-control-sm" style="width:100px" value="internet"></div>
+      <div class="col-auto"><button id="btnNsaasAddTemplate" class="btn btn-success btn-sm">+ Add Template</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Slice Provisioning Wizard -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsaasProvisionCollapse"><div class="w-100 text-center">Provision New Slice</div></button></h2>
+  <div id="nsaasProvisionCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-3 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small fw-bold">1. Tenant</label>
+        <select id="nsaasProvTenant" class="form-select form-select-sm" style="width:180px"><option value="">Select tenant...</option></select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-bold">2. Template</label>
+        <select id="nsaasProvTemplate" class="form-select form-select-sm" style="width:180px"><option value="">Select template...</option></select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-bold">3. Name (optional)</label>
+        <input id="nsaasProvName" class="form-control form-control-sm" style="width:160px" placeholder="custom-slice-name">
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-bold">4. SST override</label>
+        <input id="nsaasProvSst" class="form-control form-control-sm" style="width:70px" type="number" placeholder="">
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-bold">SD override</label>
+        <input id="nsaasProvSd" class="form-control form-control-sm" style="width:90px" placeholder="">
+      </div>
+      <div class="col-auto">
+        <button id="btnNsaasProvision" class="btn btn-success btn-sm mt-3">Provision Slice</button>
+      </div>
+    </div>
+    <div id="nsaasProvResult" class="mt-2"></div>
+  </div></div>
+</div></div>
+
+<!-- Slice Dashboard -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#nsaasSliceCollapse"><div class="w-100 text-center">Slice Lifecycle Dashboard</div></button></h2>
+  <div id="nsaasSliceCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>Tenant</th><th>Template</th><th>SST</th><th>SD</th><th>Status</th><th>NSSAI</th><th>Created</th><th>SLA</th><th>Actions</th></tr>
+    </thead><tbody id="nsaasSliceBody"><tr><td colspan="11" class="text-muted text-center">No slices</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- SLA Detail Modal -->
+<div class="modal fade" id="nsaasSlaModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">SLA Compliance</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div id="nsaasSlaStatus" class="mb-2"></div>
+    <table class="table table-sm"><thead><tr><th>Metric</th><th>Target</th><th>Current</th><th>Status</th></tr></thead>
+    <tbody id="nsaasSlaBody"></tbody></table>
+  </div>
+</div></div></div>
+
+<script>
+(function(){
+  const API = '/api/nsaas';
+  let _tenants = [], _templates = [];
+
+  // ── Status badges ──
+  const statusBadge = s => {
+    const map = {
+      preparing:'secondary', provisioned:'info', active:'success',
+      modifying:'warning', decommissioning:'danger', decommissioned:'dark'
+    };
+    return `<span class="badge bg-${map[s]||'secondary'}">${s}</span>`;
+  };
+  const slaBadge = s => {
+    if(s==='compliant') return '<span class="badge bg-success">OK</span>';
+    if(s==='violation') return '<span class="badge bg-danger">VIOLATION</span>';
+    return '<span class="badge bg-secondary">N/A</span>';
+  };
+
+  // ── Refresh stats ──
+  async function refreshStats(){
+    try {
+      const r = await fetch(API+'/stats');
+      const d = await r.json();
+      document.getElementById('nsaasTenants').textContent = d.tenants||0;
+      document.getElementById('nsaasTemplates').textContent = d.templates||0;
+      document.getElementById('nsaasActive').textContent = d.active_slices||0;
+      document.getElementById('nsaasProvisioned').textContent = d.provisioned_slices||0;
+      document.getElementById('nsaasSlaViolations').textContent = d.sla_violations||0;
+    } catch(e){ console.error('NSaaS stats error', e); }
+  }
+
+  // ── Tenants ──
+  async function refreshTenants(){
+    const r = await fetch(API+'/tenants');
+    const d = await r.json();
+    _tenants = d.items||[];
+    const tb = document.getElementById('nsaasTenantBody');
+    if(!_tenants.length){ tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No tenants</td></tr>'; }
+    else { tb.innerHTML = _tenants.map(t=>`<tr>
+      <td>${t.id}</td><td>${t.name}</td><td>${t.contact_email||''}</td>
+      <td><code>${t.api_key||''}</code></td><td>${t.created_at||''}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0" onclick="nsaasDeleteTenant(${t.id})">Del</button></td>
+    </tr>`).join(''); }
+    // Update provision dropdown
+    const sel = document.getElementById('nsaasProvTenant');
+    sel.innerHTML = '<option value="">Select tenant...</option>' + _tenants.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  }
+
+  window.nsaasDeleteTenant = async function(id){
+    if(!confirm('Delete tenant '+id+'?')) return;
+    await fetch(API+'/tenants/'+id, {method:'DELETE'});
+    refreshAll();
+  };
+
+  document.getElementById('btnNsaasAddTenant').addEventListener('click', async ()=>{
+    const name = document.getElementById('nsaasTenantName').value.trim();
+    if(!name){ alert('Name required'); return; }
+    const body = {name, contact_email: document.getElementById('nsaasTenantEmail').value.trim()};
+    const key = document.getElementById('nsaasTenantApiKey').value.trim();
+    if(key) body.api_key = key;
+    else body.api_key = 'nsaas-'+Math.random().toString(36).substring(2,14);
+    const r = await fetch(API+'/tenants', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json(); alert(e.error||'Error'); return; }
+    document.getElementById('nsaasTenantName').value='';
+    document.getElementById('nsaasTenantEmail').value='';
+    document.getElementById('nsaasTenantApiKey').value='';
+    refreshAll();
+  });
+
+  // ── Templates ──
+  async function refreshTemplates(){
+    const r = await fetch(API+'/templates');
+    const d = await r.json();
+    _templates = d.items||[];
+    const tb = document.getElementById('nsaasTemplateBody');
+    if(!_templates.length){ tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No templates — click Seed to add defaults</td></tr>'; }
+    else { tb.innerHTML = _templates.map(t=>`<tr>
+      <td>${t.id}</td><td><strong>${t.name}</strong></td><td>${t.sst}</td><td>${t.sd||''}</td>
+      <td>${t.default_dnn||''}</td><td>${t.description||''}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0" onclick="nsaasDeleteTemplate(${t.id})">Del</button></td>
+    </tr>`).join(''); }
+    // Update provision dropdown
+    const sel = document.getElementById('nsaasProvTemplate');
+    sel.innerHTML = '<option value="">Select template...</option>' + _templates.map(t=>`<option value="${t.id}">${t.name} (SST=${t.sst})</option>`).join('');
+  }
+
+  window.nsaasDeleteTemplate = async function(id){
+    if(!confirm('Delete template '+id+'?')) return;
+    const r = await fetch(API+'/templates/'+id, {method:'DELETE'});
+    if(!r.ok){ const e=await r.json(); alert(e.error||'Error'); return; }
+    refreshAll();
+  };
+
+  document.getElementById('btnNsaasSeedTemplates').addEventListener('click', async ()=>{
+    const r = await fetch(API+'/templates/seed', {method:'POST'});
+    const d = await r.json();
+    alert('Seeded '+d.seeded+' templates');
+    refreshAll();
+  });
+
+  document.getElementById('btnNsaasAddTemplate').addEventListener('click', async ()=>{
+    const name = document.getElementById('nsaasTemplateName').value.trim();
+    const sst = parseInt(document.getElementById('nsaasTemplateSst').value);
+    if(!name||isNaN(sst)){ alert('Name and SST required'); return; }
+    const body = {name, sst, sd: document.getElementById('nsaasTemplateSd').value.trim()||null, default_dnn: document.getElementById('nsaasTemplateDnn').value.trim()||null};
+    const r = await fetch(API+'/templates', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json(); alert(e.error||'Error'); return; }
+    document.getElementById('nsaasTemplateName').value='';
+    refreshAll();
+  });
+
+  // ── Slices ──
+  async function refreshSlices(){
+    const r = await fetch(API+'/slices');
+    const d = await r.json();
+    const items = d.items||[];
+    const tb = document.getElementById('nsaasSliceBody');
+    if(!items.length){ tb.innerHTML='<tr><td colspan="11" class="text-muted text-center">No slices provisioned</td></tr>'; return; }
+    // Resolve tenant/template names from cache
+    const tMap = {}; _tenants.forEach(t=>tMap[t.id]=t.name);
+    const tmMap = {}; _templates.forEach(t=>tmMap[t.id]=t.name);
+
+    // Fetch SLA status for each slice
+    const slaPromises = items.map(s=>fetch(API+'/slices/'+s.id+'/sla').then(r=>r.json()).catch(()=>({status:'no_sla'})));
+    const slaResults = await Promise.all(slaPromises);
+
+    tb.innerHTML = items.map((s,i)=>{
+      const sla = slaResults[i];
+      let actions = '';
+      if(s.status==='provisioned') actions += `<button class="btn btn-outline-success btn-sm py-0 me-1" onclick="nsaasActivate(${s.id})">Activate</button>`;
+      if(['provisioned','active','modifying'].includes(s.status)) actions += `<button class="btn btn-outline-danger btn-sm py-0 me-1" onclick="nsaasDecommission(${s.id})">Decom</button>`;
+      if(s.status==='decommissioned') actions += `<button class="btn btn-outline-secondary btn-sm py-0" onclick="nsaasDeleteSlice(${s.id})">Del</button>`;
+      return `<tr>
+        <td>${s.id}</td><td>${s.name||''}</td><td>${tMap[s.tenant_id]||s.tenant_id}</td>
+        <td>${tmMap[s.template_id]||s.template_id}</td><td>${s.sst}</td><td>${s.sd||''}</td>
+        <td>${statusBadge(s.status)}</td><td>${s.nssai_catalog_id||''}</td>
+        <td>${(s.created_at||'').substring(0,16)}</td>
+        <td><a href="#" onclick="nsaasShowSla(${s.id});return false;">${slaBadge(sla.status)}</a></td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.nsaasActivate = async function(id){
+    const r = await fetch(API+'/slices/'+id+'/activate', {method:'POST'});
+    if(!r.ok){ const e=await r.json(); alert(e.error||'Error'); return; }
+    refreshAll();
+  };
+  window.nsaasDecommission = async function(id){
+    if(!confirm('Decommission slice '+id+'?')) return;
+    const r = await fetch(API+'/slices/'+id+'/decommission', {method:'POST'});
+    if(!r.ok){ const e=await r.json(); alert(e.error||'Error'); return; }
+    refreshAll();
+  };
+  window.nsaasDeleteSlice = async function(id){
+    if(!confirm('Delete slice record '+id+'?')) return;
+    await fetch(API+'/slices/'+id, {method:'DELETE'});
+    refreshAll();
+  };
+  window.nsaasShowSla = async function(id){
+    const r = await fetch(API+'/slices/'+id+'/sla');
+    const d = await r.json();
+    document.getElementById('nsaasSlaStatus').innerHTML = `<strong>Slice #${id}</strong> &mdash; ${slaBadge(d.status)}`;
+    const tb = document.getElementById('nsaasSlaBody');
+    if(!d.metrics||!d.metrics.length){ tb.innerHTML='<tr><td colspan="4" class="text-muted">No SLA defined</td></tr>'; }
+    else { tb.innerHTML = d.metrics.map(m=>`<tr>
+      <td>${m.metric}</td><td>${m.target_value}</td><td>${m.current_value!==null?m.current_value:'--'}</td>
+      <td>${m.compliant?'<span class="badge bg-success">OK</span>':'<span class="badge bg-danger">FAIL</span>'}</td>
+    </tr>`).join(''); }
+    new bootstrap.Modal(document.getElementById('nsaasSlaModal')).show();
+  };
+
+  // ── Provision ──
+  document.getElementById('btnNsaasProvision').addEventListener('click', async ()=>{
+    const tenant_id = document.getElementById('nsaasProvTenant').value;
+    const template_id = document.getElementById('nsaasProvTemplate').value;
+    if(!tenant_id||!template_id){ alert('Select tenant and template'); return; }
+    const config = {};
+    const nm = document.getElementById('nsaasProvName').value.trim();
+    if(nm) config.name = nm;
+    const sst = document.getElementById('nsaasProvSst').value.trim();
+    if(sst) config.sst = parseInt(sst);
+    const sd = document.getElementById('nsaasProvSd').value.trim();
+    if(sd) config.sd = sd;
+    const body = {tenant_id: parseInt(tenant_id), template_id: parseInt(template_id)};
+    if(Object.keys(config).length) body.config = config;
+    const r = await fetch(API+'/slices', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const d = await r.json();
+    const res = document.getElementById('nsaasProvResult');
+    if(r.ok){ res.innerHTML = `<div class="alert alert-success py-1 small">Slice #${d.id} provisioned successfully</div>`; }
+    else { res.innerHTML = `<div class="alert alert-danger py-1 small">${d.error||'Error'}</div>`; }
+    refreshAll();
+  });
+
+  // ── Refresh all ──
+  async function refreshAll(){
+    await Promise.all([refreshStats(), refreshTenants(), refreshTemplates()]);
+    await refreshSlices();
+  }
+
+  // Initial load
+  refreshAll();
+  // Auto-refresh every 30s
+  setInterval(refreshAll, 30000);
+})();
+</script>

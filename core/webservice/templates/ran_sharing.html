@@ -1,0 +1,153 @@
+<!-- templates/ran_sharing.html — RAN Sharing (TS 23.251) -->
+
+<!-- RAN Sharing Status Overview -->
+<div class="row g-2 mb-3" id="rsStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="rsTotalAgreements">0</div><div class="small text-muted">Agreements</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="rsActiveAgreements">0</div><div class="small text-muted">Active</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="rsMappedGnbs">0</div><div class="small text-muted">Mapped gNBs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="rsUsageEntries">0</div><div class="small text-muted">Usage Entries</div></div></div>
+</div>
+
+<!-- Agreements -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#rsAgreeCollapse"><div class="w-100 text-center">RAN Sharing Agreements (TS 23.251)</div></button></h2>
+  <div id="rsAgreeCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>Type</th><th>PLMNs</th><th>Capacity Split</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="rsAgreeBody"><tr><td colspan="8" class="text-muted text-center">No agreements</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="rsAgreeName" class="form-control form-control-sm" style="width:160px" placeholder="OpA-OpB Share"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Type</label><select id="rsAgreeType" class="form-select form-select-sm" style="width:100px"><option value="MORAN">MORAN</option><option value="MOCN">MOCN</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">PLMNs (comma-sep)</label><input id="rsAgreePlmns" class="form-control form-control-sm" style="width:220px" placeholder="00101,00102"></div>
+      <div class="col-auto"><button id="btnRsAddAgree" class="btn btn-success btn-sm">+ Create</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- gNB Allocation Map -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rsGnbCollapse"><div class="w-100 text-center">gNB Allocation Map</div></button></h2>
+  <div id="rsGnbCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Agreement</th><th>gNB ID</th><th>Capacity %</th></tr>
+    </thead><tbody id="rsGnbBody"><tr><td colspan="4" class="text-muted text-center">No allocations</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Agreement</label><select id="rsGnbAgree" class="form-select form-select-sm" style="width:200px"></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">gNB ID</label><input id="rsGnbId" class="form-control form-control-sm" style="width:140px" placeholder="gnb-001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Capacity %</label><input id="rsGnbCap" class="form-control form-control-sm" style="width:70px" type="number" value="50"></div>
+      <div class="col-auto"><button id="btnRsAddGnb" class="btn btn-success btn-sm">+ Allocate</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Capacity Split Visualization -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rsCapCollapse"><div class="w-100 text-center">Access Check</div></button></h2>
+  <div id="rsCapCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">PLMN</label><input id="rsCheckPlmn" class="form-control form-control-sm" style="width:120px" placeholder="00101"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">gNB ID</label><input id="rsCheckGnb" class="form-control form-control-sm" style="width:140px" placeholder="gnb-001"></div>
+      <div class="col-auto"><button id="btnRsCheck" class="btn btn-primary btn-sm">Check Access</button></div>
+    </div>
+    <div id="rsCheckResult" class="small"></div>
+  </div></div>
+</div></div>
+
+<!-- Usage Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rsUsageCollapse"><div class="w-100 text-center">Usage Log</div></button></h2>
+  <div id="rsUsageCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Agreement</th><th>PLMN</th><th>gNB ID</th><th>UE Count</th><th>Throughput (Mbps)</th><th>Timestamp</th></tr>
+    </thead><tbody id="rsUsageBody"><tr><td colspan="7" class="text-muted text-center">No usage data</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API='/api/ran-sharing';
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const s=d.stats;
+      document.getElementById('rsTotalAgreements').textContent=s.total_agreements;
+      document.getElementById('rsActiveAgreements').textContent=s.active_agreements;
+      document.getElementById('rsMappedGnbs').textContent=s.mapped_gnbs;
+      document.getElementById('rsUsageEntries').textContent=s.usage_entries;
+    }).catch(()=>{});
+  }
+  function loadAgreements(){
+    fetch(API+'/agreements').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const tb=document.getElementById('rsAgreeBody');
+      if(!d.agreements.length){tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No agreements</td></tr>';return;}
+      tb.innerHTML=d.agreements.map(a=>`<tr>
+        <td>${a.id}</td><td>${a.name}</td>
+        <td><span class="badge bg-${a.sharing_type==='MORAN'?'primary':'info'}">${a.sharing_type}</span></td>
+        <td>${a.participating_plmns}</td>
+        <td><code class="small">${a.capacity_split_json||'{}'}</code></td>
+        <td><span class="badge bg-${a.status==='active'?'success':a.status==='pending'?'warning':'secondary'}">${a.status}</span></td>
+        <td>${a.created_at||''}</td>
+        <td>${a.status!=='active'?`<button class="btn btn-sm btn-outline-success" onclick="rsActivate(${a.id})">Activate</button>`:
+        `<button class="btn btn-sm btn-outline-warning" onclick="rsDeactivate(${a.id})">Deactivate</button>`}
+        <button class="btn btn-sm btn-outline-danger" onclick="rsDeleteAgree(${a.id})">Del</button></td>
+      </tr>`).join('');
+      const opts=d.agreements.map(a=>`<option value="${a.id}">#${a.id} ${a.name}</option>`).join('');
+      const el=document.getElementById('rsGnbAgree');if(el)el.innerHTML=opts;
+    }).catch(()=>{});
+  }
+  function loadGnbMap(){
+    fetch(API+'/gnb-map').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const tb=document.getElementById('rsGnbBody');
+      if(!d.gnb_map.length){tb.innerHTML='<tr><td colspan="4" class="text-muted text-center">No allocations</td></tr>';return;}
+      tb.innerHTML=d.gnb_map.map(g=>`<tr>
+        <td>${g.id}</td><td>${g.agreement_id}</td><td>${g.gnb_id}</td>
+        <td><div class="progress" style="height:20px"><div class="progress-bar" style="width:${g.allocated_capacity_pct}%">${g.allocated_capacity_pct}%</div></div></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+  function loadUsage(){
+    fetch(API+'/usage-log').then(r=>r.json()).then(d=>{
+      if(!d.ok)return;const tb=document.getElementById('rsUsageBody');
+      if(!d.usage.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No usage data</td></tr>';return;}
+      tb.innerHTML=d.usage.map(u=>`<tr>
+        <td>${u.id}</td><td>${u.agreement_id||''}</td><td>${u.plmn}</td>
+        <td>${u.gnb_id}</td><td>${u.ue_count}</td><td>${u.throughput_mbps}</td><td>${u.timestamp||''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  window.rsActivate=function(id){fetch(API+'/agreements/'+id+'/activate',{method:'POST'}).then(()=>{loadAgreements();loadStats();});};
+  window.rsDeactivate=function(id){fetch(API+'/agreements/'+id+'/deactivate',{method:'POST'}).then(()=>{loadAgreements();loadStats();});};
+  window.rsDeleteAgree=function(id){fetch(API+'/agreements/'+id,{method:'DELETE'}).then(()=>{loadAgreements();loadStats();});};
+
+  document.getElementById('btnRsAddAgree').addEventListener('click',()=>{
+    fetch(API+'/agreements',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:document.getElementById('rsAgreeName').value,
+        sharing_type:document.getElementById('rsAgreeType').value,
+        participating_plmns:document.getElementById('rsAgreePlmns').value})
+    }).then(()=>{loadAgreements();loadStats();});
+  });
+  document.getElementById('btnRsAddGnb').addEventListener('click',()=>{
+    fetch(API+'/gnb-map',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({agreement_id:parseInt(document.getElementById('rsGnbAgree').value),
+        gnb_id:document.getElementById('rsGnbId').value,
+        allocated_capacity_pct:parseInt(document.getElementById('rsGnbCap').value)||50})
+    }).then(()=>{loadGnbMap();loadStats();});
+  });
+  document.getElementById('btnRsCheck').addEventListener('click',()=>{
+    fetch(API+'/check-access',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plmn:document.getElementById('rsCheckPlmn').value,
+        gnb_id:document.getElementById('rsCheckGnb').value})
+    }).then(r=>r.json()).then(d=>{
+      const el=document.getElementById('rsCheckResult');
+      if(!d.ok){el.innerHTML='<span class="text-danger">Error</span>';return;}
+      const a=d.access;
+      el.innerHTML=a.allowed?`<span class="text-success fw-bold">ALLOWED</span> — Agreement #${a.agreement_id} (${a.sharing_type}), Capacity: ${a.capacity_pct}%`:
+        `<span class="text-danger fw-bold">DENIED</span> — ${a.reason||'No matching agreement'}`;
+    }).catch(()=>{});
+  });
+
+  const tab=document.getElementById('ran-sharing-tab');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active')){loadStats();loadAgreements();loadGnbMap();loadUsage();}});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  if(tab&&tab.classList.contains('active')){loadStats();loadAgreements();loadGnbMap();loadUsage();}
+})();
+</script>

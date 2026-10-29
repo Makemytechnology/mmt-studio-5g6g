@@ -1,0 +1,260 @@
+<!-- Traffic Engine -->
+<h5>Traffic Engine</h5>
+
+<!-- Engine Config + Status -->
+<div class="row mb-3 align-items-end">
+  <div class="col-md-5">
+    <label class="form-label small">Engine URL</label>
+    <div class="input-group input-group-sm">
+      <input type="text" class="form-control" id="te-url" value="http://localhost:9100">
+      <button class="btn btn-outline-primary" onclick="teSaveConfig()">Save</button>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <span class="badge fs-6" id="te-status">Checking...</span>
+  </div>
+  <div class="col-md-4 text-end">
+    <label class="form-label small">Auto-refresh</label>
+    <select class="form-select form-select-sm d-inline-block w-auto" id="te-refresh" onchange="teSetRefresh()">
+      <option value="0">Off</option>
+      <option value="2000" selected>2s</option>
+      <option value="5000">5s</option>
+    </select>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-3">
+  <div class="col-md-4"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Active Sessions</div>
+    <span class="fs-4 fw-bold" id="te-active">-</span>
+  </div></div></div>
+  <div class="col-md-4"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Total Sessions</div>
+    <span class="fs-4 fw-bold text-primary" id="te-total">-</span>
+  </div></div></div>
+  <div class="col-md-4"><div class="card text-center"><div class="card-body py-2">
+    <div class="small text-muted">Engine Status</div>
+    <span class="fs-5 fw-bold text-success" id="te-engine-st">-</span>
+  </div></div></div>
+</div>
+
+<div class="row mb-3">
+  <!-- Create Session -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Start Traffic Session</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label small">Src IP</label>
+            <input type="text" class="form-control form-control-sm" id="te-src-ip" placeholder="0.0.0.0">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">Dst IP</label>
+            <input type="text" class="form-control form-control-sm" id="te-dst-ip" placeholder="10.45.0.2">
+          </div>
+          <div class="col-4">
+            <label class="form-label small">Protocol</label>
+            <select class="form-select form-select-sm" id="te-proto">
+              <option value="udp">UDP</option>
+              <option value="tcp">TCP</option>
+              <option value="icmp">ICMP</option>
+              <option value="rtp-audio">RTP Audio</option>
+              <option value="rtp-video">RTP Video</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <label class="form-label small">Direction</label>
+            <select class="form-select form-select-sm" id="te-dir">
+              <option value="ul">Uplink</option>
+              <option value="dl">Downlink</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <label class="form-label small">Port</label>
+            <input type="number" class="form-control form-control-sm" id="te-port" value="5201">
+          </div>
+          <div class="col-4">
+            <label class="form-label small">Bandwidth</label>
+            <input type="text" class="form-control form-control-sm" id="te-bw" placeholder="10M">
+          </div>
+          <div class="col-4">
+            <label class="form-label small">Duration (s)</label>
+            <input type="number" class="form-control form-control-sm" id="te-duration" value="10" min="1">
+          </div>
+          <div class="col-4">
+            <label class="form-label small">Pkt Length</label>
+            <input type="number" class="form-control form-control-sm" id="te-length" placeholder="1400">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary btn-sm w-100 mt-1" onclick="teStart()">Start</button>
+          </div>
+        </div>
+        <div id="te-result" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Quick Actions</div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-success btn-sm" onclick="teVoiceCall()">VoNR Voice Call</button>
+          <button class="btn btn-outline-info btn-sm" onclick="teVideoCall()">ViNR Video Call</button>
+          <button class="btn btn-outline-danger btn-sm" onclick="teStopAll()">Stop All</button>
+        </div>
+        <div class="mt-2 small text-muted">
+          Voice/Video calls require Src IP + Dst IP above.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sessions Table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    Sessions
+    <button class="btn btn-outline-secondary btn-sm" onclick="teRefreshAll()">Refresh</button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0">
+      <thead>
+        <tr><th>ID</th><th>Protocol</th><th>Dir</th><th>Dst</th><th>Throughput</th><th>Loss</th><th>Jitter</th><th>MOS</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="te-sessions"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let _teTimer = null;
+
+function teApi(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('/api/traffic' + path, opts).then(r => r.json()).catch(() => ({error:'unreachable'}));
+}
+
+function teLoadConfig() {
+  teApi('GET','/config').then(d => {
+    if (d.traffic_engine_url) document.getElementById('te-url').value = d.traffic_engine_url;
+  });
+}
+function teSaveConfig() {
+  const url = document.getElementById('te-url').value.trim();
+  if (!url) return;
+  teApi('POST','/config',{traffic_engine_url: url}).then(() => teRefreshAll());
+}
+
+function teCheckHealth() {
+  teApi('GET','/health').then(d => {
+    const el = document.getElementById('te-status');
+    const est = document.getElementById('te-engine-st');
+    if (d.error) {
+      el.textContent = 'Disconnected'; el.className = 'badge bg-danger fs-6';
+      est.textContent = 'Offline';
+    } else {
+      el.textContent = 'Connected'; el.className = 'badge bg-success fs-6';
+      est.textContent = d.status || 'ok';
+      document.getElementById('te-active').textContent = d.sessions_active || 0;
+      document.getElementById('te-total').textContent = d.sessions_total || 0;
+    }
+  });
+}
+
+function teLoadSessions() {
+  teApi('GET','/sessions').then(d => {
+    const sessions = (d && d.items) || [];
+    const tb = document.getElementById('te-sessions');
+    if (!sessions.length) { tb.innerHTML = '<tr><td colspan="10" class="text-muted text-center">No sessions</td></tr>'; return; }
+    tb.innerHTML = '';
+    sessions.forEach(s => {
+      const st = s.stats || {};
+      const statusBadge = s.status === 'running' ? '<span class="badge bg-success">running</span>'
+        : s.status === 'completed' ? '<span class="badge bg-secondary">done</span>'
+        : s.status === 'error' ? '<span class="badge bg-danger">error</span>'
+        : '<span class="badge bg-warning">' + (s.status||'?') + '</span>';
+      const tp = st.throughput_kbps ? (st.throughput_kbps/1000).toFixed(1) + ' Mbps' : '-';
+      const loss = st.loss_pct !== undefined ? st.loss_pct.toFixed(1) + '%' : '-';
+      const jitter = st.jitter_ms !== undefined ? st.jitter_ms.toFixed(1) + 'ms' : '-';
+      const mos = st.mos ? st.mos.toFixed(1) : '-';
+      tb.innerHTML += `<tr>
+        <td><code>${s.session_id||'-'}</code></td>
+        <td>${s.protocol||'-'}</td><td>${s.direction||'-'}</td>
+        <td>${s.dst_ip||'-'}</td>
+        <td>${tp}</td><td>${loss}</td><td>${jitter}</td><td>${mos}</td>
+        <td>${statusBadge}</td>
+        <td>${s.status==='running'?'<button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="teStopSession(\''+s.session_id+'\')">Stop</button>':''}</td>
+      </tr>`;
+    });
+  });
+}
+
+function teStart() {
+  const dst = document.getElementById('te-dst-ip').value.trim();
+  if (!dst) { alert('Enter Dst IP'); return; }
+  teApi('POST', '/start', {
+    src_ip: document.getElementById('te-src-ip').value.trim() || '0.0.0.0',
+    dst_ip: dst,
+    protocol: document.getElementById('te-proto').value,
+    direction: document.getElementById('te-dir').value,
+    port: parseInt(document.getElementById('te-port').value) || 5201,
+    bandwidth: document.getElementById('te-bw').value.trim() || null,
+    duration: parseInt(document.getElementById('te-duration').value) || 10,
+    length: parseInt(document.getElementById('te-length').value) || null,
+  }).then(d => {
+    const el = document.getElementById('te-result');
+    if (d.ok) el.innerHTML = '<div class="alert alert-success py-1 small">Session ' + d.session_id + ' started</div>';
+    else el.innerHTML = '<div class="alert alert-danger py-1 small">' + (d.error||'Failed') + '</div>';
+    teRefreshAll();
+  });
+}
+
+function teVoiceCall() {
+  const src = document.getElementById('te-src-ip').value.trim();
+  const dst = document.getElementById('te-dst-ip').value.trim();
+  if (!src || !dst) { alert('Enter Src IP and Dst IP'); return; }
+  const dur = parseInt(document.getElementById('te-duration').value) || 60;
+  teApi('POST', '/voice-call', {src_ip: src, dst_ip: dst, duration: dur}).then(d => {
+    const el = document.getElementById('te-result');
+    if (d.ok) el.innerHTML = '<div class="alert alert-success py-1 small">VoNR call started (' + (d.sessions||[]).length + ' streams)</div>';
+    else el.innerHTML = '<div class="alert alert-danger py-1 small">' + (d.error||'Failed') + '</div>';
+    teRefreshAll();
+  });
+}
+
+function teVideoCall() {
+  const src = document.getElementById('te-src-ip').value.trim();
+  const dst = document.getElementById('te-dst-ip').value.trim();
+  if (!src || !dst) { alert('Enter Src IP and Dst IP'); return; }
+  const dur = parseInt(document.getElementById('te-duration').value) || 60;
+  teApi('POST', '/video-call', {src_ip: src, dst_ip: dst, duration: dur}).then(d => {
+    const el = document.getElementById('te-result');
+    if (d.ok) el.innerHTML = '<div class="alert alert-success py-1 small">ViNR call started (' + (d.sessions||[]).length + ' streams)</div>';
+    else el.innerHTML = '<div class="alert alert-danger py-1 small">' + (d.error||'Failed') + '</div>';
+    teRefreshAll();
+  });
+}
+
+function teStopSession(id) { teApi('POST','/sessions/'+id+'/stop').then(() => teRefreshAll()); }
+function teStopAll() { teApi('POST','/stop-all').then(() => teRefreshAll()); }
+
+function teRefreshAll() { teCheckHealth(); teLoadSessions(); }
+
+function teSetRefresh() {
+  if (_teTimer) clearInterval(_teTimer);
+  const ms = parseInt(document.getElementById('te-refresh').value);
+  if (ms > 0) _teTimer = setInterval(teRefreshAll, ms);
+}
+
+document.querySelector('[href="#traffic-tab"]')?.addEventListener('shown.bs.tab', () => {
+  teLoadConfig(); teRefreshAll(); teSetRefresh();
+});
+document.querySelector('[href="#traffic-tab"]')?.addEventListener('hidden.bs.tab', () => {
+  if (_teTimer) { clearInterval(_teTimer); _teTimer = null; }
+});
+</script>

@@ -1,0 +1,45 @@
+// Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+//
+// Go workspace — ties the MMT Studio Core Go codec generators together.
+//
+// The top-level layout mirrors mmt_studio_core/ (the Python/C sibling
+// project): codecs live under ./codecs/, future NF / access / edge / oam
+// ports will slot in at the top level alongside.
+//
+// Because Go workspaces don't resolve `./...` from the workspace root, test
+// all three modules with test-all.sh from this directory, or cd into each
+// module and run `go test ./...`.
+go 1.21
+
+use (
+	./access
+	./codecs/asn1-go
+	./codecs/tlv-3gpp-nas/nasgen
+	./codecs/tlv-3gpp-pfcp/pfcpgen
+	./db
+	./edge
+	./infra
+	./iot
+	./libs/fsm
+	./libs/sacrypto
+	./libs/sip
+	./nf
+	./oam
+	./positioning
+	./safety
+	./security
+	./sensing
+	./services/esim
+	./services/frmcs
+	./services/ims
+	./services/mcx
+	./services/nsaas
+	./services/prose
+	./services/seal
+	./services/supplementary
+	./services/uas
+	./services/ussd
+	./services/v2x
+	./tools/traffic
+	./webservice
+)

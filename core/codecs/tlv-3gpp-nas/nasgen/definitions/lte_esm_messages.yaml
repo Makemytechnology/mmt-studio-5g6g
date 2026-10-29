@@ -1,0 +1,329 @@
+# Copyright (c) 2026 MakeMyTechnology. All rights reserved.
+#
+# LTE ESM messages — TS 24.301 clause 8.3.
+# Protocol discriminator = 0x02. First octet = (EBI<<4 | 0x02); byte 1 = PTI;
+# byte 2 = message type. The generator automatically adds EPSBearerIdentity +
+# PTI fields to each ESM struct (EPD == 0x02), populated from the wire header.
+
+messages:
+
+  # -----------------------------------------------------------------
+  # EPS bearer context activation (§8.3.6 – 8.3.11)
+  # -----------------------------------------------------------------
+
+  - name: ActivateDefaultEPSBearerContextRequest
+    description: "Activate default EPS bearer context request — TS 24.301 Table 8.3.6.1"
+    epd: 0x02
+    message_type: 0xC1
+    direction: network_to_ue
+    ies:
+      - {name: EPSQoS,              iei: null, presence: M, format: LV, length: "2-14", type_ref: EPSQualityOfService}
+      - {name: AccessPointName,     iei: null, presence: M, format: LV, length: "3-102", type_ref: AccessPointName}
+      - {name: PDNAddress,          iei: null, presence: M, format: LV, length: "6-14",  type_ref: PDNAddress}
+      - {name: TransactionIdentifier, iei: "5D", presence: O, format: TLV, length: "3-4", type_ref: TransactionIdentifierIE}
+      - {name: NegotiatedQoS,       iei: "30", presence: O, format: TLV, length: "14-24", type_ref: NegotiatedQoS}
+      - {name: NegotiatedLLCSAPI,   iei: "32", presence: O, format: TV,  length: "2",    type_ref: NegotiatedLLCSAPI}
+      - {name: RadioPriority,       iei: "8-", presence: O, format: TV,  length: "1",    type_ref: RadioPriority}
+      - {name: PacketFlowIdentifier, iei: "34", presence: O, format: TLV, length: "3",   type_ref: PacketFlowIdentifier}
+      - {name: APNAMBR,             iei: "5E", presence: O, format: TLV, length: "4-8",  type_ref: APNAggregateMaximumBitRate}
+      - {name: ESMCause,            iei: "58", presence: O, format: TV,  length: "2",    type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ConnectivityType,    iei: "B-", presence: O, format: TV,  length: "1",    type_ref: ConnectivityType}
+      - {name: WLANOffloadIndication, iei: "C-", presence: O, format: TV, length: "1",   type_ref: WLANOffloadAcceptability}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: HeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-255", type_ref: HeaderCompressionConfiguration}
+      - {name: ControlPlaneOnlyIndication, iei: "9-", presence: O, format: TV, length: "1", type_ref: ControlPlaneOnlyIndicator}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ServingPLMNRateControl, iei: "6E", presence: O, format: TLV, length: "4", type_ref: ServingPLMNRateControl}
+      - {name: ExtendedAPNAMBR,     iei: "5F", presence: O, format: TLV, length: "8",    type_ref: ExtendedAPNAMBR}
+      - {name: ExtendedEPSQoS,      iei: "7C", presence: O, format: TLV, length: "12",   type_ref: ExtendedEPSQoS}
+
+  - name: ActivateDefaultEPSBearerContextAccept
+    description: "Activate default EPS bearer context accept — TS 24.301 Table 8.3.4.1"
+    epd: 0x02
+    message_type: 0xC2
+    direction: ue_to_network
+    ies:
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: ActivateDefaultEPSBearerContextReject
+    description: "Activate default EPS bearer context reject — TS 24.301 Table 8.3.5.1"
+    epd: 0x02
+    message_type: 0xC3
+    direction: ue_to_network
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: ActivateDedicatedEPSBearerContextRequest
+    description: "Activate dedicated EPS bearer context request — TS 24.301 Table 8.3.3.1"
+    epd: 0x02
+    message_type: 0xC5
+    direction: network_to_ue
+    ies:
+      - {name: LinkedEPSBearerIdentity, iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: Spare,               iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: EPSQoS,              iei: null, presence: M, format: LV, length: "2-14", type_ref: EPSQualityOfService}
+      - {name: TFT,                 iei: null, presence: M, format: LV, length: "2-256", type_ref: TrafficFlowTemplate}
+      - {name: TransactionIdentifier, iei: "5D", presence: O, format: TLV, length: "3-4", type_ref: TransactionIdentifierIE}
+      - {name: NegotiatedQoS,       iei: "30", presence: O, format: TLV, length: "14-24", type_ref: NegotiatedQoS}
+      - {name: NegotiatedLLCSAPI,   iei: "32", presence: O, format: TV,  length: "2", type_ref: NegotiatedLLCSAPI}
+      - {name: RadioPriority,       iei: "8-", presence: O, format: TV,  length: "1", type_ref: RadioPriority}
+      - {name: PacketFlowIdentifier, iei: "34", presence: O, format: TLV, length: "3", type_ref: PacketFlowIdentifier}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: WLANOffloadIndication, iei: "C-", presence: O, format: TV, length: "1", type_ref: WLANOffloadAcceptability}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ExtendedEPSQoS,      iei: "7C", presence: O, format: TLV, length: "12", type_ref: ExtendedEPSQoS}
+
+  - name: ActivateDedicatedEPSBearerContextAccept
+    description: "Activate dedicated EPS bearer context accept — TS 24.301 Table 8.3.1.1"
+    epd: 0x02
+    message_type: 0xC6
+    direction: ue_to_network
+    ies:
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: ActivateDedicatedEPSBearerContextReject
+    description: "Activate dedicated EPS bearer context reject — TS 24.301 Table 8.3.2.1"
+    epd: 0x02
+    message_type: 0xC7
+    direction: ue_to_network
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # Modify EPS bearer context (§8.3.12 – 8.3.14)
+  # -----------------------------------------------------------------
+
+  - name: ModifyEPSBearerContextRequest
+    description: "Modify EPS bearer context request — TS 24.301 Table 8.3.18.1"
+    epd: 0x02
+    message_type: 0xC9
+    direction: network_to_ue
+    ies:
+      - {name: NewEPSQoS,           iei: "5B", presence: O, format: TLV, length: "3-15", type_ref: EPSQualityOfService}
+      - {name: TFT,                 iei: "36", presence: O, format: TLV, length: "3-257", type_ref: TrafficFlowTemplate}
+      - {name: NewQoS,              iei: "30", presence: O, format: TLV, length: "14-24", type_ref: NegotiatedQoS}
+      - {name: NegotiatedLLCSAPI,   iei: "32", presence: O, format: TV,  length: "2", type_ref: NegotiatedLLCSAPI}
+      - {name: RadioPriority,       iei: "8-", presence: O, format: TV,  length: "1", type_ref: RadioPriority}
+      - {name: PacketFlowIdentifier, iei: "34", presence: O, format: TLV, length: "3", type_ref: PacketFlowIdentifier}
+      - {name: APNAMBR,             iei: "5E", presence: O, format: TLV, length: "4-8", type_ref: APNAggregateMaximumBitRate}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: WLANOffloadIndication, iei: "C-", presence: O, format: TV, length: "1", type_ref: WLANOffloadAcceptability}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: HeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-255", type_ref: HeaderCompressionConfiguration}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ExtendedAPNAMBR,     iei: "5F", presence: O, format: TLV, length: "8", type_ref: ExtendedAPNAMBR}
+      - {name: ExtendedEPSQoS,      iei: "7C", presence: O, format: TLV, length: "12", type_ref: ExtendedEPSQoS}
+
+  - name: ModifyEPSBearerContextAccept
+    description: "Modify EPS bearer context accept — TS 24.301 Table 8.3.16.1"
+    epd: 0x02
+    message_type: 0xCA
+    direction: ue_to_network
+    ies:
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: ModifyEPSBearerContextReject
+    description: "Modify EPS bearer context reject — TS 24.301 Table 8.3.17.1"
+    epd: 0x02
+    message_type: 0xCB
+    direction: ue_to_network
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # Deactivate EPS bearer context (§8.3.15 – 8.3.16)
+  # -----------------------------------------------------------------
+
+  - name: DeactivateEPSBearerContextRequest
+    description: "Deactivate EPS bearer context request — TS 24.301 Table 8.3.15.1"
+    epd: 0x02
+    message_type: 0xCD
+    direction: network_to_ue
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: T3396Value,          iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: WLANOffloadIndication, iei: "C-", presence: O, format: TV, length: "1", type_ref: WLANOffloadAcceptability}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: DeactivateEPSBearerContextAccept
+    description: "Deactivate EPS bearer context accept — TS 24.301 Table 8.3.14.1"
+    epd: 0x02
+    message_type: 0xCE
+    direction: ue_to_network
+    ies:
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # PDN connectivity (§8.3.20 – 8.3.21)
+  # -----------------------------------------------------------------
+
+  - name: PDNConnectivityRequest
+    description: "PDN connectivity request — TS 24.301 Table 8.3.20.1"
+    epd: 0x02
+    message_type: 0xD0
+    direction: ue_to_network
+    ies:
+      - {name: RequestType,         iei: null, presence: M, format: V, length: "1/2", type_ref: RequestType_LTE}
+      - {name: PDNType,             iei: null, presence: M, format: V, length: "1/2", type_ref: PDNType}
+      - {name: ESMInformationTransferFlag, iei: "D-", presence: O, format: TV, length: "1", type_ref: ESMInformationTransferFlag}
+      - {name: AccessPointName,     iei: "28", presence: O, format: TLV, length: "3-102", type_ref: AccessPointName}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: DeviceProperties,    iei: "C-", presence: O, format: TV, length: "1", type_ref: DeviceProperties}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: HeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-255", type_ref: HeaderCompressionConfiguration}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDNConnectivityReject
+    description: "PDN connectivity reject — TS 24.301 Table 8.3.19.1"
+    epd: 0x02
+    message_type: 0xD1
+    direction: network_to_ue
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: BackOffTimer,        iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: ReAttemptIndicator,  iei: "6B", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # PDN disconnect (§8.3.21 – 8.3.22)
+  # -----------------------------------------------------------------
+
+  - name: PDNDisconnectRequest
+    description: "PDN disconnect request — TS 24.301 Table 8.3.22.1"
+    epd: 0x02
+    message_type: 0xD2
+    direction: ue_to_network
+    ies:
+      - {name: LinkedEPSBearerIdentity, iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: Spare,               iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: PDNDisconnectReject
+    description: "PDN disconnect reject — TS 24.301 Table 8.3.21.1"
+    epd: 0x02
+    message_type: 0xD3
+    direction: network_to_ue
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V, length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # Bearer resource allocation (§8.3.7 – 8.3.9)
+  # -----------------------------------------------------------------
+
+  - name: BearerResourceAllocationRequest
+    description: "Bearer resource allocation request — TS 24.301 Table 8.3.9.1"
+    epd: 0x02
+    message_type: 0xD4
+    direction: ue_to_network
+    ies:
+      - {name: LinkedEPSBearerIdentity, iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: Spare,               iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: TrafficFlowAggregate, iei: null, presence: M, format: LV, length: "2-256", type_ref: TrafficFlowAggregate}
+      - {name: RequiredTrafficFlowQoS, iei: null, presence: M, format: LV, length: "2-14", type_ref: EPSQualityOfService}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: DeviceProperties,    iei: "C-", presence: O, format: TV, length: "1", type_ref: DeviceProperties}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ExtendedEPSQoS,      iei: "7C", presence: O, format: TLV, length: "12", type_ref: ExtendedEPSQoS}
+
+  - name: BearerResourceAllocationReject
+    description: "Bearer resource allocation reject — TS 24.301 Table 8.3.8.1"
+    epd: 0x02
+    message_type: 0xD5
+    direction: network_to_ue
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: BackOffTimer,        iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: ReAttemptIndicator,  iei: "6B", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # Bearer resource modification (§8.3.10 – 8.3.11)
+  # -----------------------------------------------------------------
+
+  - name: BearerResourceModificationRequest
+    description: "Bearer resource modification request — TS 24.301 Table 8.3.11.1"
+    epd: 0x02
+    message_type: 0xD6
+    direction: ue_to_network
+    ies:
+      - {name: EPSBearerIdentityForPacketFilter, iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: Spare,               iei: null, presence: M, format: V, length: "1/2", type_ref: LinkedEPSBearerIdentity}
+      - {name: TrafficFlowAggregate, iei: null, presence: M, format: LV, length: "2-256", type_ref: TrafficFlowAggregate}
+      - {name: RequiredTrafficFlowQoS, iei: "5B", presence: O, format: TLV, length: "3-15", type_ref: EPSQualityOfService}
+      - {name: ESMCause,            iei: "58", presence: O, format: TV,  length: "2", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: DeviceProperties,    iei: "C-", presence: O, format: TV, length: "1", type_ref: DeviceProperties}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: HeaderCompressionConfiguration, iei: "66", presence: O, format: TLV, length: "5-255", type_ref: HeaderCompressionConfiguration}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+      - {name: ExtendedEPSQoS,      iei: "7C", presence: O, format: TLV, length: "12", type_ref: ExtendedEPSQoS}
+
+  - name: BearerResourceModificationReject
+    description: "Bearer resource modification reject — TS 24.301 Table 8.3.10.1"
+    epd: 0x02
+    message_type: 0xD7
+    direction: network_to_ue
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V,  length: "1", type_ref: ESMCause}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: BackOffTimer,        iei: "37", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: ReAttemptIndicator,  iei: "6B", presence: O, format: TLV, length: "3", type_ref: GPRSTimer3}
+      - {name: NBIFOMContainer,     iei: "33", presence: O, format: TLV, length: "3-257", type_ref: NBIFOMContainer}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  # -----------------------------------------------------------------
+  # ESM information transfer + notification + status (§8.3.13, 8.3.18)
+  # -----------------------------------------------------------------
+
+  - name: ESMInformationRequest
+    description: "ESM information request — TS 24.301 Table 8.3.13.1"
+    epd: 0x02
+    message_type: 0xD9
+    direction: network_to_ue
+    ies: []
+
+  - name: ESMInformationResponse
+    description: "ESM information response — TS 24.301 Table 8.3.12.1"
+    epd: 0x02
+    message_type: 0xDA
+    direction: ue_to_network
+    ies:
+      - {name: AccessPointName,     iei: "28", presence: O, format: TLV, length: "3-102", type_ref: AccessPointName}
+      - {name: ProtocolConfigurationOptions, iei: "27", presence: O, format: TLV, length: "3-253", type_ref: ProtocolConfigurationOptions}
+      - {name: ExtendedProtocolConfigurationOptions, iei: "7B", presence: O, format: TLV-E, length: "4-65538", type_ref: ExtendedProtocolConfigurationOptions}
+
+  - name: Notification_ESM
+    description: "Notification — TS 24.301 Table 8.3.18A.1"
+    epd: 0x02
+    message_type: 0xDB
+    direction: network_to_ue
+    ies:
+      - {name: NotificationIndicator, iei: null, presence: M, format: LV, length: "2", type_ref: ESMCause}
+
+  - name: ESMStatus
+    description: "ESM status — TS 24.301 Table 8.3.23.1"
+    epd: 0x02
+    message_type: 0xE8
+    direction: both
+    ies:
+      - {name: ESMCause,            iei: null, presence: M, format: V, length: "1", type_ref: ESMCause}

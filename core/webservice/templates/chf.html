@@ -1,0 +1,225 @@
+<!-- templates/chf.html — Converged Charging (TS 32.291) -->
+
+<!-- Stats Dashboard -->
+<div class="row g-2 mb-3">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="chfActiveSess">0</div><div class="small text-muted">Active Sessions</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="chfRevenue">$0</div><div class="small text-muted">Revenue</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="chfVolume">0</div><div class="small text-muted">Total Volume</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="chfCdrTotal">0</div><div class="small text-muted">CDRs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="chfQuotas">0</div><div class="small text-muted">Active Quotas</div></div></div>
+</div>
+
+<!-- Active Charging Sessions -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="chfSessBtn" class="accordion-button bg-primary text-white fw-bold" type="button"><div class="w-100 text-center">Active Charging Sessions</div></button></h2>
+  <div id="chfSessCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2 mb-2">
+      <div class="col-auto"><input id="chfSessImsi" class="form-control form-control-sm" placeholder="IMSI filter" style="width:160px"></div>
+      <div class="col-auto"><select id="chfSessStatus" class="form-select form-select-sm" style="width:120px"><option value="">All status</option><option value="active">Active</option><option value="interim">Interim</option><option value="released">Released</option></select></div>
+      <div class="col-auto"><button id="btnChfSessSearch" class="btn btn-outline-primary btn-sm">Search</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:12px"><thead class="table-light">
+      <tr><th>Session ID</th><th>IMSI</th><th>Service</th><th>Method</th><th>Status</th><th>Vol UL</th><th>Vol DL</th><th>Duration</th><th>Quota</th><th>Created</th></tr>
+    </thead><tbody id="chfSessBody"><tr><td colspan="10" class="text-muted text-center">No sessions</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- CDR Browser -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="chfCdrBtn" class="accordion-button bg-success text-white fw-bold" type="button"><div class="w-100 text-center">CDR Browser</div></button></h2>
+  <div id="chfCdrCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2 mb-2">
+      <div class="col-auto"><input id="chfCdrImsi" class="form-control form-control-sm" placeholder="IMSI" style="width:160px"></div>
+      <div class="col-auto"><input id="chfCdrFrom" class="form-control form-control-sm" type="date" title="From date"></div>
+      <div class="col-auto"><input id="chfCdrTo" class="form-control form-control-sm" type="date" title="To date"></div>
+      <div class="col-auto"><select id="chfCdrType" class="form-select form-select-sm" style="width:100px"><option value="">All types</option><option>data</option><option>voice</option><option>video</option></select></div>
+      <div class="col-auto"><button id="btnChfCdrSearch" class="btn btn-outline-success btn-sm">Search</button></div>
+      <div class="col-auto ms-auto"><button id="btnChfCdrExport" class="btn btn-outline-info btn-sm">Export JSON</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:12px"><thead class="table-light">
+      <tr><th>CDR ID</th><th>IMSI</th><th>Type</th><th>DNN/Media</th><th>Duration</th><th>Volume</th><th>Status</th><th>Created</th></tr>
+    </thead><tbody id="chfCdrBody"><tr><td colspan="8" class="text-muted text-center">No CDRs</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Quota Status -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="chfQuotaBtn" class="accordion-button bg-warning text-dark fw-bold" type="button"><div class="w-100 text-center">Quota Grants</div></button></h2>
+  <div id="chfQuotaCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2 mb-2">
+      <div class="col-auto"><input id="chfQuotaImsi" class="form-control form-control-sm" placeholder="IMSI" style="width:160px"></div>
+      <div class="col-auto"><select id="chfQuotaStatus" class="form-select form-select-sm" style="width:120px"><option value="">All</option><option value="active">Active</option><option value="exhausted">Exhausted</option><option value="expired">Expired</option><option value="revoked">Revoked</option></select></div>
+      <div class="col-auto"><button id="btnChfQuotaSearch" class="btn btn-outline-warning btn-sm">Search</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:12px"><thead class="table-light">
+      <tr><th>IMSI</th><th>Service</th><th>Granted</th><th>Used</th><th>Remaining</th><th>Validity</th><th>Status</th><th>Granted At</th></tr>
+    </thead><tbody id="chfQuotaBody"><tr><td colspan="8" class="text-muted text-center">No quota grants</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Create Charging Session -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button id="chfCreateBtn" class="accordion-button bg-info text-white fw-bold" type="button"><div class="w-100 text-center">Create Charging Session</div></button></h2>
+  <div id="chfCreateCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label small mb-0">IMSI</label><input id="chfNewImsi" class="form-control form-control-sm" placeholder="IMSI" style="width:160px"></div>
+      <div class="col-auto"><label class="form-label small mb-0">Service</label><input id="chfNewService" class="form-control form-control-sm" placeholder="default" value="default" style="width:120px"></div>
+      <div class="col-auto"><label class="form-label small mb-0">Method</label><select id="chfNewMethod" class="form-select form-select-sm" style="width:100px"><option>offline</option><option>online</option></select></div>
+      <div class="col-auto"><label class="form-label small mb-0">Rating Group</label><input id="chfNewRG" class="form-control form-control-sm" value="1" style="width:80px" type="number"></div>
+      <div class="col-auto"><button id="btnChfCreate" class="btn btn-info btn-sm text-white mt-3">Create Session</button></div>
+    </div>
+    <div id="chfCreateResult" class="mt-2 small"></div>
+  </div></div>
+</div></div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <button id="btnChfRefresh" class="btn btn-primary btn-sm">Refresh</button>
+  <small id="chfLastRefresh" class="text-muted"></small>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=s=>{if(s==null)return'-';const e=document.createElement('span');e.textContent=String(s);return e.innerHTML;};
+  const fmtB=b=>{b=Number(b)||0;if(b>=1e9)return(b/1e9).toFixed(1)+'GB';if(b>=1e6)return(b/1e6).toFixed(1)+'MB';if(b>=1e3)return(b/1e3).toFixed(1)+'KB';return b+'B';};
+  const fmtD=s=>{s=Math.round(Number(s)||0);if(s>=3600)return Math.floor(s/3600)+'h'+Math.floor((s%3600)/60)+'m';if(s>=60)return Math.floor(s/60)+'m'+s%60+'s';return s+'s';};
+  const fmtT=t=>{if(!t)return'-';if(typeof t==='string'&&t.includes('T'))return t.replace('T',' ').replace('Z','');return new Date(t*1000).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});};
+  const badge=(v,map)=>{const c=map[v]||'secondary';return`<span class="badge bg-${c}">${esc(v)}</span>`;};
+  const statusMap={active:'success',interim:'info',released:'secondary',final:'dark'};
+  const quotaStatusMap={active:'success',exhausted:'danger',expired:'warning',revoked:'secondary'};
+  const cdrStatusMap={pending:'warning',rated:'success',invoiced:'info',exported:'secondary'};
+  const typeMap={data:'primary',voice:'success',video:'info',sms:'warning'};
+
+  // Accordion toggles
+  for(const[b,c]of[['chfSessBtn','chfSessCollapse'],['chfCdrBtn','chfCdrCollapse'],['chfQuotaBtn','chfQuotaCollapse'],['chfCreateBtn','chfCreateCollapse']]){
+    const btn=$(b),col=$(c);if(btn&&col&&!btn.dataset.bound){btn.dataset.bound='1';const inst=bootstrap.Collapse.getOrCreateInstance(col,{toggle:false});btn.addEventListener('click',()=>inst.toggle());}}
+
+  async function loadStats(){
+    try{
+      const s=await(await fetch('/api/chf/stats')).json();
+      $('chfActiveSess').textContent=s.active_sessions||0;
+      $('chfRevenue').textContent='$'+(s.total_revenue||0);
+      $('chfVolume').textContent=fmtB(s.total_volume||0);
+      $('chfCdrTotal').textContent=s.cdr_total||0;
+      $('chfQuotas').textContent=s.active_quotas||0;
+    }catch(e){console.error('CHF stats error:',e);}
+  }
+
+  async function loadSessions(){
+    const p=new URLSearchParams();
+    if($('chfSessImsi').value)p.set('imsi',$('chfSessImsi').value);
+    if($('chfSessStatus').value)p.set('status',$('chfSessStatus').value);
+    try{
+      const r=await(await fetch('/api/chf/charging-data?'+p)).json();
+      const rows=r.sessions||[];
+      $('chfSessBody').innerHTML=rows.length?rows.map(s=>
+        `<tr><td><code style="font-size:10px">${esc(s.session_id)}</code></td>`+
+        `<td><code>${esc(s.imsi)}</code></td>`+
+        `<td>${esc(s.service_name)}</td>`+
+        `<td>${badge(s.charging_method,{online:'warning',offline:'info'})}</td>`+
+        `<td>${badge(s.status,statusMap)}</td>`+
+        `<td>${fmtB(s.total_volume_ul)}</td>`+
+        `<td>${fmtB(s.total_volume_dl)}</td>`+
+        `<td>${fmtD(s.total_duration)}</td>`+
+        `<td>${s.granted_units!=null?esc(s.granted_units)+' / '+(s.used_units||0):'-'}</td>`+
+        `<td style="font-size:11px">${fmtT(s.created_at)}</td></tr>`
+      ).join(''):'<tr><td colspan="10" class="text-muted text-center">No sessions</td></tr>';
+    }catch(e){console.error('Sessions error:',e);}
+  }
+
+  async function loadCdrs(){
+    const p=new URLSearchParams();
+    if($('chfCdrImsi').value)p.set('imsi',$('chfCdrImsi').value);
+    if($('chfCdrFrom').value)p.set('from',$('chfCdrFrom').value);
+    if($('chfCdrTo').value)p.set('to',$('chfCdrTo').value);
+    if($('chfCdrType').value)p.set('type',$('chfCdrType').value);
+    try{
+      const r=await(await fetch('/api/chf/cdrs?'+p)).json();
+      const rows=r.cdrs||[];
+      $('chfCdrBody').innerHTML=rows.length?rows.map(c=>
+        `<tr><td><code style="font-size:10px">${esc(c.cdr_id)}</code></td>`+
+        `<td><code>${esc(c.imsi)}</code></td>`+
+        `<td>${badge(c.cdr_type,typeMap)}</td>`+
+        `<td>${esc(c.dnn||c.media_type||'-')}</td>`+
+        `<td>${fmtD(c.duration_sec)}</td>`+
+        `<td>${fmtB(c.total_bytes||0)}</td>`+
+        `<td>${badge(c.rating_status,cdrStatusMap)}</td>`+
+        `<td style="font-size:11px">${fmtT(c.created_at)}</td></tr>`
+      ).join(''):'<tr><td colspan="8" class="text-muted text-center">No CDRs</td></tr>';
+    }catch(e){console.error('CDR error:',e);}
+  }
+
+  async function loadQuotas(){
+    const p=new URLSearchParams();
+    if($('chfQuotaImsi').value)p.set('imsi',$('chfQuotaImsi').value);
+    if($('chfQuotaStatus').value)p.set('status',$('chfQuotaStatus').value);
+    try{
+      const r=await(await fetch('/api/chf/quotas?'+p)).json();
+      const rows=r.quotas||[];
+      $('chfQuotaBody').innerHTML=rows.length?rows.map(q=>{
+        const remaining=Math.max(0,(q.granted_units||0)-(q.used_units||0));
+        return`<tr><td><code>${esc(q.imsi)}</code></td>`+
+        `<td>${esc(q.service_name)}</td>`+
+        `<td>${esc(q.granted_units)}</td>`+
+        `<td>${esc(q.used_units)}</td>`+
+        `<td>${remaining}</td>`+
+        `<td>${fmtD(q.validity_time)}</td>`+
+        `<td>${badge(q.status,quotaStatusMap)}</td>`+
+        `<td style="font-size:11px">${fmtT(q.granted_at)}</td></tr>`;
+      }).join(''):'<tr><td colspan="8" class="text-muted text-center">No quota grants</td></tr>';
+    }catch(e){console.error('Quota error:',e);}
+  }
+
+  async function poll(){
+    await Promise.all([loadStats(),loadSessions(),loadCdrs(),loadQuotas()]);
+    $('chfLastRefresh').textContent='Last: '+new Date().toLocaleTimeString();
+  }
+
+  // Create session
+  $('btnChfCreate').addEventListener('click',async()=>{
+    const imsi=$('chfNewImsi').value.trim();
+    if(!imsi){$('chfCreateResult').innerHTML='<span class="text-danger">IMSI required</span>';return;}
+    try{
+      const r=await fetch('/api/chf/charging-data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        imsi:imsi,service_name:$('chfNewService').value||'default',
+        charging_method:$('chfNewMethod').value,rating_group:parseInt($('chfNewRG').value)||1})});
+      const j=await r.json();
+      if(r.ok){
+        $('chfCreateResult').innerHTML=`<span class="text-success">Session created: ${esc(j.session_id)}</span>`;
+        poll();
+      }else{
+        $('chfCreateResult').innerHTML=`<span class="text-danger">${esc(j.error||'Failed')}</span>`;
+      }
+    }catch(e){$('chfCreateResult').innerHTML=`<span class="text-danger">${e}</span>`;}
+  });
+
+  // Export CDRs
+  $('btnChfCdrExport').addEventListener('click',async()=>{
+    const body={};
+    if($('chfCdrImsi').value)body.imsi=$('chfCdrImsi').value;
+    if($('chfCdrFrom').value)body.from=$('chfCdrFrom').value;
+    if($('chfCdrTo').value)body.to=$('chfCdrTo').value;
+    if($('chfCdrType').value)body.type=$('chfCdrType').value;
+    try{
+      const r=await(await fetch('/api/chf/cdrs/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+      const blob=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='cdrs_export_'+new Date().toISOString().slice(0,10)+'.json';
+      a.click();
+    }catch(e){alert('Export failed: '+e);}
+  });
+
+  // Search buttons
+  $('btnChfSessSearch').addEventListener('click',loadSessions);
+  $('btnChfCdrSearch').addEventListener('click',loadCdrs);
+  $('btnChfQuotaSearch').addEventListener('click',loadQuotas);
+  $('btnChfRefresh').addEventListener('click',poll);
+
+  // Auto-poll on tab activation
+  const tab=document.querySelector('a[href="#chf-tab"]');
+  if(tab){const obs=new MutationObserver(()=>{if(tab.classList.contains('active'))poll();});obs.observe(tab,{attributes:true,attributeFilter:['class']});}
+  if(tab&&tab.classList.contains('active'))poll();
+})();
+</script>

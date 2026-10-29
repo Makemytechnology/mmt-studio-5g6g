@@ -1,0 +1,296 @@
+<!-- templates/mbs.html — 5G Multicast-Broadcast Services (TS 23.247) -->
+
+<!-- MBS Status Overview -->
+<div class="row g-2 mb-3" id="mbsStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="mbsTotalSessions">0</div><div class="small text-muted">Total Sessions</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="mbsActiveSessions">0</div><div class="small text-muted">Active</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="mbsMulticast">0</div><div class="small text-muted">Multicast</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="mbsBroadcast">0</div><div class="small text-muted">Broadcast</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #20c997"><div class="fw-bold fs-4" id="mbsMembers">0</div><div class="small text-muted">Active Members</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="mbsDelivered">0</div><div class="small text-muted">Delivered</div></div></div>
+</div>
+
+<!-- MBS Sessions -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#mbsSessionCollapse"><div class="w-100 text-center">MBS Sessions (TS 23.247 Section 7)</div></button></h2>
+  <div id="mbsSessionCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>TMGI</th><th>Name</th><th>Type</th><th>Status</th><th>5QI</th><th>Area</th><th>Max kbps</th><th>Members</th><th>Created</th><th></th></tr>
+    </thead><tbody id="mbsSessionBody"><tr><td colspan="11" class="text-muted text-center">No sessions</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">TMGI</label><input id="mbsTmgi" class="form-control form-control-sm" style="width:180px" placeholder="01000100010001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="mbsName" class="form-control form-control-sm" style="width:140px" placeholder="Live Stream"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Type</label><select id="mbsType" class="form-select form-select-sm" style="width:120px"><option value="multicast">Multicast</option><option value="broadcast">Broadcast</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">5QI</label><input id="mbs5qi" class="form-control form-control-sm" style="width:60px" type="number" value="9"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Area</label><select id="mbsAreaSelect" class="form-select form-select-sm" style="width:140px"><option value="">None</option></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Max kbps</label><input id="mbsMaxBitrate" class="form-control form-control-sm" style="width:80px" type="number" placeholder="1000"></div>
+      <div class="col-auto"><button id="btnMbsAddSession" class="btn btn-success btn-sm">+ Create Session</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Member Management -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mbsMemberCollapse"><div class="w-100 text-center">Member Management (TS 23.247 Section 7.2.2)</div></button></h2>
+  <div id="mbsMemberCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Session</label><select id="mbsMemberSession" class="form-select form-select-sm" style="width:200px"></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="mbsMemberImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+      <div class="col-auto"><button id="btnMbsJoin" class="btn btn-success btn-sm">Join</button></div>
+      <div class="col-auto"><button id="btnMbsLeave" class="btn btn-warning btn-sm">Leave</button></div>
+      <div class="col-auto"><button id="btnMbsRefreshMembers" class="btn btn-outline-primary btn-sm">Refresh</button></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>IMSI</th><th>Joined At</th><th>Left At</th><th>Status</th></tr>
+    </thead><tbody id="mbsMemberBody"><tr><td colspan="4" class="text-muted text-center">Select a session</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Content Send -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mbsContentCollapse"><div class="w-100 text-center">Content Distribution (TS 23.247 Section 7.3)</div></button></h2>
+  <div id="mbsContentCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Session</label><select id="mbsContentSession" class="form-select form-select-sm" style="width:200px"></select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Content Type</label><input id="mbsContentType" class="form-control form-control-sm" style="width:180px" value="application/octet-stream"></div>
+      <div class="col-3"><label class="form-label mb-0 small">Content Data</label><input id="mbsContentData" class="form-control form-control-sm" placeholder="Payload data..."></div>
+      <div class="col-auto"><button id="btnMbsSend" class="btn btn-success btn-sm">Send Now</button></div>
+    </div>
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Schedule At</label><input id="mbsScheduleAt" class="form-control form-control-sm" type="datetime-local" style="width:220px"></div>
+      <div class="col-auto"><button id="btnMbsSchedule" class="btn btn-outline-success btn-sm">Schedule</button></div>
+    </div>
+    <div id="mbsSendResult" class="small mb-2"></div>
+  </div></div>
+</div></div>
+
+<!-- Broadcast Areas -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mbsAreaCollapse"><div class="w-100 text-center">Broadcast Areas (TS 23.247 Section 7.2.1)</div></button></h2>
+  <div id="mbsAreaCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Name</th><th>Tracking Areas</th><th>Description</th><th>Created</th><th></th></tr>
+    </thead><tbody id="mbsAreaBody"><tr><td colspan="6" class="text-muted text-center">No areas</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Name</label><input id="mbsAreaName" class="form-control form-control-sm" style="width:140px" placeholder="City Center"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">TAIs (comma-sep)</label><input id="mbsAreaTAs" class="form-control form-control-sm" style="width:260px" placeholder="00101:0001,00101:0002"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Description</label><input id="mbsAreaDesc" class="form-control form-control-sm" style="width:180px" placeholder="Downtown coverage"></div>
+      <div class="col-auto"><button id="btnMbsAddArea" class="btn btn-success btn-sm">+ Add Area</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Content Delivery Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-secondary text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mbsLogCollapse"><div class="w-100 text-center">Delivery Log</div></button></h2>
+  <div id="mbsLogCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Session</th><th>Content Type</th><th>Size</th><th>Scheduled</th><th>Delivered</th><th>Recipients</th><th>Status</th></tr>
+    </thead><tbody id="mbsLogBody"><tr><td colspan="8" class="text-muted text-center">No deliveries</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/mbs';
+
+  function statusBadge(s) {
+    const m = {created:'secondary', activated:'success', deactivated:'danger',
+               pending:'warning', delivering:'info', delivered:'success', failed:'danger'};
+    return `<span class="badge bg-${m[s]||'secondary'}">${s}</span>`;
+  }
+
+  function typeBadge(t) {
+    return t === 'broadcast'
+      ? '<span class="badge bg-warning text-dark">broadcast</span>'
+      : '<span class="badge bg-info">multicast</span>';
+  }
+
+  // ── Load Stats ──
+  function loadStats() {
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const s=d.stats;
+      document.getElementById('mbsTotalSessions').textContent=s.total_sessions;
+      document.getElementById('mbsActiveSessions').textContent=s.active_sessions;
+      document.getElementById('mbsMulticast').textContent=s.multicast_sessions;
+      document.getElementById('mbsBroadcast').textContent=s.broadcast_sessions;
+      document.getElementById('mbsMembers').textContent=s.active_members;
+      document.getElementById('mbsDelivered').textContent=s.delivered_content;
+    });
+  }
+
+  // ── Load Sessions ──
+  function loadSessions() {
+    fetch(API+'/sessions').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('mbsSessionBody');
+      if(!d.sessions.length){tb.innerHTML='<tr><td colspan="11" class="text-muted text-center">No sessions</td></tr>';return;}
+      tb.innerHTML=d.sessions.map(s=>`<tr>
+        <td>${s.id}</td><td><code>${s.tmgi}</code></td><td>${s.name||''}</td>
+        <td>${typeBadge(s.session_type)}</td><td>${statusBadge(s.status)}</td>
+        <td>${s.qos_5qi}</td><td>${s.area_id||'-'}</td><td>${s.max_bitrate_kbps||'-'}</td>
+        <td>${s.member_count}</td><td class="small">${s.created_at||''}</td>
+        <td>
+          ${s.status==='created'?`<button class="btn btn-success btn-sm py-0 px-1" onclick="mbsActivate(${s.id})">Activate</button>`:''}
+          ${s.status==='activated'?`<button class="btn btn-warning btn-sm py-0 px-1" onclick="mbsDeactivate(${s.id})">Deactivate</button>`:''}
+          <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="mbsDeleteSession(${s.id})">Del</button>
+        </td></tr>`).join('');
+      // Populate session dropdowns
+      const opts=d.sessions.map(s=>`<option value="${s.id}">${s.id} - ${s.tmgi} (${s.session_type})</option>`).join('');
+      document.getElementById('mbsMemberSession').innerHTML=opts;
+      document.getElementById('mbsContentSession').innerHTML=opts;
+    });
+  }
+
+  // ── Load Areas ──
+  function loadAreas() {
+    fetch(API+'/areas').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('mbsAreaBody');
+      if(!d.areas.length){tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No areas</td></tr>';return;}
+      tb.innerHTML=d.areas.map(a=>`<tr>
+        <td>${a.id}</td><td>${a.name}</td><td><code>${a.tracking_areas}</code></td>
+        <td>${a.description||''}</td><td class="small">${a.created_at||''}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="mbsDeleteArea(${a.id})">Del</button></td>
+      </tr>`).join('');
+      // Populate area dropdown in session form
+      const sel=document.getElementById('mbsAreaSelect');
+      sel.innerHTML='<option value="">None</option>'+d.areas.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+    });
+  }
+
+  // ── Load Content Log ──
+  function loadContentLog() {
+    fetch(API+'/content-log').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('mbsLogBody');
+      if(!d.content_log.length){tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No deliveries</td></tr>';return;}
+      tb.innerHTML=d.content_log.map(l=>`<tr>
+        <td>${l.id}</td><td>${l.session_id}</td><td>${l.content_type}</td>
+        <td>${l.content_size}</td><td class="small">${l.scheduled_at||'-'}</td>
+        <td class="small">${l.delivered_at||'-'}</td><td>${l.recipients_count}</td>
+        <td>${statusBadge(l.status)}</td></tr>`).join('');
+    });
+  }
+
+  // ── Load Members ──
+  function loadMembers() {
+    const sid=document.getElementById('mbsMemberSession').value;
+    if(!sid) return;
+    fetch(API+'/sessions/'+sid+'/members').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('mbsMemberBody');
+      if(!d.members.length){tb.innerHTML='<tr><td colspan="4" class="text-muted text-center">No members</td></tr>';return;}
+      tb.innerHTML=d.members.map(m=>`<tr>
+        <td>${m.imsi}</td><td class="small">${m.joined_at||''}</td>
+        <td class="small">${m.left_at||'-'}</td>
+        <td>${m.left_at?'<span class="badge bg-secondary">left</span>':'<span class="badge bg-success">active</span>'}</td>
+      </tr>`).join('');
+    });
+  }
+
+  function refreshAll(){loadStats();loadSessions();loadAreas();loadContentLog();}
+
+  // ── Actions ──
+  window.mbsActivate=function(id){
+    fetch(API+'/sessions/'+id+'/activate',{method:'POST'}).then(r=>r.json()).then(d=>{
+      if(!d.ok) alert(d.error); refreshAll();});
+  };
+  window.mbsDeactivate=function(id){
+    fetch(API+'/sessions/'+id+'/deactivate',{method:'POST'}).then(r=>r.json()).then(d=>{
+      if(!d.ok) alert(d.error); refreshAll();});
+  };
+  window.mbsDeleteSession=function(id){
+    if(!confirm('Delete MBS session '+id+'?')) return;
+    fetch(API+'/sessions/'+id,{method:'DELETE'}).then(r=>r.json()).then(()=>refreshAll());
+  };
+  window.mbsDeleteArea=function(id){
+    if(!confirm('Delete area '+id+'?')) return;
+    fetch(API+'/areas/'+id,{method:'DELETE'}).then(r=>r.json()).then(()=>refreshAll());
+  };
+
+  // ── Create Session ──
+  document.getElementById('btnMbsAddSession').addEventListener('click',()=>{
+    const body={
+      tmgi:document.getElementById('mbsTmgi').value.trim(),
+      name:document.getElementById('mbsName').value.trim(),
+      session_type:document.getElementById('mbsType').value,
+      qos_5qi:parseInt(document.getElementById('mbs5qi').value)||9,
+      max_bitrate_kbps:parseInt(document.getElementById('mbsMaxBitrate').value)||null
+    };
+    const areaId=document.getElementById('mbsAreaSelect').value;
+    if(areaId) body.area_id=parseInt(areaId);
+    if(!body.tmgi){alert('TMGI required');return;}
+    fetch(API+'/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(d=>{if(!d.ok) alert(d.error); refreshAll();});
+  });
+
+  // ── Create Area ──
+  document.getElementById('btnMbsAddArea').addEventListener('click',()=>{
+    const body={
+      name:document.getElementById('mbsAreaName').value.trim(),
+      tracking_areas:document.getElementById('mbsAreaTAs').value.trim(),
+      description:document.getElementById('mbsAreaDesc').value.trim()
+    };
+    if(!body.name||!body.tracking_areas){alert('Name and TAIs required');return;}
+    fetch(API+'/areas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(d=>{if(!d.ok) alert(d.error); refreshAll();});
+  });
+
+  // ── Join/Leave ──
+  document.getElementById('btnMbsJoin').addEventListener('click',()=>{
+    const sid=document.getElementById('mbsMemberSession').value;
+    const imsi=document.getElementById('mbsMemberImsi').value.trim();
+    if(!sid||!imsi){alert('Session and IMSI required');return;}
+    fetch(API+'/sessions/'+sid+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imsi})})
+      .then(r=>r.json()).then(d=>{if(!d.ok) alert(d.error); loadMembers();loadStats();});
+  });
+  document.getElementById('btnMbsLeave').addEventListener('click',()=>{
+    const sid=document.getElementById('mbsMemberSession').value;
+    const imsi=document.getElementById('mbsMemberImsi').value.trim();
+    if(!sid||!imsi){alert('Session and IMSI required');return;}
+    fetch(API+'/sessions/'+sid+'/leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imsi})})
+      .then(r=>r.json()).then(d=>{if(!d.ok) alert(d.error); loadMembers();loadStats();});
+  });
+  document.getElementById('btnMbsRefreshMembers').addEventListener('click',loadMembers);
+  document.getElementById('mbsMemberSession').addEventListener('change',loadMembers);
+
+  // ── Send Content ──
+  document.getElementById('btnMbsSend').addEventListener('click',()=>{
+    const sid=document.getElementById('mbsContentSession').value;
+    const body={
+      content_data:document.getElementById('mbsContentData').value,
+      content_type:document.getElementById('mbsContentType').value
+    };
+    if(!sid||!body.content_data){alert('Session and content required');return;}
+    fetch(API+'/sessions/'+sid+'/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(d=>{
+        const el=document.getElementById('mbsSendResult');
+        if(d.ok) el.innerHTML='<span class="text-success">Delivered to '+d.delivery.recipients_count+' recipients</span>';
+        else el.innerHTML='<span class="text-danger">'+d.error+'</span>';
+        loadContentLog();loadStats();
+      });
+  });
+
+  // ── Schedule Content ──
+  document.getElementById('btnMbsSchedule').addEventListener('click',()=>{
+    const sid=document.getElementById('mbsContentSession').value;
+    const body={
+      content_data:document.getElementById('mbsContentData').value,
+      content_type:document.getElementById('mbsContentType').value,
+      deliver_at:document.getElementById('mbsScheduleAt').value
+    };
+    if(!sid||!body.content_data||!body.deliver_at){alert('Session, content and schedule time required');return;}
+    fetch(API+'/sessions/'+sid+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(d=>{
+        const el=document.getElementById('mbsSendResult');
+        if(d.ok) el.innerHTML='<span class="text-success">Scheduled for '+body.deliver_at+'</span>';
+        else el.innerHTML='<span class="text-danger">'+d.error+'</span>';
+        loadContentLog();loadStats();
+      });
+  });
+
+  refreshAll();
+})();
+</script>

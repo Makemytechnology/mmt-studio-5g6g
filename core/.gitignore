@@ -1,0 +1,60 @@
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build / coverage
+/bin/
+/dist/
+*.prof
+coverage.out
+coverage.html
+
+# Locally-built binaries — every install rebuilds from source,
+# so these must never be committed.
+/sacore-web
+/sacore-web.*
+webservice/sacore-web
+webservice/sacore-web.*
+
+# Test cache / vendor / module cache
+vendor/
+.go-cache/
+
+# Editor / OS cruft
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.claude/
+
+# Python (for fixture-generator scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+webservice/sacore.db*
+**/sacore.db
+**/sacore.db-*
+
+# Release artefacts (built by tools/release/)
+*.deb
+*.rpm
+*.tar.xz
+release-tmp/
+
+# Coverage / test logs / runtime logs
+coverage*.out
+coverage*.html
+*.log
+sacore.log
+sacore.log.*
+
+# Spec PDF text extractions (build-input only — asn1-go scripts read PDFs)
+specs/3gpp/*.txt
+specs/ietf/*.txt.tmp

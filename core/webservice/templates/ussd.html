@@ -1,0 +1,427 @@
+<!-- templates/ussd.html — USSD Simulator & Menu Editor (TS 24.390) -->
+
+<style>
+.ussd-phone {
+  max-width: 380px;
+  margin: 0 auto;
+  border: 2px solid #495057;
+  border-radius: 20px;
+  padding: 20px 16px;
+  background: #1a1a2e;
+  color: #0f0;
+  font-family: 'Courier New', monospace;
+}
+.ussd-screen {
+  background: #0d1117;
+  border: 1px solid #333;
+  border-radius: 8px;
+  min-height: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 12px;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: #0f0;
+}
+.ussd-screen.idle { color: #6c757d; }
+.ussd-input-row { margin-top: 12px; display: flex; gap: 6px; }
+.ussd-input-row input {
+  flex: 1;
+  background: #161b22;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #0f0;
+  padding: 6px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+.ussd-input-row input::placeholder { color: #4a5568; }
+.ussd-input-row button {
+  background: #28a745;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.ussd-input-row button:hover { background: #218838; }
+.ussd-end-btn {
+  background: #dc3545;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.ussd-end-btn:hover { background: #c82333; }
+.ussd-status { font-size: 0.75rem; color: #6c757d; margin-top: 6px; text-align: center; }
+.menu-node {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.menu-node .mn-title { font-weight: 600; }
+.menu-node .mn-code { font-family: monospace; font-size: 0.82rem; color: #0d6efd; }
+.menu-node .mn-type { font-size: 0.78rem; color: #6c757d; }
+.menu-node-child { margin-left: 24px; border-left: 2px solid #0d6efd; }
+.menu-actions button { margin-left: 4px; }
+.sess-row { font-size: 0.85rem; border-bottom: 1px solid #eee; padding: 4px 0; }
+</style>
+
+<div class="row g-3">
+
+  <!-- LEFT: USSD Simulator -->
+  <div class="col-lg-5">
+    <h6 class="fw-bold mb-2">USSD Simulator</h6>
+
+    <!-- IMSI selector -->
+    <div class="mb-2">
+      <label class="form-label form-label-sm">Subscriber IMSI</label>
+      <input type="text" class="form-control form-control-sm" id="ussdImsi"
+             placeholder="001011234567001" value="">
+    </div>
+
+    <!-- Phone widget -->
+    <div class="ussd-phone">
+      <div id="ussdScreen" class="ussd-screen idle">
+        Dial a USSD code to begin.
+        e.g. *100#  *123#  *124#
+      </div>
+      <div class="ussd-input-row">
+        <input type="text" id="ussdInput" placeholder="*100#"
+               onkeydown="if(event.key==='Enter') ussdSend()">
+        <button onclick="ussdSend()">Send</button>
+      </div>
+      <div class="text-center">
+        <button class="ussd-end-btn" onclick="ussdEnd()" id="ussdEndBtn" style="display:none">
+          End Session
+        </button>
+      </div>
+      <div class="ussd-status" id="ussdStatus">No active session</div>
+    </div>
+
+    <!-- Session History -->
+    <h6 class="fw-bold mt-3 mb-2">Session History</h6>
+    <button class="btn btn-sm btn-outline-secondary mb-2" onclick="ussdLoadHistory()">Refresh</button>
+    <div id="ussdHistory" style="max-height:200px; overflow-y:auto;"></div>
+  </div>
+
+  <!-- RIGHT: Menu Editor -->
+  <div class="col-lg-7">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0">Menu Editor</h6>
+      <div>
+        <button class="btn btn-sm btn-success" onclick="ussdSeedMenus()">Seed Defaults</button>
+        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="ussdLoadMenus()">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Add / Edit form -->
+    <div class="card mb-3">
+      <div class="card-header py-1"><small class="fw-bold" id="menuFormTitle">Add Menu Node</small></div>
+      <div class="card-body py-2">
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label form-label-sm">Code</label>
+            <input type="text" class="form-control form-control-sm" id="menuCode" placeholder="*100#">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label form-label-sm">Title</label>
+            <input type="text" class="form-control form-control-sm" id="menuTitle" placeholder="Main Menu">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label form-label-sm">Action Type</label>
+            <select class="form-select form-select-sm" id="menuActionType">
+              <option value="menu">menu</option>
+              <option value="balance_check">balance_check</option>
+              <option value="data_usage">data_usage</option>
+              <option value="topup">topup</option>
+              <option value="show_msisdn">show_msisdn</option>
+              <option value="custom_text">custom_text</option>
+              <option value="forward">forward</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label form-label-sm">Order</label>
+            <input type="number" class="form-control form-control-sm" id="menuOrder" value="0">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label form-label-sm">Parent ID</label>
+            <select class="form-select form-select-sm" id="menuParentId">
+              <option value="">None (root)</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label form-label-sm">Action Data</label>
+            <input type="text" class="form-control form-control-sm" id="menuActionData" placeholder="optional data">
+          </div>
+          <div class="col-md-3 d-flex align-items-end gap-1">
+            <button class="btn btn-sm btn-primary flex-fill" id="menuSaveBtn" onclick="ussdSaveMenu()">Add</button>
+            <button class="btn btn-sm btn-outline-secondary" id="menuCancelBtn" onclick="ussdCancelEdit()" style="display:none">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Tree -->
+    <div id="ussdMenuTree"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const API = '/api/ussd';
+  let _sid = null;   // active session id
+  let _ended = true;
+  let _editId = null; // editing menu id
+  let _menus = [];
+
+  // ── Simulator ──
+
+  window.ussdSend = function() {
+    const inp = document.getElementById('ussdInput');
+    const val = inp.value.trim();
+    if (!val) return;
+    if (_ended || !_sid) {
+      // Start new session
+      const imsi = document.getElementById('ussdImsi').value.trim();
+      if (!imsi) { alert('Enter an IMSI first'); return; }
+      fetch(API + '/session', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({imsi: imsi, ussd_string: val})
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { _showScreen(d.error, true); return; }
+        _sid = d.session_id;
+        _ended = d.ended;
+        _showScreen(d.text, d.ended);
+        _updateStatus();
+      })
+      .catch(e => _showScreen('Error: ' + e.message, true));
+    } else {
+      // Continue session
+      fetch(API + '/session/' + _sid + '/respond', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({input: val})
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { _showScreen(d.error, true); _ended = true; _updateStatus(); return; }
+        _ended = d.ended;
+        _showScreen(d.text, d.ended);
+        _updateStatus();
+      })
+      .catch(e => _showScreen('Error: ' + e.message, true));
+    }
+    inp.value = '';
+  };
+
+  window.ussdEnd = function() {
+    if (!_sid || _ended) return;
+    fetch(API + '/session/' + _sid, {method: 'DELETE'})
+    .then(() => {
+      _ended = true;
+      _showScreen('Session ended.', true);
+      _updateStatus();
+    });
+  };
+
+  function _showScreen(text, ended) {
+    const scr = document.getElementById('ussdScreen');
+    scr.textContent = text;
+    scr.classList.toggle('idle', ended);
+    document.getElementById('ussdInput').placeholder = ended ? '*100#' : 'Enter choice...';
+  }
+
+  function _updateStatus() {
+    const st = document.getElementById('ussdStatus');
+    const btn = document.getElementById('ussdEndBtn');
+    if (_ended || !_sid) {
+      st.textContent = 'No active session';
+      btn.style.display = 'none';
+    } else {
+      st.textContent = 'Session #' + _sid + ' active';
+      btn.style.display = '';
+    }
+  }
+
+  // ── History ──
+
+  window.ussdLoadHistory = function() {
+    const imsi = document.getElementById('ussdImsi').value.trim();
+    const qs = imsi ? '?imsi=' + encodeURIComponent(imsi) : '';
+    fetch(API + '/sessions' + qs)
+    .then(r => r.json())
+    .then(rows => {
+      const el = document.getElementById('ussdHistory');
+      if (!rows.length) { el.innerHTML = '<small class="text-muted">No sessions yet.</small>'; return; }
+      el.innerHTML = rows.map(s =>
+        '<div class="sess-row">' +
+        '<span class="badge bg-' + (s.state==='completed'?'success':s.state==='active'?'primary':'secondary') + ' me-1">' + s.state + '</span>' +
+        '<strong>' + esc(s.code) + '</strong> ' +
+        '<span class="text-muted">' + esc(s.imsi) + '</span> ' +
+        '<small class="text-muted">' + esc(s.created_at||'') + '</small>' +
+        '</div>'
+      ).join('');
+    });
+  };
+
+  // ── Menu Editor ──
+
+  window.ussdLoadMenus = function() {
+    fetch(API + '/menus')
+    .then(r => r.json())
+    .then(menus => {
+      _menus = menus;
+      _renderTree(menus);
+      _populateParentSelect(menus);
+    });
+  };
+
+  window.ussdSeedMenus = function() {
+    fetch(API + '/menus/seed', {method:'POST'})
+    .then(r => r.json())
+    .then(() => ussdLoadMenus());
+  };
+
+  window.ussdSaveMenu = function() {
+    const payload = {
+      code: document.getElementById('menuCode').value.trim() || null,
+      title: document.getElementById('menuTitle').value.trim(),
+      action_type: document.getElementById('menuActionType').value,
+      action_data: document.getElementById('menuActionData').value.trim() || null,
+      display_order: parseInt(document.getElementById('menuOrder').value) || 0,
+      parent_id: parseInt(document.getElementById('menuParentId').value) || null
+    };
+    if (!payload.title) { alert('Title is required'); return; }
+
+    if (_editId) {
+      fetch(API + '/menus/' + _editId, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      }).then(() => { ussdCancelEdit(); ussdLoadMenus(); });
+    } else {
+      fetch(API + '/menus', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      }).then(() => { _clearForm(); ussdLoadMenus(); });
+    }
+  };
+
+  window.ussdEditMenu = function(id) {
+    const m = _menus.find(x => x.id === id);
+    if (!m) return;
+    _editId = id;
+    document.getElementById('menuCode').value = m.code || '';
+    document.getElementById('menuTitle').value = m.title || '';
+    document.getElementById('menuActionType').value = m.action_type || 'menu';
+    document.getElementById('menuActionData').value = m.action_data || '';
+    document.getElementById('menuOrder').value = m.display_order || 0;
+    document.getElementById('menuParentId').value = m.parent_id || '';
+    document.getElementById('menuFormTitle').textContent = 'Edit Menu #' + id;
+    document.getElementById('menuSaveBtn').textContent = 'Update';
+    document.getElementById('menuCancelBtn').style.display = '';
+  };
+
+  window.ussdDeleteMenu = function(id) {
+    if (!confirm('Delete this menu node and all children?')) return;
+    fetch(API + '/menus/' + id, {method:'DELETE'})
+    .then(() => ussdLoadMenus());
+  };
+
+  window.ussdCancelEdit = function() {
+    _editId = null;
+    _clearForm();
+    document.getElementById('menuFormTitle').textContent = 'Add Menu Node';
+    document.getElementById('menuSaveBtn').textContent = 'Add';
+    document.getElementById('menuCancelBtn').style.display = 'none';
+  };
+
+  function _clearForm() {
+    document.getElementById('menuCode').value = '';
+    document.getElementById('menuTitle').value = '';
+    document.getElementById('menuActionType').value = 'menu';
+    document.getElementById('menuActionData').value = '';
+    document.getElementById('menuOrder').value = '0';
+    document.getElementById('menuParentId').value = '';
+  }
+
+  function _renderTree(menus) {
+    const el = document.getElementById('ussdMenuTree');
+    if (!menus.length) { el.innerHTML = '<small class="text-muted">No menus. Click "Seed Defaults" to populate.</small>'; return; }
+
+    // Build parent map
+    const roots = menus.filter(m => !m.parent_id);
+    const childMap = {};
+    menus.forEach(m => {
+      if (m.parent_id) {
+        if (!childMap[m.parent_id]) childMap[m.parent_id] = [];
+        childMap[m.parent_id].push(m);
+      }
+    });
+
+    let html = '';
+    function renderNode(m, depth) {
+      const cls = depth > 0 ? ' menu-node-child' : '';
+      html += '<div class="menu-node' + cls + '">' +
+        '<div>' +
+          '<span class="mn-title">' + esc(m.title) + '</span>' +
+          (m.code ? ' <span class="mn-code">' + esc(m.code) + '</span>' : '') +
+          ' <span class="mn-type">[' + esc(m.action_type||'menu') + ']</span>' +
+          (m.action_data ? ' <small class="text-muted">— ' + esc(m.action_data) + '</small>' : '') +
+        '</div>' +
+        '<div class="menu-actions">' +
+          '<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="ussdEditMenu(' + m.id + ')">Edit</button>' +
+          '<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="ussdDeleteMenu(' + m.id + ')">Del</button>' +
+        '</div>' +
+      '</div>';
+      (childMap[m.id] || []).forEach(c => renderNode(c, depth + 1));
+    }
+    roots.forEach(r => renderNode(r, 0));
+    el.innerHTML = html;
+  }
+
+  function _populateParentSelect(menus) {
+    const sel = document.getElementById('menuParentId');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">None (root)</option>';
+    menus.filter(m => m.action_type === 'menu').forEach(m => {
+      sel.innerHTML += '<option value="' + m.id + '">' + esc(m.title) + (m.code ? ' (' + esc(m.code) + ')' : '') + '</option>';
+    });
+    sel.value = cur;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // Auto-load on tab show
+  const tab = document.getElementById('ussd-tab');
+  if (tab) {
+    const obs = new MutationObserver(() => {
+      if (tab.classList.contains('active')) { ussdLoadMenus(); ussdLoadHistory(); }
+    });
+    obs.observe(tab, {attributes: true, attributeFilter: ['class']});
+  }
+  // Also load immediately if already visible
+  setTimeout(() => { ussdLoadMenus(); }, 500);
+})();
+</script>

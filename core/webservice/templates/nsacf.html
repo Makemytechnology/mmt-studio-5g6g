@@ -1,0 +1,230 @@
+<!-- templates/nsacf.html — Network Slice Admission Control (TS 23.501 section 5.15.11) -->
+
+<!-- Status Cards -->
+<div class="row g-2 mb-3" id="nsacfStatusCards">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="nsacfTotalSlices">0</div><div class="small text-muted">Configured Slices</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="nsacfTotalAdmitted">0</div><div class="small text-muted">Admitted UEs</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="nsacfTotalCapacity">0</div><div class="small text-muted">Total Capacity</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #ffc107"><div class="fw-bold fs-4" id="nsacfTotalAvailable">0</div><div class="small text-muted">Available Slots</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="nsacfSlicesFull">0</div><div class="small text-muted">Slices Full</div></div></div>
+</div>
+
+<!-- Per-Slice Status -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#nsacfSliceStatusCollapse"><div class="w-100 text-center">Slice Admission Status</div></button></h2>
+  <div id="nsacfSliceStatusCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div id="nsacfSliceCards" class="row g-2 mb-2">
+      <div class="col-12 text-muted text-center">No slices configured</div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Slice Limits Configuration -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsacfLimitsCollapse"><div class="w-100 text-center">Slice Limits Configuration</div></button></h2>
+  <div id="nsacfLimitsCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>SST</th><th>SD</th><th>Max UEs</th><th>Reserved</th><th>Priority Threshold</th><th>Preemption</th><th></th></tr>
+    </thead><tbody id="nsacfLimitsBody"><tr><td colspan="8" class="text-muted text-center">No limits</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">SST</label><input id="nsacfLimitSst" class="form-control form-control-sm" style="width:60px" type="number" value="1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SD</label><input id="nsacfLimitSd" class="form-control form-control-sm" style="width:90px" value="000000"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Max UEs</label><input id="nsacfLimitMax" class="form-control form-control-sm" style="width:80px" type="number" value="1000"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Reserved</label><input id="nsacfLimitReserved" class="form-control form-control-sm" style="width:70px" type="number" value="0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Priority Thr.</label><input id="nsacfLimitPriority" class="form-control form-control-sm" style="width:70px" type="number" value="0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Preemption</label><select id="nsacfLimitPreempt" class="form-select form-select-sm" style="width:80px"><option value="0">Off</option><option value="1">On</option></select></div>
+      <div class="col-auto"><button id="btnNsacfAddLimit" class="btn btn-success btn-sm">+ Add Limit</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Manual Admit / Release -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsacfAdmitCollapse"><div class="w-100 text-center">Admit / Release UE</div></button></h2>
+  <div id="nsacfAdmitCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="nsacfAdmitImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000097"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SST</label><input id="nsacfAdmitSst" class="form-control form-control-sm" style="width:60px" type="number" value="1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SD</label><input id="nsacfAdmitSd" class="form-control form-control-sm" style="width:90px" value="000000"></div>
+      <div class="col-auto"><button id="btnNsacfAdmit" class="btn btn-primary btn-sm">Admit</button></div>
+      <div class="col-auto"><button id="btnNsacfRelease" class="btn btn-warning btn-sm">Release</button></div>
+    </div>
+    <div id="nsacfAdmitResult" class="mt-2 small"></div>
+  </div></div>
+</div></div>
+
+<!-- Admitted UEs -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-secondary text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsacfAdmissionsCollapse"><div class="w-100 text-center">Admitted UEs</div></button></h2>
+  <div id="nsacfAdmissionsCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>IMSI</th><th>SST</th><th>SD</th><th>Priority</th><th>Admitted At</th><th></th></tr>
+    </thead><tbody id="nsacfAdmissionsBody"><tr><td colspan="6" class="text-muted text-center">No admissions</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- UE Slice MBR (TS 23.501 section 5.15.12) -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-dark text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsacfMbrCollapse"><div class="w-100 text-center">UE Slice MBR (TS 23.501 section 5.15.12)</div></button></h2>
+  <div id="nsacfMbrCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>IMSI</th><th>SST</th><th>SD</th><th>MBR DL (kbps)</th><th>MBR UL (kbps)</th><th>Current DL</th><th>Current UL</th></tr>
+    </thead><tbody id="nsacfMbrBody"><tr><td colspan="7" class="text-muted text-center">No MBR records</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="nsacfMbrImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000097"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SST</label><input id="nsacfMbrSst" class="form-control form-control-sm" style="width:60px" type="number" value="1"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">SD</label><input id="nsacfMbrSd" class="form-control form-control-sm" style="width:90px" value="000000"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">MBR DL (kbps)</label><input id="nsacfMbrDl" class="form-control form-control-sm" style="width:100px" type="number" value="100000"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">MBR UL (kbps)</label><input id="nsacfMbrUl" class="form-control form-control-sm" style="width:100px" type="number" value="50000"></div>
+      <div class="col-auto"><button id="btnNsacfSetMbr" class="btn btn-success btn-sm">Set MBR</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Admission Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#nsacfLogCollapse"><div class="w-100 text-center">Admission Log</div></button></h2>
+  <div id="nsacfLogCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>Time</th><th>IMSI</th><th>SST</th><th>SD</th><th>Action</th><th>Reason</th></tr>
+    </thead><tbody id="nsacfLogBody"><tr><td colspan="6" class="text-muted text-center">No log entries</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/nsacf';
+
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const s=d.stats;
+      document.getElementById('nsacfTotalSlices').textContent=s.total_slices;
+      document.getElementById('nsacfTotalAdmitted').textContent=s.total_admitted;
+      document.getElementById('nsacfTotalCapacity').textContent=s.total_capacity;
+      document.getElementById('nsacfTotalAvailable').textContent=s.total_available;
+      document.getElementById('nsacfSlicesFull').textContent=s.slices_full;
+    }).catch(()=>{});
+  }
+
+  function loadSliceStatus(){
+    fetch(API+'/status').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const el=document.getElementById('nsacfSliceCards');
+      if(!d.slices.length){ el.innerHTML='<div class="col-12 text-muted text-center">No slices configured</div>'; return; }
+      el.innerHTML=d.slices.map(s=>{
+        const pct=s.max_ues>0?Math.round(100*s.current_ues/s.max_ues):0;
+        const color=pct>=90?'danger':pct>=70?'warning':'success';
+        return `<div class="col-md-4 col-lg-3"><div class="card p-2">
+          <div class="fw-bold">SST ${s.sst} / SD ${s.sd}</div>
+          <div class="progress my-1" style="height:8px"><div class="progress-bar bg-${color}" style="width:${pct}%"></div></div>
+          <div class="small">${s.current_ues} / ${s.max_ues} UEs (${s.available} avail)</div>
+          <div class="small text-muted">Reserved: ${s.reserved_ues} | Preemption: ${s.preemption_enabled?'On':'Off'}</div>
+        </div></div>`;
+      }).join('');
+    }).catch(()=>{});
+  }
+
+  function loadLimits(){
+    fetch(API+'/limits').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('nsacfLimitsBody');
+      if(!d.limits.length){ tb.innerHTML='<tr><td colspan="8" class="text-muted text-center">No limits</td></tr>'; return; }
+      tb.innerHTML=d.limits.map(l=>`<tr>
+        <td>${l.id}</td><td>${l.sst}</td><td>${l.sd}</td><td>${l.max_ues}</td>
+        <td>${l.reserved_ues}</td><td>${l.priority_threshold}</td>
+        <td>${l.preemption_enabled?'On':'Off'}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="nsacfDeleteLimit(${l.id})">x</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadAdmissions(){
+    fetch(API+'/admissions').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('nsacfAdmissionsBody');
+      if(!d.admissions.length){ tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No admissions</td></tr>'; return; }
+      tb.innerHTML=d.admissions.map(a=>`<tr>
+        <td>${a.imsi}</td><td>${a.sst}</td><td>${a.sd}</td><td>${a.priority}</td>
+        <td>${a.admitted_at}</td>
+        <td><button class="btn btn-outline-warning btn-sm py-0 px-1" onclick="nsacfReleaseUe('${a.imsi}',${a.sst},'${a.sd}')">Release</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadMbr(){
+    fetch(API+'/ue-slice-mbr').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('nsacfMbrBody');
+      if(!d.mbr.length){ tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No MBR records</td></tr>'; return; }
+      // 0 means "no rate limit" (TS 23.501 §5.7.2.6) — render as
+      // "unlimited" so a configured 0 doesn't read as a hard cap.
+      const _fmtBr = (v) => v == null ? '-' : (v > 0 ? v : '<em class="text-muted">unlimited</em>');
+      tb.innerHTML=d.mbr.map(m=>`<tr>
+        <td>${m.imsi}</td><td>${m.sst}</td><td>${m.sd}</td>
+        <td>${_fmtBr(m.mbr_dl_kbps)}</td><td>${_fmtBr(m.mbr_ul_kbps)}</td>
+        <td>${m.current_dl_kbps}</td><td>${m.current_ul_kbps}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadLog(){
+    fetch(API+'/log').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      const tb=document.getElementById('nsacfLogBody');
+      if(!d.log.length){ tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No log entries</td></tr>'; return; }
+      tb.innerHTML=d.log.map(e=>{
+        const cls=e.action==='denied'?'table-danger':e.action==='preempted'?'table-warning':e.action==='admitted'?'table-success':'';
+        return `<tr class="${cls}"><td>${e.created_at}</td><td>${e.imsi}</td><td>${e.sst}</td><td>${e.sd}</td><td>${e.action}</td><td>${e.reason||''}</td></tr>`;
+      }).join('');
+    }).catch(()=>{});
+  }
+
+  function refreshAll(){ loadStats(); loadSliceStatus(); loadLimits(); loadAdmissions(); loadMbr(); loadLog(); }
+
+  document.getElementById('btnNsacfAddLimit').addEventListener('click',()=>{
+    const body={sst:+document.getElementById('nsacfLimitSst').value, sd:document.getElementById('nsacfLimitSd').value,
+      max_ues:+document.getElementById('nsacfLimitMax').value, reserved_ues:+document.getElementById('nsacfLimitReserved').value,
+      priority_threshold:+document.getElementById('nsacfLimitPriority').value, preemption_enabled:+document.getElementById('nsacfLimitPreempt').value===1};
+    fetch(API+'/limits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(()=>refreshAll());
+  });
+
+  document.getElementById('btnNsacfAdmit').addEventListener('click',()=>{
+    const body={imsi:document.getElementById('nsacfAdmitImsi').value, sst:+document.getElementById('nsacfAdmitSst').value, sd:document.getElementById('nsacfAdmitSd').value};
+    fetch(API+'/admit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(r=>r.json()).then(d=>{
+        const el=document.getElementById('nsacfAdmitResult');
+        el.innerHTML=d.decision==='admit'?`<span class="text-success">Admitted (${d.reason})</span>${d.preempted_imsi?' Preempted: '+d.preempted_imsi:''}`:
+          `<span class="text-danger">Denied: ${d.reason}</span>`;
+        refreshAll();
+      });
+  });
+
+  document.getElementById('btnNsacfRelease').addEventListener('click',()=>{
+    const body={imsi:document.getElementById('nsacfAdmitImsi').value, sst:+document.getElementById('nsacfAdmitSst').value, sd:document.getElementById('nsacfAdmitSd').value};
+    fetch(API+'/release',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(()=>{ document.getElementById('nsacfAdmitResult').innerHTML='<span class="text-muted">Released</span>'; refreshAll(); });
+  });
+
+  window.nsacfReleaseUe=function(imsi,sst,sd){
+    fetch(API+'/release',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imsi,sst,sd})}).then(()=>refreshAll());
+  };
+
+  window.nsacfDeleteLimit=function(id){
+    // Delete by resetting (no dedicated delete endpoint — use limit update)
+    fetch(API+'/limits/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_ues:0})}).then(()=>refreshAll());
+  };
+
+  document.getElementById('btnNsacfSetMbr').addEventListener('click',()=>{
+    const body={imsi:document.getElementById('nsacfMbrImsi').value, sst:+document.getElementById('nsacfMbrSst').value,
+      sd:document.getElementById('nsacfMbrSd').value, mbr_dl_kbps:+document.getElementById('nsacfMbrDl').value,
+      mbr_ul_kbps:+document.getElementById('nsacfMbrUl').value};
+    fetch(API+'/ue-slice-mbr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(()=>refreshAll());
+  });
+
+  // Auto-refresh when tab shown
+  const tabEl=document.querySelector('a[href="#nsacf-tab"]');
+  if(tabEl) tabEl.addEventListener('shown.bs.tab', refreshAll);
+  refreshAll();
+})();
+</script>

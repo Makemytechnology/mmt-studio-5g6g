@@ -1,0 +1,253 @@
+<!-- templates/ranging.html — Ranging & Sidelink Positioning (TS 23.586) -->
+
+<!-- Status Overview -->
+<div class="row g-2 mb-3" id="rangingStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="rangingTotal">0</div><div class="small text-muted">Total Sessions</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="rangingActive">0</div><div class="small text-muted">Active</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6f42c1"><div class="fw-bold fs-4" id="rangingCompleted">0</div><div class="small text-muted">Completed</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="rangingAnchors">0</div><div class="small text-muted">Anchors</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #20c997"><div class="fw-bold fs-4" id="rangingAvgDist">--</div><div class="small text-muted">Avg Distance (m)</div></div></div>
+</div>
+
+<!-- Ranging Session Launcher -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#rangingSessionCollapse"><div class="w-100 text-center">Ranging Sessions (TS 23.586 Section 6.2)</div></button></h2>
+  <div id="rangingSessionCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>ID</th><th>Source</th><th>Target</th><th>Method</th><th>Status</th><th>Distance (m)</th><th>Azimuth</th><th>Elevation</th><th>Accuracy (m)</th><th>Time</th><th></th></tr>
+    </thead><tbody id="rangingSessionBody"><tr><td colspan="11" class="text-muted text-center">No sessions</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Source IMSI</label><input id="rangingSrcImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Target IMSI</label><input id="rangingTgtImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000002"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Method</label>
+        <select id="rangingMethod" class="form-select form-select-sm" style="width:120px">
+          <option value="RTT">RTT</option><option value="AoA">AoA</option><option value="multi_RTT">multi-RTT</option>
+        </select></div>
+      <div class="col-auto"><button id="btnRangingStart" class="btn btn-success btn-sm">Start Ranging</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Position Estimation -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rangingPosCollapse"><div class="w-100 text-center">Sidelink Position Estimation (TS 23.586 Section 6.2.4)</div></button></h2>
+  <div id="rangingPosCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-3">
+      <div class="col-auto"><label class="form-label mb-0 small">Target IMSI</label><input id="rangingPosImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000003"></div>
+      <div class="col-auto"><button id="btnRangingPosition" class="btn btn-info btn-sm text-white">Estimate Position</button></div>
+    </div>
+    <div id="rangingPosResult" class="d-none">
+      <div class="row g-2">
+        <div class="col-md-3"><div class="card p-2 text-center"><div class="fw-bold" id="posLat">--</div><div class="small text-muted">Latitude</div></div></div>
+        <div class="col-md-3"><div class="card p-2 text-center"><div class="fw-bold" id="posLon">--</div><div class="small text-muted">Longitude</div></div></div>
+        <div class="col-md-3"><div class="card p-2 text-center"><div class="fw-bold" id="posAlt">--</div><div class="small text-muted">Altitude (m)</div></div></div>
+        <div class="col-md-3"><div class="card p-2 text-center"><div class="fw-bold" id="posAcc">--</div><div class="small text-muted">Accuracy (m)</div></div></div>
+      </div>
+    </div>
+    <div id="rangingPosError" class="alert alert-warning d-none mt-2"></div>
+  </div></div>
+</div></div>
+
+<!-- Anchors -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-success text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rangingAnchorCollapse"><div class="w-100 text-center">Positioning Anchors</div></button></h2>
+  <div id="rangingAnchorCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-2"><thead class="table-light">
+      <tr><th>IMSI</th><th>Latitude</th><th>Longitude</th><th>Altitude</th><th>Type</th><th>Active</th><th></th></tr>
+    </thead><tbody id="rangingAnchorBody"><tr><td colspan="7" class="text-muted text-center">No anchors</td></tr></tbody></table></div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="anchorImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000010"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Latitude</label><input id="anchorLat" class="form-control form-control-sm" style="width:110px" type="number" step="0.000001" placeholder="-33.8688"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Longitude</label><input id="anchorLon" class="form-control form-control-sm" style="width:110px" type="number" step="0.000001" placeholder="151.2093"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Altitude</label><input id="anchorAlt" class="form-control form-control-sm" style="width:80px" type="number" value="0"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Type</label>
+        <select id="anchorType" class="form-select form-select-sm" style="width:90px">
+          <option value="ue">UE</option><option value="gnb">gNB</option><option value="fixed">Fixed</option>
+        </select></div>
+      <div class="col-auto"><button id="btnAnchorAdd" class="btn btn-success btn-sm">+ Add Anchor</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Privacy Settings -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-warning text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rangingPrivacyCollapse"><div class="w-100 text-center">Ranging Privacy (TS 23.586 Section 6.2.3)</div></button></h2>
+  <div id="rangingPrivacyCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">IMSI</label><input id="privacyImsi" class="form-control form-control-sm" style="width:160px" placeholder="001010000000001"></div>
+      <div class="col-auto"><button id="btnPrivacyGet" class="btn btn-outline-secondary btn-sm">Load</button></div>
+    </div>
+    <div class="row g-2 align-items-end">
+      <div class="col-auto"><label class="form-label mb-0 small">Policy</label>
+        <select id="privacyPolicy" class="form-select form-select-sm" style="width:140px">
+          <option value="allow_all">Allow All</option><option value="deny_all">Deny All</option><option value="contacts_only">Contacts Only</option>
+        </select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Allowed Contacts (comma-separated)</label><input id="privacyContacts" class="form-control form-control-sm" style="width:300px" placeholder="001010000000002,001010000000003"></div>
+      <div class="col-auto"><button id="btnPrivacySave" class="btn btn-warning btn-sm">Save Privacy</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Results Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-secondary text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rangingLogCollapse"><div class="w-100 text-center">Measurement Results Log</div></button></h2>
+  <div id="rangingLogCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover"><thead class="table-light">
+      <tr><th>ID</th><th>Session</th><th>Type</th><th>Value</th><th>Unit</th><th>Timestamp</th></tr>
+    </thead><tbody id="rangingLogBody"><tr><td colspan="6" class="text-muted text-center">No entries</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/ranging';
+
+  function loadStats(){
+    fetch(API+'/stats').then(r=>r.json()).then(d=>{
+      if(!d.ok) return;
+      document.getElementById('rangingTotal').textContent = d.total_sessions||0;
+      document.getElementById('rangingActive').textContent = d.active_sessions||0;
+      document.getElementById('rangingCompleted').textContent = d.completed_sessions||0;
+      document.getElementById('rangingAnchors').textContent = d.active_anchors||0;
+      document.getElementById('rangingAvgDist').textContent = d.avg_distance_m!=null ? d.avg_distance_m : '--';
+    }).catch(()=>{});
+  }
+
+  function loadSessions(){
+    fetch(API+'/sessions').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('rangingSessionBody');
+      if(!d.ok||!d.sessions.length){tb.innerHTML='<tr><td colspan="11" class="text-muted text-center">No sessions</td></tr>';return;}
+      tb.innerHTML = d.sessions.map(s=>`<tr>
+        <td>${s.id}</td><td class="text-nowrap">${s.source_imsi}</td><td class="text-nowrap">${s.target_imsi}</td>
+        <td>${s.method}</td>
+        <td><span class="badge bg-${s.status==='completed'?'success':s.status==='active'?'primary':'secondary'}">${s.status}</span></td>
+        <td>${s.distance_m!=null?s.distance_m.toFixed(2):'--'}</td>
+        <td>${s.azimuth_deg!=null?s.azimuth_deg.toFixed(1)+'&deg;':'--'}</td>
+        <td>${s.elevation_deg!=null?s.elevation_deg.toFixed(1)+'&deg;':'--'}</td>
+        <td>${s.accuracy_m!=null?s.accuracy_m.toFixed(3):'--'}</td>
+        <td class="text-nowrap small">${s.completed_at||s.created_at||''}</td>
+        <td>${s.status==='active'?'<button class="btn btn-outline-danger btn-sm py-0" onclick="rangingCancel('+s.id+')">Cancel</button>':''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadAnchors(){
+    fetch(API+'/anchors').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('rangingAnchorBody');
+      if(!d.ok||!d.anchors.length){tb.innerHTML='<tr><td colspan="7" class="text-muted text-center">No anchors</td></tr>';return;}
+      tb.innerHTML = d.anchors.map(a=>`<tr>
+        <td class="text-nowrap">${a.imsi}</td><td>${a.latitude}</td><td>${a.longitude}</td><td>${a.altitude}</td>
+        <td>${a.anchor_type}</td><td>${a.active?'Yes':'No'}</td>
+        <td><button class="btn btn-outline-danger btn-sm py-0" onclick="rangingDelAnchor('${a.imsi}')">Remove</button></td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function loadLog(){
+    fetch(API+'/results-log?limit=50').then(r=>r.json()).then(d=>{
+      const tb = document.getElementById('rangingLogBody');
+      if(!d.ok||!d.entries.length){tb.innerHTML='<tr><td colspan="6" class="text-muted text-center">No entries</td></tr>';return;}
+      tb.innerHTML = d.entries.map(e=>`<tr>
+        <td>${e.id}</td><td>${e.session_id}</td><td>${e.measurement_type}</td>
+        <td>${e.value!=null?e.value.toFixed(3):''}</td><td>${e.unit}</td>
+        <td class="small">${e.timestamp||''}</td>
+      </tr>`).join('');
+    }).catch(()=>{});
+  }
+
+  function refreshAll(){loadStats();loadSessions();loadAnchors();loadLog();}
+
+  document.getElementById('btnRangingStart').addEventListener('click', ()=>{
+    const src = document.getElementById('rangingSrcImsi').value.trim();
+    const tgt = document.getElementById('rangingTgtImsi').value.trim();
+    const method = document.getElementById('rangingMethod').value;
+    if(!src||!tgt){alert('Source and Target IMSI required');return;}
+    fetch(API+'/sessions',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({source_imsi:src,target_imsi:tgt,method:method})
+    }).then(r=>r.json()).then(d=>{
+      if(!d.ok) alert(d.error||'Failed');
+      refreshAll();
+    });
+  });
+
+  window.rangingCancel = function(id){
+    fetch(API+'/sessions/'+id,{method:'DELETE'}).then(r=>r.json()).then(()=>refreshAll());
+  };
+
+  document.getElementById('btnRangingPosition').addEventListener('click', ()=>{
+    const imsi = document.getElementById('rangingPosImsi').value.trim();
+    if(!imsi){alert('Target IMSI required');return;}
+    document.getElementById('rangingPosResult').classList.add('d-none');
+    document.getElementById('rangingPosError').classList.add('d-none');
+    fetch(API+'/position',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imsi:imsi})
+    }).then(r=>r.json()).then(d=>{
+      if(d.ok){
+        document.getElementById('posLat').textContent = d.lat;
+        document.getElementById('posLon').textContent = d.lon;
+        document.getElementById('posAlt').textContent = d.alt;
+        document.getElementById('posAcc').textContent = d.accuracy_m;
+        document.getElementById('rangingPosResult').classList.remove('d-none');
+      } else {
+        document.getElementById('rangingPosError').textContent = d.error||'Failed';
+        document.getElementById('rangingPosError').classList.remove('d-none');
+      }
+    });
+  });
+
+  document.getElementById('btnAnchorAdd').addEventListener('click', ()=>{
+    const imsi = document.getElementById('anchorImsi').value.trim();
+    const lat = document.getElementById('anchorLat').value;
+    const lon = document.getElementById('anchorLon').value;
+    const alt = document.getElementById('anchorAlt').value||0;
+    const atype = document.getElementById('anchorType').value;
+    if(!imsi||!lat||!lon){alert('IMSI, Latitude, Longitude required');return;}
+    fetch(API+'/anchors',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imsi:imsi,latitude:parseFloat(lat),longitude:parseFloat(lon),altitude:parseFloat(alt),anchor_type:atype})
+    }).then(r=>r.json()).then(d=>{
+      if(!d.ok) alert(d.error||'Failed');
+      refreshAll();
+    });
+  });
+
+  window.rangingDelAnchor = function(imsi){
+    fetch(API+'/anchors/'+imsi,{method:'DELETE'}).then(r=>r.json()).then(()=>refreshAll());
+  };
+
+  document.getElementById('btnPrivacyGet').addEventListener('click', ()=>{
+    const imsi = document.getElementById('privacyImsi').value.trim();
+    if(!imsi){alert('IMSI required');return;}
+    fetch(API+'/privacy?imsi='+encodeURIComponent(imsi)).then(r=>r.json()).then(d=>{
+      if(d.ok){
+        document.getElementById('privacyPolicy').value = d.policy||'allow_all';
+        document.getElementById('privacyContacts').value = (d.allowed_contacts||[]).join(',');
+      }
+    });
+  });
+
+  document.getElementById('btnPrivacySave').addEventListener('click', ()=>{
+    const imsi = document.getElementById('privacyImsi').value.trim();
+    const policy = document.getElementById('privacyPolicy').value;
+    const contacts = document.getElementById('privacyContacts').value.trim();
+    if(!imsi){alert('IMSI required');return;}
+    const body = {imsi:imsi, policy:policy};
+    if(contacts) body.allowed_contacts = contacts.split(',').map(s=>s.trim()).filter(Boolean);
+    fetch(API+'/privacy',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    }).then(r=>r.json()).then(d=>{
+      if(!d.ok) alert(d.error||'Failed');
+    });
+  });
+
+  // Auto-refresh when tab becomes visible
+  const observer = new MutationObserver(()=>{
+    const pane = document.getElementById('ranging-tab');
+    if(pane && pane.classList.contains('active')) refreshAll();
+  });
+  const rangingPane = document.getElementById('ranging-tab');
+  if(rangingPane) observer.observe(rangingPane, {attributes:true, attributeFilter:['class']});
+
+  // Initial load
+  refreshAll();
+})();
+</script>

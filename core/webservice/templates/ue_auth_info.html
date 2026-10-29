@@ -1,0 +1,256 @@
+<!-- templates/ue_auth_info.html -->
+<div class="accordion mb-4" id="ueAuthAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="ueAuthHeader">
+      <!-- ✅ FIX: remove data-bs-toggle/data-bs-target; toggle via JS -->
+      <button
+        id="ueAuthToggleBtn"
+        class="accordion-button bg-secondary text-white fw-bold d-flex justify-content-center text-center"
+        type="button"
+        aria-expanded="true"
+        aria-controls="ueAuthCollapse">
+        <div class="w-100">UE Authentication Info</div>
+      </button>
+    </h2>
+
+    <div id="ueAuthCollapse" class="accordion-collapse collapse show" aria-labelledby="ueAuthHeader">
+      <div class="accordion-body">
+
+        <!-- Row 1: OP Type, OP and Buttons -->
+        <div class="row g-2 align-items-end">
+          <!-- OP Type -->
+          <div class="col-md-3">
+            <label class="form-label">OP Type</label>
+            <select id="auth_op_type" class="form-select">
+              <option value="OPC" selected>OPC</option>
+              <option value="OP">OP</option>
+            </select>
+          </div>
+
+          <!-- OP -->
+          <div class="col-md-5">
+            <label class="form-label"><span id="auth_op_label">OPC</span> (32 hex)</label>
+            <input id="auth_op" type="text" class="form-control"
+                   placeholder="63bfa50ee6523365ff14c1f45f88737d"
+                   inputmode="latin" autocapitalize="off" spellcheck="false">
+          </div>
+
+          <div class="col-md-4"></div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-3">
+            <div class="form-text mt-0">Select OP or precomputed OPC</div>
+          </div>
+        </div>
+
+        <!-- Row 2: K, AMF, SQN -->
+        <div class="row g-2 align-items-end mt-2">
+          <div class="col-md-4">
+            <label class="form-label">K (32 hex)</label>
+            <input id="auth_k" type="text" class="form-control"
+                   placeholder="465b5ce8b199b49faa5f0a2ee238a6bc" inputmode="latin" autocapitalize="off" spellcheck="false">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">AMF (4 hex, optional)</label>
+            <input id="auth_amf" type="text" class="form-control"
+                   placeholder="8000" inputmode="latin" autocapitalize="off" spellcheck="false">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">SQN (integer)</label>
+            <input id="auth_sqn" type="number" class="form-control" placeholder="0" min="0" step="1">
+          </div>
+        </div>
+
+        <div id="auth_status" class="mt-2" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  // ✅ Make this safe for partial includes (DOMContentLoaded may already have fired)
+  const init = () => {
+    const gid = (s) => document.getElementById(s);
+
+    // -------------------------------------------------------
+    // ✅ FIX: Manual collapse toggle so open + close always works
+    // -------------------------------------------------------
+    const toggleBtn  = gid("ueAuthToggleBtn");
+    const collapseEl = gid("ueAuthCollapse");
+    if (toggleBtn && collapseEl) {
+      let inst = null;
+
+      const syncBtnUI = () => {
+        const open = collapseEl.classList.contains("show");
+        toggleBtn.classList.toggle("collapsed", !open);
+        toggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+
+      const getInst = () => {
+        if (inst) return inst;
+
+        if (window.bootstrap && window.bootstrap.Collapse) {
+          inst = window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+          collapseEl.addEventListener("shown.bs.collapse", syncBtnUI);
+          collapseEl.addEventListener("hidden.bs.collapse", syncBtnUI);
+          return inst;
+        }
+
+        // fallback if bootstrap JS missing
+        inst = { toggle: () => { collapseEl.classList.toggle("show"); syncBtnUI(); } };
+        return inst;
+      };
+
+      // prevent double-binding if template is injected again
+      if (!toggleBtn.dataset.bound) {
+        toggleBtn.dataset.bound = "1";
+        toggleBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          getInst().toggle();
+        });
+      }
+
+      syncBtnUI();
+    }
+
+    // -------------------------------------------------------
+    // Your existing logic (unchanged)
+    // -------------------------------------------------------
+    const opTypeEl = gid("auth_op_type");
+    const opLabelEl = gid("auth_op_label");
+    const opEl = gid("auth_op");
+    const kEl  = gid("auth_k");
+    const amfEl= gid("auth_amf");
+    const sqnEl= gid("auth_sqn");
+    const suciProfileEl = gid("auth_suci_profile");
+    const hnKeyEl = gid("auth_hn_private_key");
+    const statusBox = gid("auth_status");
+
+    if (!opTypeEl || !opLabelEl || !opEl || !kEl || !amfEl || !sqnEl || !statusBox) return;
+
+    const note = (msg, type="info") => {
+      statusBox.innerHTML = msg
+        ? `<div class="alert alert-${type} py-2 px-3 mb-0">${msg}</div>`
+        : "";
+    };
+
+    opTypeEl.addEventListener("change", () => { opLabelEl.textContent = opTypeEl.value; });
+
+    const hex32 = /^[0-9a-f]{32}$/i;
+    const hex4  = /^[0-9a-f]{4}$/i;
+
+    function getIMSI() {
+      const el = document.getElementById('ue_imsi');
+      let v = (el && typeof el.value !== 'undefined') ? String(el.value).trim() : '';
+      if (!v && typeof window.__ue_get_ids === 'function') {
+        try { v = (window.__ue_get_ids().imsi || '').trim(); } catch(e) {}
+      }
+      return v;
+    }
+
+    function clearAuthForm() {
+      opEl.value = "";
+      kEl.value = "";
+      amfEl.value = "";
+      sqnEl.value = "";
+      if (suciProfileEl) suciProfileEl.value = "A";
+      if (hnKeyEl) hnKeyEl.value = "";
+      const idTypeEl = document.getElementById("ue_identity_type");
+      const suciRow = document.getElementById("suci_details_row");
+      if (idTypeEl) { idTypeEl.value = "SUPI"; }
+      if (suciRow) { suciRow.style.display = "none"; }
+      note("");
+    }
+
+    async function loadAuth() {
+      const imsi = getIMSI();
+      if (!imsi) return note("Enter IMSI above, then click Load.", "warning");
+      try {
+        const r = await fetch(`/api/ue/auth/${encodeURIComponent(imsi)}`);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+
+        const msisdnEl = document.getElementById('ue_msisdn');
+        if (msisdnEl) msisdnEl.value = j.msisdn || "";
+
+        opTypeEl.value = (j.op_type || "OPC").toUpperCase();
+        opLabelEl.textContent = opTypeEl.value;
+        opEl.value  = (j.op_hex || "").toLowerCase();
+        kEl.value   = (j.k_hex || "").toLowerCase();
+        amfEl.value = (j.amf_hex || "").toLowerCase();
+        sqnEl.value = j.sqn ?? "";
+        if (suciProfileEl) suciProfileEl.value = j.suci_profile || "A";
+        if (hnKeyEl) hnKeyEl.value = (j.hn_private_key || "").toLowerCase();
+        // Sync identity type selector
+        const idTypeEl = document.getElementById("ue_identity_type");
+        const suciRow = document.getElementById("suci_details_row");
+        if (idTypeEl) {
+          idTypeEl.value = j.suci_profile ? "SUCI" : "SUPI";
+          if (suciRow) suciRow.style.display = j.suci_profile ? "" : "none";
+        }
+        note(`Loaded auth for IMSI ${imsi}`, "success");
+      } catch (e) {
+        clearAuthForm();
+        note(e.message || "Failed to load", "danger");
+      }
+    }
+
+    async function saveAuth() {
+      const imsi = getIMSI();
+      if (!imsi) return note("IMSI is required (enter above).", "warning");
+
+      const msisdn = (document.getElementById('ue_msisdn')?.value || "").trim();
+      const op_type = opTypeEl.value.toUpperCase();
+      const op  = (opEl.value || "").trim().toLowerCase();
+      const k   = (kEl.value  || "").trim().toLowerCase();
+      const amf = (amfEl.value|| "").trim().toLowerCase();
+      const sqn = parseInt(sqnEl.value || "0", 10) || 0;
+      const idType = (document.getElementById("ue_identity_type")?.value || "SUPI");
+      const suci_profile = (idType === "SUCI" && suciProfileEl) ? suciProfileEl.value : "";
+      const hn_private_key = (idType === "SUCI" && hnKeyEl) ? (hnKeyEl.value || "").trim().toLowerCase() : "";
+
+      if (!hex32.test(op)) return note(`${op_type} must be 32 hex`, "warning");
+      if (!hex32.test(k))  return note("K must be 32 hex", "warning");
+      if (amf && !hex4.test(amf)) return note("AMF must be 4 hex", "warning");
+      if (idType === "SUCI") {
+        if (!suci_profile) return note("Select a SUCI profile (A or B)", "warning");
+        if (!/^[0-9a-f]{64}$/i.test(hn_private_key))
+          return note("HN Private Key must be 64 hex", "warning");
+      }
+
+      const payload = { imsi, msisdn, op_type, op, k, amf, sqn };
+      if (suci_profile) payload.suci_profile = suci_profile;
+      if (hn_private_key) payload.hn_private_key = hn_private_key;
+
+      try {
+        const r = await fetch("/api/ue/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        note(`✔ Saved auth for ${imsi}`, "success");
+      } catch (e) {
+        note(e.message || "Save failed", "danger");
+      }
+    }
+
+    document.addEventListener("ue:loadAll",  () => loadAuth());
+    document.addEventListener("ue:clearAll", () => clearAuthForm());
+    document.addEventListener("ue:saveAll",  () => saveAuth());
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>

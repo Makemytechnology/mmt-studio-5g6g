@@ -1,0 +1,740 @@
+<!-- templates/upf.html — UPF Throughput Monitor -->
+
+<!-- Core Throughput -->
+<div class="accordion mb-3" id="upfCoreAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="upfCoreToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="upfCoreCollapse">
+        <div class="w-100">Core Throughput</div>
+      </button>
+    </h2>
+    <div id="upfCoreCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+
+        <!-- Stats cards row -->
+        <!-- Common counters -->
+        <div class="row g-2 mb-2">
+          <div class="col-4"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">Sessions</span><span class="upf-stat-value" id="coreSessions">0</span></div></div>
+          <div class="col-4"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">GTP Errors</span><span class="upf-stat-value" id="coreGtpErr">0</span></div></div>
+        </div>
+
+        <!-- DL column | UL column — all DL-specific left, all UL-specific right -->
+        <div class="row g-2">
+          <!-- DL -->
+          <div class="col-md-6">
+            <div class="row g-1 mb-1">
+              <div class="col-4"><div class="upf-stat-card"><div class="upf-stat-label">DL Rate</div><div class="upf-stat-value" id="coreDlRate">--</div></div></div>
+              <div class="col-4"><div class="upf-stat-card upf-stat-sm"><div class="upf-stat-label">DL Total</div><div class="upf-stat-value" id="coreDlTotal">--</div></div></div>
+              <div class="col-4"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">DL Pkts</span><span class="upf-stat-value" id="coreDlPkts">0</span></div></div>
+            </div>
+            <div class="row g-1 mb-1">
+              <div class="col-6"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">DL Dropped</span><span class="upf-stat-value" id="coreDlDrop">0</span></div></div>
+              <div class="col-6"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">DL Metered</span><span class="upf-stat-value" id="coreDlMetered">0</span></div></div>
+            </div>
+            <div class="upf-graph-box">
+              <div class="upf-graph-title">DL Throughput</div>
+              <canvas id="coreDlCanvas" height="180"></canvas>
+            </div>
+          </div>
+          <!-- UL -->
+          <div class="col-md-6">
+            <div class="row g-1 mb-1">
+              <div class="col-4"><div class="upf-stat-card"><div class="upf-stat-label">UL Rate</div><div class="upf-stat-value" id="coreUlRate">--</div></div></div>
+              <div class="col-4"><div class="upf-stat-card upf-stat-sm"><div class="upf-stat-label">UL Total</div><div class="upf-stat-value" id="coreUlTotal">--</div></div></div>
+              <div class="col-4"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">UL Pkts</span><span class="upf-stat-value" id="coreUlPkts">0</span></div></div>
+            </div>
+            <div class="row g-1 mb-1">
+              <div class="col-6"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">UL Dropped</span><span class="upf-stat-value" id="coreUlDrop">0</span></div></div>
+              <div class="col-6"><div class="upf-stat-card upf-stat-mini"><span class="upf-stat-label">UL Metered</span><span class="upf-stat-value" id="coreUlMetered">0</span></div></div>
+            </div>
+            <div class="upf-graph-box">
+              <div class="upf-graph-title">UL Throughput</div>
+              <canvas id="coreUlCanvas" height="180"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Per-Slice Stats (TS 23.501 §5.15.4) -->
+<div class="accordion mb-3" id="upfSliceAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="upfSliceToggleBtn"
+        class="accordion-button bg-info text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="upfSliceCollapse">
+        <div class="w-100">Network Slices (eMBB / URLLC / mIoT)</div>
+      </button>
+    </h2>
+    <div id="upfSliceCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2" id="upfSliceBody">
+        <div class="text-muted small">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UE → PDU Session → Bearer (unified hierarchy) -->
+<div class="accordion mb-3" id="upfUeAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="upfUeToggleBtn"
+        class="accordion-button bg-success text-white fw-bold d-flex justify-content-center text-center"
+        type="button" aria-expanded="true" aria-controls="upfUeCollapse">
+        <div class="w-100">UE Sessions <span id="upfUeCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="upfUeCollapse" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2" id="upfUeBody">
+        <div class="text-muted small">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex gap-2 align-items-center">
+    <button id="btnUpfRefresh" type="button" class="btn btn-primary btn-sm">Refresh</button>
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input" type="checkbox" id="upfAutoRefresh" checked>
+      <label class="form-check-label" for="upfAutoRefresh">Live</label>
+    </div>
+    <div class="input-group input-group-sm" style="width:130px;">
+      <input type="number" class="form-control" id="upfPollInterval" value="1" min="0.5" max="60" step="0.5">
+      <span class="input-group-text">sec</span>
+    </div>
+  </div>
+  <small id="upfLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .upf-stat-card {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;
+    padding: 10px 14px; text-align: center;
+  }
+  .upf-stat-card .upf-stat-label {
+    font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .upf-stat-card .upf-stat-value {
+    font-size: 22px; font-weight: 700; color: #222;
+    font-family: 'Consolas','Courier New',monospace;
+  }
+  .upf-stat-card .upf-stat-sm { font-size: 16px; }
+  .upf-stat-mini {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 10px !important;
+  }
+  .upf-stat-mini .upf-stat-label { font-size: 10px; }
+  .upf-stat-mini .upf-stat-value { font-size: 13px; }
+  .upf-graph-box {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .upf-graph-box canvas { width: 100% !important; display: block; }
+  .upf-graph-title {
+    font-size: 12px; font-weight: 700; color: #444; margin-bottom: 4px; text-align: center;
+  }
+  .upf-ue-card {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;
+    padding: 10px 14px; margin-bottom: 10px;
+  }
+  .upf-ue-card .upf-ue-title {
+    font-weight: 700; font-size: 14px; margin-bottom: 6px;
+    border-bottom: 1px solid #dee2e6; padding-bottom: 4px;
+  }
+  .upf-ue-stats {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 4px 16px; font-size: 13px; margin-bottom: 6px;
+  }
+  .upf-ue-stats .ue-st-item { display: flex; gap: 4px; }
+  .upf-ue-stats .ue-st-lbl { color: #666; font-weight: 600; }
+  .upf-ue-stats .ue-st-lbl::after { content: ':'; }
+  .upf-ue-stats .ue-st-val { font-family: 'Consolas','Courier New',monospace; color: #222; }
+  .upf-ue-graphs { display: flex; gap: 8px; }
+  .upf-ue-graphs canvas { flex: 1; height: 120px; min-width: 0; }
+  .upf-ue-graph-wrap {
+    flex: 1; min-width: 0; background: #fff; border: 1px solid #e9ecef;
+    border-radius: 4px; padding: 4px 6px;
+  }
+  .upf-ue-graph-wrap .upf-graph-title { font-size: 11px; margin-bottom: 2px; }
+
+  /* Per-Service Metrics */
+  .upf-pdu-card {
+    background: #fff; border: 1px solid #dee2e6; border-left: 3px solid #0d6efd;
+    border-radius: 6px; padding: 8px 12px; margin-bottom: 10px;
+  }
+  .upf-pdu-header {
+    font-weight: 700; font-size: 13px; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .upf-bearer-card {
+    background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px;
+    padding: 8px 10px; margin-bottom: 6px;
+  }
+  .upf-bearer-card.bearer-default { border-left: 3px solid #198754; }
+  .upf-bearer-card.bearer-dedicated { border-left: 3px solid #ffc107; }
+  .upf-bearer-header {
+    font-weight: 600; font-size: 12px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .upf-bearer-stats {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 3px 12px; font-size: 12px;
+  }
+  .upf-bearer-stats .bs-item { display: flex; gap: 4px; white-space: nowrap; }
+  .upf-bearer-stats .bs-lbl { color: #666; font-weight: 600; flex-shrink: 0; }
+  .upf-bearer-stats .bs-lbl::after { content: ':'; }
+  .upf-bearer-stats .bs-val { font-family: 'Consolas','Courier New',monospace; color: #222; white-space: nowrap; }
+  .upf-bearer-graphs { display: flex; gap: 6px; margin-top: 4px; }
+  .upf-bearer-graph-wrap {
+    flex: 1; min-width: 0; background: #fff; border: 1px solid #e9ecef;
+    border-radius: 4px; padding: 3px 5px;
+  }
+  .upf-bearer-graph-wrap .upf-graph-title { font-size: 10px; margin-bottom: 1px; }
+  .upf-svc-tag {
+    font-size: 11px; padding: 2px 6px; border-radius: 3px;
+    font-family: 'Consolas','Courier New',monospace;
+  }
+</style>
+
+<script>
+(function(){
+  const HISTORY_LEN = 60;  /* 60 seconds of data */
+
+  /* Y-axis "nice" ladder for throughput charts. Shared by the big core
+   * canvas (ThroughputGraph) and the per-UE / per-bearer mini canvases
+   * (drawMiniGraph) so identical traffic plots at the same Y position
+   * across both views. Gaps in the ladder cause the same numeric
+   * stat to land at very different visual heights — keep this dense
+   * (1-2-5 progression at every decade) and aligned across both. */
+  const NICE_RATE_STEPS = [
+    1e3, 2e3, 5e3, 10e3, 20e3, 50e3, 100e3, 200e3, 500e3,
+    1e6, 2e6, 5e6, 10e6, 20e6, 50e6, 100e6, 200e6, 500e6,
+    1e9, 2e9, 5e9, 10e9];
+
+  /* ── Throughput graph renderer (HTML5 Canvas) ── */
+  class ThroughputGraph {
+    constructor(canvasId, color, label) {
+      this.canvas = document.getElementById(canvasId);
+      this.ctx = this.canvas.getContext('2d');
+      this.color = color;
+      this.label = label;
+      this.data = [];  /* array of bps values */
+    }
+
+    push(bps) {
+      this.data.push(bps);
+      if (this.data.length > HISTORY_LEN) this.data.shift();
+    }
+
+    draw() {
+      const c = this.canvas;
+      const ctx = this.ctx;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.getBoundingClientRect();
+      c.width = rect.width * dpr;
+      c.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const W = rect.width, H = rect.height;
+      const pad = { top: 6, right: 8, bottom: 18, left: 76 };
+      const gW = W - pad.left - pad.right;
+      const gH = H - pad.top - pad.bottom;
+
+      /* clear */
+      ctx.clearRect(0, 0, W, H);
+
+      /* compute max — minimum 1 Kbps so small values are visible.
+       * Add 5% headroom so a steady-state value (e.g. exactly 100 Mbps
+       * sustained traffic) doesn't hug the chart top edge — the
+       * displayed stat then lands on a labelled grid line, not on the
+       * border, which is the "Y-axis aligned with stat" expectation. */
+      let maxVal = Math.max(1000, ...this.data) * 1.05;
+      const niceSteps = NICE_RATE_STEPS;
+      let ceil = niceSteps.find(v => v >= maxVal) || maxVal;
+
+      /* grid lines */
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 0.5;
+      const gridN = 4;
+      for (let i = 0; i <= gridN; i++) {
+        const y = pad.top + gH - (i / gridN) * gH;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + gW, y);
+        ctx.stroke();
+
+        /* Y labels */
+        const val = (i / gridN) * ceil;
+        ctx.fillStyle = '#888';
+        ctx.font = '10px Consolas, monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(val <= 0 ? '0' : fmtRate(val), pad.left - 4, y);
+      }
+
+      /* X axis label */
+      ctx.fillStyle = '#aaa';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(HISTORY_LEN + 's ago', pad.left, H - 14);
+      ctx.fillText('now', pad.left + gW, H - 14);
+
+      if (this.data.length < 2) return;
+
+      /* draw line */
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(pad.left, pad.top, gW, gH);
+      ctx.clip();
+
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < this.data.length; i++) {
+        const x = pad.left + (i / (HISTORY_LEN - 1)) * gW;
+        const y = pad.top + gH - (this.data[i] / ceil) * gH;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      /* fill under curve */
+      const lastX = pad.left + ((this.data.length - 1) / (HISTORY_LEN - 1)) * gW;
+      ctx.lineTo(lastX, pad.top + gH);
+      ctx.lineTo(pad.left, pad.top + gH);
+      ctx.closePath();
+      ctx.fillStyle = this.color.replace(')', ',0.1)').replace('rgb', 'rgba');
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /* ── Format helpers ── */
+  function fmtRate(bps) {
+    if (bps <= 0) return '0';
+    if (bps >= 1e9) return (bps / 1e9).toFixed(2) + ' Gbps';
+    if (bps >= 1e6) return (bps / 1e6).toFixed(2) + ' Mbps';
+    if (bps >= 1e3) return (bps / 1e3).toFixed(1) + ' Kbps';
+    return bps.toFixed(0) + ' bps';
+  }
+
+  function fmtBytes(b) {
+    if (b >= 1e12) return (b / 1e12).toFixed(2) + ' TB';
+    if (b >= 1e9) return (b / 1e9).toFixed(2) + ' GB';
+    if (b >= 1e6) return (b / 1e6).toFixed(2) + ' MB';
+    if (b >= 1e3) return (b / 1e3).toFixed(1) + ' KB';
+    return b + ' B';
+  }
+
+  function fmtPkts(n) {
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  /* ── Init ── */
+  const init = () => {
+    /* Accordion toggles */
+    for (const [btnId, colId] of [['upfCoreToggleBtn','upfCoreCollapse'],['upfSliceToggleBtn','upfSliceCollapse'],['upfUeToggleBtn','upfUeCollapse']]) {
+      const btn = document.getElementById(btnId);
+      const col = document.getElementById(colId);
+      if (btn && !btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(col, {toggle:false});
+        btn.addEventListener('click', () => inst.toggle());
+      }
+    }
+
+    /* Core graphs */
+    const coreDlGraph = new ThroughputGraph('coreDlCanvas', 'rgb(25,135,84)', 'DL');
+    const coreUlGraph = new ThroughputGraph('coreUlCanvas', 'rgb(13,110,253)', 'UL');
+
+    /* Previous readings for delta computation */
+    let prevCore = null;
+
+    /* ── Core stats poll ── */
+    const pollCore = async () => {
+      try {
+        const r = await fetch('/api/upf/io-stats');
+        const d = await r.json();
+        const ts = d.timestamp;
+
+        if (prevCore) {
+          const dt = ts - prevCore.ts;
+          if (dt > 0) {
+            const dlBps = ((d.dl_bytes - prevCore.dl_bytes) * 8) / dt;
+            const ulBps = ((d.ul_bytes - prevCore.ul_bytes) * 8) / dt;
+            coreDlGraph.push(Math.max(0, dlBps));
+            coreUlGraph.push(Math.max(0, ulBps));
+            document.getElementById('coreDlRate').textContent = fmtRate(Math.max(0, dlBps));
+            document.getElementById('coreUlRate').textContent = fmtRate(Math.max(0, ulBps));
+          }
+        } else {
+          coreDlGraph.push(0);
+          coreUlGraph.push(0);
+          document.getElementById('coreDlRate').textContent = fmtRate(0);
+          document.getElementById('coreUlRate').textContent = fmtRate(0);
+        }
+
+        prevCore = { dl_bytes: d.dl_bytes, ul_bytes: d.ul_bytes, ts };
+
+        document.getElementById('coreDlTotal').textContent = fmtBytes(d.dl_bytes);
+        document.getElementById('coreUlTotal').textContent = fmtBytes(d.ul_bytes);
+        document.getElementById('coreDlPkts').textContent = fmtPkts(d.dl_pkts);
+        document.getElementById('coreUlPkts').textContent = fmtPkts(d.ul_pkts);
+        document.getElementById('coreSessions').textContent = d.session_count;
+        document.getElementById('coreDlDrop').textContent = fmtPkts(d.dl_dropped);
+        document.getElementById('coreUlDrop').textContent = fmtPkts(d.ul_dropped);
+        document.getElementById('coreDlMetered').textContent = fmtPkts(d.dl_metered || 0);
+        document.getElementById('coreUlMetered').textContent = fmtPkts(d.ul_metered || 0);
+        document.getElementById('coreGtpErr').textContent = fmtPkts(d.gtpu_errors);
+
+        coreDlGraph.draw();
+        coreUlGraph.draw();
+      } catch(e) { /* ignore fetch errors */ }
+    };
+
+    /* ── Unified UE → PDU Session → Bearer poll ── */
+    const esc = (s) => {
+      if (s == null) return '-';
+      const el = document.createElement('span');
+      el.textContent = String(s);
+      return el.innerHTML;
+    };
+
+    /* Graph data stores */
+    const ueGraphs = {};       /* imsi → { dl: [], ul: [] } */
+    const bearerGraphs = {};   /* imsi_pdu_qfi → { dl: [], ul: [] } */
+    let prevUeMap = {};        /* imsi → { vol_ul, vol_dl, ts } */
+    let prevBearerMap = {};    /* imsi_pdu_qfi → { vol_ul, vol_dl, ts } */
+
+    const pollUeSessions = async () => {
+      try {
+        const r = await fetch('/api/upf/bearer-stats');
+        const d = await r.json();
+        const ts = d.timestamp;
+        const ues = d.ues || [];
+
+        document.getElementById('upfUeCount').textContent = ues.length;
+
+        if (!ues.length) {
+          document.getElementById('upfUeBody').innerHTML =
+            '<div class="text-muted small">No active UE sessions</div>';
+          return;
+        }
+
+        let html = '';
+        const canvasIds = [];
+
+        for (const ue of ues) {
+          /* UE-level aggregate */
+          let ueTotDl=0, ueTotUl=0, uePkDl=0, uePkUl=0;
+          for (const p of (ue.pdu_sessions||[])) for (const b of (p.bearers||[])) {
+            ueTotDl+=b.vol_dl||0; ueTotUl+=b.vol_ul||0; uePkDl+=b.pkt_dl||0; uePkUl+=b.pkt_ul||0;
+          }
+          const uk=ue.imsi, pu=prevUeMap[uk];
+          let uDl=0,uUl=0;
+          if(pu){const dt=ts-pu.ts;if(dt>0){uDl=Math.max(0,((ueTotDl-pu.vd)*8)/dt);uUl=Math.max(0,((ueTotUl-pu.vu)*8)/dt);}}
+          prevUeMap[uk]={vd:ueTotDl,vu:ueTotUl,ts};
+          if(!ueGraphs[uk])ueGraphs[uk]={dl:[],ul:[]};
+          ueGraphs[uk].dl.push(uDl);ueGraphs[uk].ul.push(uUl);
+          if(ueGraphs[uk].dl.length>HISTORY_LEN)ueGraphs[uk].dl.shift();
+          if(ueGraphs[uk].ul.length>HISTORY_LEN)ueGraphs[uk].ul.shift();
+          const uDlC='ueDl_'+uk, uUlC='ueUl_'+uk;
+          canvasIds.push({bkey:uk,dlCid:uDlC,ulCid:uUlC,src:'ue'});
+
+          html += '<div class="upf-ue-card">';
+          html += `<div class="upf-ue-title">IMSI: ${esc(ue.imsi)} <span class="text-muted fw-normal">${(ue.pdu_sessions||[]).length} PDU session(s)</span></div>`;
+
+          /* UE-AMBR belongs to the UE (not the PDU). Pull from the first
+           * PDU row — same value repeats across this UE's sessions since
+           * bearer-stats now reads it live from the subscription. DL left,
+           * UL right, one line, only if any value is configured. */
+          const firstPdu = (ue.pdu_sessions||[])[0] || {};
+          const uAd = firstPdu.ue_ambr_dl || 0, uAu = firstPdu.ue_ambr_ul || 0;
+          const fmtAmbr = (v) => v > 0 ? (v + ' kbps') : '<span class="text-muted">unlimited</span>';
+          if (uAd || uAu) {
+            html += '<div class="row g-2 mb-2 ambr-row" style="font-size:11px;color:#146c43;">';
+            html += '<div class="col-6"><strong>UE-AMBR DL:</strong> ' + fmtAmbr(uAd) + '</div>';
+            html += '<div class="col-6 text-end"><strong>UE-AMBR UL:</strong> ' + fmtAmbr(uAu) + '</div>';
+            html += '</div>';
+          }
+
+          /* UE aggregate stats + graphs */
+          html += '<div class="row g-2 mb-2">';
+          html += '<div class="col-6"><div class="upf-ue-stats">';
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Rate</span><span class="ue-st-val">${fmtRate(uDl)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Total</span><span class="ue-st-val">${fmtBytes(ueTotDl)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Pkts</span><span class="ue-st-val">${fmtPkts(uePkDl)}</span></div>`;
+          html += `</div><div class="upf-ue-graph-wrap"><div class="upf-graph-title">DL</div><canvas id="${uDlC}" height="70"></canvas></div></div>`;
+          html += '<div class="col-6"><div class="upf-ue-stats">';
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Rate</span><span class="ue-st-val">${fmtRate(uUl)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Total</span><span class="ue-st-val">${fmtBytes(ueTotUl)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Pkts</span><span class="ue-st-val">${fmtPkts(uePkUl)}</span></div>`;
+          html += `</div><div class="upf-ue-graph-wrap"><div class="upf-graph-title">UL</div><canvas id="${uUlC}" height="70"></canvas></div></div>`;
+          html += '</div>';
+
+          /* ── PDU Sessions (nested) ── */
+          for (const pdu of (ue.pdu_sessions||[])) {
+            html += '<div class="upf-pdu-card">';
+            html += '<div class="upf-pdu-header">';
+            html += `<span class="badge bg-primary">PDU ${pdu.pdu_session_id}</span>`;
+            html += `<span>DNN: <strong>${esc(pdu.dnn)}</strong></span>`;
+            html += `<span>IP: <code>${esc(pdu.ip_addr)}</code></span>`;
+            if(pdu.sst) html += `<span class="badge bg-info text-dark">SST=${esc(pdu.sst)}</span>`;
+            /* UPF anchor (TS 23.501 §6.3.3 SMF UPF selection per S-NSSAI/DNN).
+             * sm.UPFID is set by upf.Select at session establish; with multi-
+             * anchor PFCP (upfloop.EnableMulti) different sessions may land
+             * on different UPFs in the same process. */
+            if(pdu.upf_id) html += `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;" title="N3 IP: ${esc(pdu.upf_n3_ip||'')}">UPF=${esc(pdu.upf_id)}</span>`;
+            html += `<span class="badge" style="background:#e8f0fe;color:#1a56db;border:1px solid #b6d4fe;">${esc(pdu.state)}</span>`;
+            html += `<span class="text-muted small">${(pdu.bearers||[]).length} bearer(s)</span>`;
+            html += '</div>';
+            /* Session-AMBR belongs to the PDU session (sourced from APN).
+             * DL left, UL right, single line, directly under the PDU header. */
+            const sAd=pdu.session_ambr_dl||pdu.ambr_dl||0, sAu=pdu.session_ambr_ul||pdu.ambr_ul||0;
+            if (sAd || sAu) {
+              html += '<div class="row g-2 mb-2 ambr-row" style="font-size:11px;color:#0a58ca;">';
+              html += '<div class="col-6"><strong>Session-AMBR DL:</strong> ' + fmtAmbr(sAd) + '</div>';
+              html += '<div class="col-6 text-end"><strong>Session-AMBR UL:</strong> ' + fmtAmbr(sAu) + '</div>';
+              html += '</div>';
+            }
+
+            /* ── Bearers (nested inside PDU) ── */
+            for (const b of (pdu.bearers||[])) {
+              const bk=ue.imsi+'_'+pdu.pdu_session_id+'_'+b.qfi;
+              const bp=prevBearerMap[bk]; let bDl=0,bUl=0;
+              if(bp){const dt=ts-bp.ts;if(dt>0){bDl=Math.max(0,((b.vol_dl-bp.vd)*8)/dt);bUl=Math.max(0,((b.vol_ul-bp.vu)*8)/dt);}}
+              prevBearerMap[bk]={vd:b.vol_dl,vu:b.vol_ul,ts};
+              if(!bearerGraphs[bk])bearerGraphs[bk]={dl:[],ul:[]};
+              bearerGraphs[bk].dl.push(bDl);bearerGraphs[bk].ul.push(bUl);
+              if(bearerGraphs[bk].dl.length>HISTORY_LEN)bearerGraphs[bk].dl.shift();
+              if(bearerGraphs[bk].ul.length>HISTORY_LEN)bearerGraphs[bk].ul.shift();
+
+              const bLabel=b.is_default?'DEFAULT':'DEDICATED';
+              const bBg=b.is_default?'bg-success':'bg-warning text-dark';
+              const cClass=b.is_default?'bearer-default':'bearer-dedicated';
+              const tLabel=b.resource_type==='GBR'?'GBR':'NonGBR';
+              const tBg=b.resource_type==='GBR'?'bg-info':'bg-secondary';
+              const svcs=(b.service_names||[]).map(s=>`<span class="upf-svc-tag badge bg-light text-dark border">${esc(s)}</span>`).join(' ');
+              const dC='bdl_'+bk,uC='bul_'+bk;
+              canvasIds.push({bkey:bk,dlCid:dC,ulCid:uC,src:'b'});
+
+              html+=`<div class="upf-bearer-card ${cClass}">`;
+              html+='<div class="upf-bearer-header">';
+              html+=`<span class="badge ${bBg}">${bLabel}</span>`;
+              html+=`<span>QFI=<strong>${b.qfi}</strong> (5QI=${b.fiveqi})</span>`;
+              html+=`<span class="badge ${tBg}">${tLabel}</span>`;
+              if(b.arp_priority!=null) html+=`<span class="text-muted">ARP:${b.arp_priority}</span>`;
+              if(b.precedence!=null) html+=`<span class="text-muted">Prec:${b.precedence}</span>`;
+              if(svcs) html+=svcs;
+              html+='</div>';
+
+              html+='<div class="row g-1">';
+              /* DL */
+              html+='<div class="col-6"><div class="upf-bearer-stats">';
+              html+=`<div class="bs-item"><span class="bs-lbl">DL Gate</span><span class="bs-val ${b.gate_dl==='Closed'?'text-danger':''}">${esc(b.gate_dl)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">DL MBR</span><span class="bs-val">${fmtAmbr(b.mbr_dl_kbps)}</span></div>`;
+              if(tLabel==='GBR') html+=`<div class="bs-item"><span class="bs-lbl">DL GBR</span><span class="bs-val">${fmtAmbr(b.gbr_dl_kbps)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">DL Rate</span><span class="bs-val fw-bold">${fmtRate(bDl)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">DL Vol</span><span class="bs-val">${fmtBytes(b.vol_dl)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">DL Pkts</span><span class="bs-val">${fmtPkts(b.pkt_dl)}</span></div>`;
+              const dd=(b.dropped_pkts_dl||0),ddb=(b.dropped_bytes_dl||0);
+              html+=`<div class="bs-item"><span class="bs-lbl">DL Drop</span><span class="bs-val${dd?' text-danger':''}">${fmtPkts(dd)}pkt ${fmtBytes(ddb)}</span></div>`;
+              html+='</div>';
+              html+=`<div class="upf-bearer-graph-wrap"><div class="upf-graph-title">DL</div><canvas id="${dC}" height="60"></canvas></div></div>`;
+              /* UL */
+              html+='<div class="col-6"><div class="upf-bearer-stats">';
+              html+=`<div class="bs-item"><span class="bs-lbl">UL Gate</span><span class="bs-val ${b.gate_ul==='Closed'?'text-danger':''}">${esc(b.gate_ul)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">UL MBR</span><span class="bs-val">${fmtAmbr(b.mbr_ul_kbps)}</span></div>`;
+              if(tLabel==='GBR') html+=`<div class="bs-item"><span class="bs-lbl">UL GBR</span><span class="bs-val">${fmtAmbr(b.gbr_ul_kbps)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">UL Rate</span><span class="bs-val fw-bold">${fmtRate(bUl)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">UL Vol</span><span class="bs-val">${fmtBytes(b.vol_ul)}</span></div>`;
+              html+=`<div class="bs-item"><span class="bs-lbl">UL Pkts</span><span class="bs-val">${fmtPkts(b.pkt_ul)}</span></div>`;
+              const ud=(b.dropped_pkts_ul||0),udb=(b.dropped_bytes_ul||0);
+              html+=`<div class="bs-item"><span class="bs-lbl">UL Drop</span><span class="bs-val${ud?' text-danger':''}">${fmtPkts(ud)}pkt ${fmtBytes(udb)}</span></div>`;
+              html+='</div>';
+              html+=`<div class="upf-bearer-graph-wrap"><div class="upf-graph-title">UL</div><canvas id="${uC}" height="60"></canvas></div></div>`;
+              html+='</div></div>'; /* row + bearer-card */
+            }
+            html+='</div>'; /* pdu-card */
+          }
+          html+='</div>'; /* ue-card */
+        }
+
+        document.getElementById('upfUeBody').innerHTML = html;
+        requestAnimationFrame(() => {
+          for (const {bkey,dlCid,ulCid,src} of canvasIds) {
+            const gd = src==='ue' ? ueGraphs[bkey] : bearerGraphs[bkey];
+            if(gd) { drawMiniGraph(dlCid, gd.dl, 'rgb(25,135,84)'); drawMiniGraph(ulCid, gd.ul, 'rgb(13,110,253)'); }
+          }
+        });
+      } catch(e) { /* ignore */ }
+    };
+
+    /* ── Mini graph draw (for per-UE canvases) ── */
+    function drawMiniGraph(canvasId, data, color) {
+      const c = document.getElementById(canvasId);
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.getBoundingClientRect();
+      c.width = rect.width * dpr;
+      c.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const W = rect.width, H = rect.height;
+      const pad = { top: 4, right: 4, bottom: 14, left: 56 };
+      const gW = W - pad.left - pad.right;
+      const gH = H - pad.top - pad.bottom;
+
+      ctx.clearRect(0, 0, W, H);
+
+      /* Same scaling logic as the big core graph: 5% headroom so a
+       * steady value lands on a labelled grid line, and a complete
+       * niceSteps array (no 100M→500M / 1G→5G jumps) so the per-UE
+       * chart Y-axis ticks match what the stats panel displays. */
+      let maxVal = Math.max(1000, ...data) * 1.05;
+      const niceSteps = NICE_RATE_STEPS;
+      let ceil = niceSteps.find(v => v >= maxVal) || maxVal;
+
+      /* grid — 3 lines (0, mid, max) */
+      ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 2; i++) {
+        const y = pad.top + gH - (i / 2) * gH;
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gW, y); ctx.stroke();
+        const val = (i / 2) * ceil;
+        ctx.fillStyle = '#aaa'; ctx.font = '9px Consolas,monospace';
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(val <= 0 ? '0' : fmtRate(val), pad.left - 3, y);
+      }
+
+      if (data.length < 2) return;
+
+      ctx.save();
+      ctx.beginPath(); ctx.rect(pad.left, pad.top, gW, gH); ctx.clip();
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < data.length; i++) {
+        const x = pad.left + (i / (HISTORY_LEN - 1)) * gW;
+        const y = pad.top + gH - (data[i] / ceil) * gH;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      /* fill */
+      const lastX = pad.left + ((data.length - 1) / (HISTORY_LEN - 1)) * gW;
+      ctx.lineTo(lastX, pad.top + gH);
+      ctx.lineTo(pad.left, pad.top + gH);
+      ctx.closePath();
+      ctx.fillStyle = color.replace(')', ',0.08)').replace('rgb', 'rgba');
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /* ── Per-Slice stats poll (TS 23.501 §5.15.4) ── */
+    const sliceColors = {eMBB: '#0d6efd', URLLC: '#dc3545', mIoT: '#198754'};
+    const pollSlice = async () => {
+      try {
+        const r = await fetch('/api/upf/slice-stats');
+        const d = await r.json();
+        const slices = d.slices || [];
+        const body = document.getElementById('upfSliceBody');
+        if (!slices.length || slices.every(s => !s.session_count && !s.ul_pkts && !s.dl_pkts)) {
+          body.innerHTML = '<div class="text-muted small">Slices initialized — no traffic yet</div>';
+          return;
+        }
+        let html = '<div class="row g-2">';
+        /* Resolve SST → slice name. Backend now emits slice_name +
+         * slice_id directly (TS 23.501 §5.15.2.1 standardised SSTs);
+         * falls back to a derived name if older payload lacks them. */
+        const nameForSst = (sst) => ({1:'eMBB',2:'URLLC',3:'mIoT',4:'V2X',5:'HMTC',6:'HDLLC'}[sst] || ('SST='+sst));
+        for (const s of slices) {
+          const sstNum = (s.sst != null) ? s.sst : ((s.slice_id != null) ? s.slice_id+1 : '?');
+          const sliceName = s.slice_name || nameForSst(sstNum);
+          const color = sliceColors[sliceName] || '#6c757d';
+          html += `<div class="col-md-4">`;
+          html += `<div class="card p-2 h-100" style="border-left:3px solid ${color}">`;
+          html += `<div class="fw-bold mb-1" style="color:${color}">${esc(sliceName)} <span class="badge bg-secondary">SST=${sstNum}</span></div>`;
+          html += '<div class="upf-ue-stats">';
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">Sessions</span><span class="ue-st-val">${s.session_count||0}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Vol</span><span class="ue-st-val">${fmtBytes(s.dl_bytes||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Vol</span><span class="ue-st-val">${fmtBytes(s.ul_bytes||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Pkts</span><span class="ue-st-val">${fmtPkts(s.dl_pkts||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Pkts</span><span class="ue-st-val">${fmtPkts(s.ul_pkts||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Drop</span><span class="ue-st-val">${fmtPkts(s.dl_dropped||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Drop</span><span class="ue-st-val">${fmtPkts(s.ul_dropped||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">DL Metered</span><span class="ue-st-val">${fmtPkts(s.dl_metered||0)}</span></div>`;
+          html += `<div class="ue-st-item"><span class="ue-st-lbl">UL Metered</span><span class="ue-st-val">${fmtPkts(s.ul_metered||0)}</span></div>`;
+          html += '</div></div></div>';
+        }
+        html += '</div>';
+        body.innerHTML = html;
+      } catch(e) { /* ignore */ }
+    };
+
+    /* ── Poll loop ── */
+    const poll = async () => {
+      await Promise.all([pollCore(), pollSlice(), pollUeSessions()]);
+      document.getElementById('upfLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+
+    document.getElementById('btnUpfRefresh').addEventListener('click', poll);
+
+    let timer = null;
+    const autoCheck = document.getElementById('upfAutoRefresh');
+    const intervalInput = document.getElementById('upfPollInterval');
+
+    const getIntervalMs = () => Math.max(500, (parseFloat(intervalInput.value) || 1) * 1000);
+
+    const startTimer = () => { stopTimer(); timer = setInterval(poll, getIntervalMs()); };
+    const stopTimer = () => { if (timer) { clearInterval(timer); timer = null; } };
+
+    autoCheck.addEventListener('change', () => {
+      if (autoCheck.checked) startTimer(); else stopTimer();
+    });
+
+    /* Restart timer when interval changes while live */
+    intervalInput.addEventListener('change', () => {
+      if (autoCheck.checked && timer) startTimer();
+    });
+
+    /* Tab visibility — start/stop polling when tab is shown/hidden */
+    const tabPane = document.getElementById('upf');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        const active = tabPane.classList.contains('active');
+        if (active) {
+          poll();
+          if (autoCheck.checked && !timer) startTimer();
+        } else {
+          stopTimer();
+        }
+      });
+      observer.observe(tabPane, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    /* Live is on by default — start the poll timer immediately if the
+     * UPF tab is already the active one on page load. (Otherwise the
+     * MutationObserver above kicks off on first tab-switch.) */
+    if (tabPane && tabPane.classList.contains('active')) {
+      poll();
+      if (autoCheck.checked) startTimer();
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

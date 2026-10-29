@@ -1,0 +1,90 @@
+# Union of the three component .gitignore files.
+
+# ─── Go build (core/) ────────────────────────────────────────────
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/dist/
+*.prof
+coverage.out
+coverage.html
+core/sacore-web
+core/sacore-web.*
+core/webservice/sacore-web
+core/webservice/sacore-web.*
+core/vendor/
+core/.go-cache/
+core/specs/3gpp/*.txt
+core/specs/ietf/*.txt.tmp
+
+# ─── Python (tester/) ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+*.manifest
+
+# Virtual environments
+.env
+.venv/
+venv/
+
+# Pytest / coverage / mypy / ruff / tox
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.cache/
+
+# Tester runtime data + Robot output
+tester/robot/results/
+tester/data/logs/
+tester/data/test_results/
+tester/data/reports/
+tester/data/rag_store.json
+tester/data/sa_tester.db
+*.db
+*.db-*
+
+# Tester Rust dataplane
+tester/dp-rust/target/
+
+# Windows embedded Python (not needed on Linux)
+tester/python/
+
+# ─── Orchestrate (orchestrate/) ──────────────────────────────────
+*.pid
+orchestrate/tools/wireshark/captures/
+*.pcap
+*.pcapng
+
+# ─── Release artefacts ───────────────────────────────────────────
+# Bundles always land under dist/ or release-tmp/, both of which are
+# excluded below. *.tar.gz is *not* a global exclude — pycrate vendors
+# upstream ASN.1 / CSN.1 data as .tar.gz under tester/libs/pycrate/.
+*.deb
+*.rpm
+*.tar.xz
+release-tmp/
+dist/
+
+# ─── Logs (project-wide) ─────────────────────────────────────────
+*.log
+
+# ─── Editor / OS cruft ───────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.claude/

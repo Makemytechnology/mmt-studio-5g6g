@@ -1,0 +1,701 @@
+<!-- KPIs Dashboard — 3GPP TS 28.552/28.554 + SA Core implementation-specific -->
+
+<style>
+  .kpi-card { border-left: 4px solid #0d6efd; }
+  .kpi-card.amf { border-left-color: #0d6efd; }
+  .kpi-card.smf { border-left-color: #198754; }
+  .kpi-card.upf { border-left-color: #dc3545; }
+  .kpi-card.ims { border-left-color: #6f42c1; }
+  .kpi-card.mcx { border-left-color: #fd7e14; }
+  .kpi-card.chg { border-left-color: #20c997; }
+  .kpi-val { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+  .kpi-label { font-size: 0.78rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-sub { font-size: 0.82rem; color: #6c757d; }
+  .kpi-section-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: #6c757d; border-bottom: 1px solid #dee2e6; padding-bottom: 4px; margin-bottom: 12px; }
+  .kpi-badge { font-size: 0.72rem; }
+  .kpi-chart-container { height: 180px; position: relative; }
+  .kpi-bar { display: inline-block; min-width: 18px; border-radius: 3px 3px 0 0;
+    background: #0d6efd; margin: 0 2px; vertical-align: bottom; transition: height 0.3s; }
+  .kpi-bar.secondary { background: #6c757d; }
+  .kpi-ring { width: 80px; height: 80px; }
+  .kpi-table td, .kpi-table th { font-size: 0.82rem; padding: 4px 8px; }
+</style>
+
+<div class="accordion mb-4" id="kpiAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="kpiHeader">
+      <button id="kpiToggleBtn"
+        class="accordion-button bg-primary text-white fw-bold d-flex justify-content-center"
+        type="button" aria-expanded="true" aria-controls="kpiCollapse">
+        <div class="w-100 text-center">KPI Dashboard (3GPP TS 28.552 / SA Core)</div>
+      </button>
+    </h2>
+
+    <div id="kpiCollapse" class="accordion-collapse collapse show"
+         aria-labelledby="kpiHeader" data-bs-parent="#kpiAccordion">
+      <div class="accordion-body">
+
+        <!-- Controls -->
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <button id="kpiRefreshBtn" class="btn btn-sm btn-outline-primary">Refresh</button>
+          <div class="form-check form-switch">
+            <input id="kpiLiveToggle" class="form-check-input" type="checkbox">
+            <label class="form-check-label small" for="kpiLiveToggle">Live</label>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <label class="form-label mb-0 small">Interval</label>
+            <input id="kpiLiveInterval" type="number" class="form-control form-control-sm" style="width:70px"
+                   min="1" max="60" value="5" step="1">
+            <span class="small text-muted">s</span>
+          </div>
+          <span id="kpiLastUpdate" class="ms-auto small text-muted"></span>
+        </div>
+
+        <!-- ═══ AMF Section ═══ -->
+        <div class="kpi-section-title">AMF &mdash; Access &amp; Mobility (TS 28.552 &sect;5.1)</div>
+        <div class="row g-2 mb-3" id="kpiAmfRow">
+          <div class="col-6 col-md-2"><div class="card kpi-card amf p-2 h-100">
+            <div class="kpi-val text-primary" id="kv_amf_registered">0</div>
+            <div class="kpi-label">Registered UE</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card amf p-2 h-100">
+            <div class="kpi-val text-primary" id="kv_amf_connected">0</div>
+            <div class="kpi-label">CM-CONNECTED</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card amf p-2 h-100">
+            <div class="kpi-val text-primary" id="kv_amf_idle">0</div>
+            <div class="kpi-label">CM-IDLE</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card amf p-2 h-100">
+            <div class="kpi-val text-primary" id="kv_amf_auth">0</div>
+            <div class="kpi-label">Auth Done</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card amf p-2 h-100">
+            <div class="kpi-val text-primary" id="kv_amf_sec">0</div>
+            <div class="kpi-label">Security Est.</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card amf p-2 h-100">
+            <div class="kpi-val text-primary" id="kv_amf_gnb">0</div>
+            <div class="kpi-label">gNodeBs</div>
+          </div></div>
+        </div>
+
+        <!-- AMF Procedure Counters (TS 28.552 §5.1) -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-4">
+            <div class="card p-2 h-100">
+              <div class="small fw-bold mb-1">Registration (TS 28.552 §5.1.1)</div>
+              <table class="table table-sm kpi-table mb-0">
+                <tr><td>Attempts</td><td class="fw-bold" id="kv_reg_att">0</td></tr>
+                <tr><td>Successes</td><td class="text-success fw-bold" id="kv_reg_succ">0</td></tr>
+                <tr><td>Failures</td><td class="text-danger fw-bold" id="kv_reg_fail">0</td></tr>
+                <tr><td>Success Rate</td><td class="fw-bold" id="kv_reg_rate">-</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-2 h-100">
+              <div class="small fw-bold mb-1">Authentication (TS 28.552 §5.1.2)</div>
+              <table class="table table-sm kpi-table mb-0">
+                <tr><td>Attempts</td><td class="fw-bold" id="kv_auth_att">0</td></tr>
+                <tr><td>Successes</td><td class="text-success fw-bold" id="kv_auth_succ">0</td></tr>
+                <tr><td>Failures</td><td class="text-danger fw-bold" id="kv_auth_fail">0</td></tr>
+                <tr><td>Success Rate</td><td class="fw-bold" id="kv_auth_rate">-</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-2 h-100">
+              <div class="small fw-bold mb-1">NG Setup (NGAP)</div>
+              <table class="table table-sm kpi-table mb-0">
+                <tr><td>Attempts</td><td class="fw-bold" id="kv_ngap_att">0</td></tr>
+                <tr><td>Successes</td><td class="text-success fw-bold" id="kv_ngap_succ">0</td></tr>
+                <tr><td>Failures</td><td class="text-danger fw-bold" id="kv_ngap_fail">0</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- gNB Distribution -->
+        <div class="row g-2 mb-4">
+          <div class="col-md-6">
+            <div class="card p-2">
+              <div class="small fw-bold mb-1">UE per gNodeB</div>
+              <div id="kpiGnbChart" class="kpi-chart-container d-flex align-items-end justify-content-center"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-2">
+              <div class="small fw-bold mb-1">UE State Distribution</div>
+              <canvas id="kpiUeStateCanvas" width="280" height="170" style="max-width:100%;"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SMF Section ═══ -->
+        <div class="kpi-section-title">SMF &mdash; Session Management (TS 28.552 &sect;5.3)</div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-2"><div class="card kpi-card smf p-2 h-100">
+            <div class="kpi-val text-success" id="kv_smf_pdu">0</div>
+            <div class="kpi-label">PDU Sessions</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card smf p-2 h-100">
+            <div class="kpi-val text-success" id="kv_smf_active">0</div>
+            <div class="kpi-label">Active</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card smf p-2 h-100">
+            <div class="kpi-val text-success" id="kv_smf_bearers">0</div>
+            <div class="kpi-label">QoS Bearers</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card smf p-2 h-100">
+            <div class="kpi-val text-success" id="kv_smf_gbr">0</div>
+            <div class="kpi-label">GBR Bearers</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card smf p-2 h-100">
+            <div class="kpi-val text-success" id="kv_smf_nongbr">0</div>
+            <div class="kpi-label">NonGBR Bearers</div>
+          </div></div>
+        </div>
+
+        <!-- SMF Procedure Counters (TS 28.552 §5.3) -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <div class="card p-2 h-100">
+              <div class="small fw-bold mb-1">PDU Session Establishment (TS 28.552 §5.3.1)</div>
+              <table class="table table-sm kpi-table mb-0">
+                <tr><td>Attempts</td><td class="fw-bold" id="kv_sm_att">0</td>
+                    <td>QoS Flow Attempts</td><td class="fw-bold" id="kv_flow_att">0</td></tr>
+                <tr><td>Successes</td><td class="text-success fw-bold" id="kv_sm_succ">0</td>
+                    <td>QoS Flow Successes</td><td class="text-success fw-bold" id="kv_flow_succ">0</td></tr>
+                <tr><td>Failures</td><td class="text-danger fw-bold" id="kv_sm_fail">0</td>
+                    <td>Success Rate</td><td class="fw-bold" id="kv_sm_rate">-</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PDU per DNN + Slice -->
+        <div class="row g-2 mb-4">
+          <div class="col-md-6">
+            <div class="card p-2">
+              <div class="small fw-bold mb-1">PDU Sessions per DNN</div>
+              <div id="kpiDnnChart" class="kpi-chart-container d-flex align-items-end justify-content-center"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-2">
+              <div class="small fw-bold mb-1">PDU Sessions per S-NSSAI</div>
+              <div id="kpiSliceChart" class="kpi-chart-container d-flex align-items-end justify-content-center"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ UPF Section ═══ -->
+        <div class="kpi-section-title">UPF &mdash; User Plane (TS 28.552 &sect;5.4)</div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_sess">0</div>
+            <div class="kpi-label">UPF Sessions</div>
+          </div></div>
+          <div class="col-4 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_ul_bytes">0</div>
+            <div class="kpi-label">UL Volume</div>
+          </div></div>
+          <div class="col-4 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_dl_bytes">0</div>
+            <div class="kpi-label">DL Volume</div>
+          </div></div>
+          <div class="col-4 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_dropped">0</div>
+            <div class="kpi-label">Dropped Pkts</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_loss">0%</div>
+            <div class="kpi-label">Packet Loss</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_metered">0</div>
+            <div class="kpi-label">QoS Metered</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card upf p-2 h-100">
+            <div class="kpi-val text-danger" id="kv_upf_gtpu_err">0</div>
+            <div class="kpi-label">GTP-U Errors</div>
+          </div></div>
+        </div>
+
+        <!-- UPF Throughput Chart -->
+        <div class="row g-2 mb-4">
+          <div class="col-md-8">
+            <div class="card p-2">
+              <div class="small fw-bold mb-1">UPF Throughput (rolling 60s)</div>
+              <canvas id="kpiUpfTputCanvas" width="600" height="170" style="max-width:100%;"></canvas>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-2">
+              <div class="small fw-bold mb-1">IP Pool Utilization</div>
+              <div id="kpiIpPoolList" class="small"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ IMS Section ═══ -->
+        <div class="kpi-section-title">IMS &mdash; IP Multimedia Subsystem</div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3"><div class="card kpi-card ims p-2 h-100">
+            <div class="kpi-val" style="color:#6f42c1" id="kv_ims_subs">0</div>
+            <div class="kpi-label">IMS Subscribers</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card kpi-card ims p-2 h-100">
+            <div class="kpi-val" style="color:#6f42c1" id="kv_ims_reg">0</div>
+            <div class="kpi-label">Active Registrations</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card kpi-card ims p-2 h-100">
+            <div class="kpi-val" style="color:#6f42c1" id="kv_ims_calls">0</div>
+            <div class="kpi-label">Active Calls</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="card kpi-card ims p-2 h-100">
+            <div id="kv_ims_states" class="kpi-sub">--</div>
+            <div class="kpi-label">Call States</div>
+          </div></div>
+        </div>
+
+        <!-- ═══ MCX Section ═══ -->
+        <div class="kpi-section-title">MCX &mdash; Mission Critical Services (MCPTT / MCVideo / MCData)</div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-2"><div class="card kpi-card mcx p-2 h-100">
+            <div class="kpi-val" style="color:#fd7e14" id="kv_mcx_users">0</div>
+            <div class="kpi-label">MCX Users</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card mcx p-2 h-100">
+            <div class="kpi-val" style="color:#fd7e14" id="kv_mcx_groups">0</div>
+            <div class="kpi-label">Groups</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card mcx p-2 h-100">
+            <div class="kpi-val" style="color:#fd7e14" id="kv_mcx_calls">0</div>
+            <div class="kpi-label">Active Calls</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card mcx p-2 h-100">
+            <div class="kpi-val" style="color:#fd7e14" id="kv_mcx_msgs">0</div>
+            <div class="kpi-label">Messages (SDS)</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card mcx p-2 h-100">
+            <div class="kpi-val" style="color:#fd7e14" id="kv_mcx_floor">0</div>
+            <div class="kpi-label">Floor Grants</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card mcx p-2 h-100">
+            <div id="kv_mcx_types" class="kpi-sub">--</div>
+            <div class="kpi-label">Call Types</div>
+          </div></div>
+        </div>
+
+        <!-- ═══ Fault Management ═══ -->
+        <div class="kpi-section-title">Fault Management (TS 28.532)</div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-2"><div class="card kpi-card p-2 h-100" style="border-left-color:#dc3545">
+            <div class="kpi-val text-danger" id="kv_fm_critical">0</div>
+            <div class="kpi-label">Critical</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card p-2 h-100" style="border-left-color:#ffc107">
+            <div class="kpi-val" style="color:#664d03" id="kv_fm_major">0</div>
+            <div class="kpi-label">Major</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card p-2 h-100" style="border-left-color:#0dcaf0">
+            <div class="kpi-val text-info" id="kv_fm_minor">0</div>
+            <div class="kpi-label">Minor</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card p-2 h-100" style="border-left-color:#6c757d">
+            <div class="kpi-val text-secondary" id="kv_fm_warning">0</div>
+            <div class="kpi-label">Warning</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card p-2 h-100" style="border-left-color:#212529">
+            <div class="kpi-val" id="kv_fm_total">0</div>
+            <div class="kpi-label">Total Active</div>
+          </div></div>
+        </div>
+
+        <!-- ═══ Charging + Services ═══ -->
+        <div class="kpi-section-title">Charging &amp; Services</div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-2"><div class="card kpi-card chg p-2 h-100">
+            <div class="kpi-val" style="color:#20c997" id="kv_chg_total">0</div>
+            <div class="kpi-label">Charging Profiles</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card chg p-2 h-100">
+            <div class="kpi-val" style="color:#20c997" id="kv_chg_online">0</div>
+            <div class="kpi-label">Online (Prepaid)</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card chg p-2 h-100">
+            <div class="kpi-val" style="color:#20c997" id="kv_chg_offline">0</div>
+            <div class="kpi-label">Offline (Postpaid)</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card chg p-2 h-100">
+            <div class="kpi-val" style="color:#20c997" id="kv_chg_linked">0</div>
+            <div class="kpi-label">Linked Services</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card chg p-2 h-100">
+            <div class="kpi-val" style="color:#20c997" id="kv_svc_total">0</div>
+            <div class="kpi-label">Total Services</div>
+          </div></div>
+          <div class="col-6 col-md-2"><div class="card kpi-card chg p-2 h-100">
+            <div id="kv_svc_5qi" class="kpi-sub">--</div>
+            <div class="kpi-label">5QI Distribution</div>
+          </div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const toggleBtn  = document.getElementById('kpiToggleBtn');
+  const collapseEl = document.getElementById('kpiCollapse');
+  let bsInstance = null;
+  function syncUI(){
+    const open = collapseEl.classList.contains('show');
+    toggleBtn.classList.toggle('collapsed', !open);
+    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function getInst(){
+    if(bsInstance) return bsInstance;
+    bsInstance = bootstrap.Collapse.getOrCreateInstance(collapseEl, {toggle:false});
+    collapseEl.addEventListener('shown.bs.collapse', syncUI);
+    collapseEl.addEventListener('hidden.bs.collapse', syncUI);
+    return bsInstance;
+  }
+  toggleBtn.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); getInst().toggle(); });
+
+  const $ = id => document.getElementById(id);
+
+  // ── UPF throughput rolling buffer ──
+  const TPUT_LEN = 60;
+  const tputUl = new Array(TPUT_LEN).fill(0);
+  const tputDl = new Array(TPUT_LEN).fill(0);
+  let prevUl = null, prevDl = null, prevTs = null;
+
+  function fmtBytes(b) {
+    if (b >= 1e9) return (b/1e9).toFixed(1) + ' GB';
+    if (b >= 1e6) return (b/1e6).toFixed(1) + ' MB';
+    if (b >= 1e3) return (b/1e3).toFixed(1) + ' KB';
+    return b + ' B';
+  }
+  function fmtBps(bps) {
+    if (bps >= 1e6) return (bps/1e6).toFixed(1) + ' Mbps';
+    if (bps >= 1e3) return (bps/1e3).toFixed(1) + ' Kbps';
+    return bps.toFixed(0) + ' bps';
+  }
+
+  // ── Bar chart helper ──
+  function renderBarChart(containerId, data, color) {
+    const el = $(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    if (!data || Object.keys(data).length === 0) {
+      el.innerHTML = '<span class="text-muted small">No data</span>';
+      return;
+    }
+    const maxVal = Math.max(...Object.values(data), 1);
+    const chartH = 140;
+    Object.entries(data).forEach(([label, val]) => {
+      const barH = Math.max(4, (val / maxVal) * chartH);
+      const col = document.createElement('div');
+      col.className = 'text-center';
+      col.style.flex = '1';
+      col.innerHTML =
+        `<div class="small fw-bold">${val}</div>` +
+        `<div class="kpi-bar" style="height:${barH}px;width:80%;margin:0 auto;background:${color||'#0d6efd'}"></div>` +
+        `<div class="small text-muted text-truncate" style="max-width:80px;margin:0 auto" title="${label}">${label}</div>`;
+      el.appendChild(col);
+    });
+  }
+
+  // ── Donut/ring for UE states ──
+  function renderUeStateDonut(reg, conn, idle, unreg) {
+    const canvas = $('kpiUeStateCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const total = reg + unreg;
+    if (total === 0) {
+      ctx.fillStyle = '#adb5bd';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No UE', W/2, H/2);
+      return;
+    }
+    const segments = [
+      {val: conn, color: '#198754', label: 'Connected'},
+      {val: idle, color: '#ffc107', label: 'Idle'},
+      {val: unreg, color: '#adb5bd', label: 'Deregistered'},
+    ];
+    const cx = 90, cy = H/2, R = 60, r = 35;
+    let angle = -Math.PI/2;
+    segments.forEach(s => {
+      if (s.val === 0) return;
+      const sweep = (s.val / total) * 2 * Math.PI;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, angle, angle + sweep);
+      ctx.arc(cx, cy, r, angle + sweep, angle, true);
+      ctx.closePath();
+      ctx.fillStyle = s.color;
+      ctx.fill();
+      angle += sweep;
+    });
+    // Legend
+    let ly = 30;
+    segments.forEach(s => {
+      ctx.fillStyle = s.color;
+      ctx.fillRect(200, ly, 12, 12);
+      ctx.fillStyle = '#212529';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${s.label}: ${s.val}`, 218, ly + 10);
+      ly += 22;
+    });
+    // Center text
+    ctx.fillStyle = '#212529';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(total, cx, cy + 6);
+  }
+
+  // ── UPF throughput line chart ──
+  function renderTputChart() {
+    const canvas = $('kpiUpfTputCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const pad = {t:20, b:25, l:50, r:10};
+    ctx.clearRect(0, 0, W, H);
+
+    const maxVal = Math.max(...tputUl, ...tputDl, 1);
+    const plotW = W - pad.l - pad.r;
+    const plotH = H - pad.t - pad.b;
+
+    // Grid
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + (plotH / 4) * i;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      ctx.fillStyle = '#6c757d';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(fmtBps(maxVal * (1 - i/4)), pad.l - 4, y + 3);
+    }
+
+    // Lines
+    function drawLine(data, color) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      data.forEach((v, i) => {
+        const x = pad.l + (i / (TPUT_LEN - 1)) * plotW;
+        const y = pad.t + plotH - (v / maxVal) * plotH;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    drawLine(tputDl, '#dc3545');
+    drawLine(tputUl, '#0d6efd');
+
+    // Legend
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#0d6efd';
+    ctx.fillRect(pad.l + 10, 4, 12, 3);
+    ctx.fillText('UL', pad.l + 26, 10);
+    ctx.fillStyle = '#dc3545';
+    ctx.fillRect(pad.l + 60, 4, 12, 3);
+    ctx.fillText('DL', pad.l + 76, 10);
+
+    // X-axis
+    ctx.fillStyle = '#6c757d';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('-60s', pad.l, H - 5);
+    ctx.fillText('now', W - pad.r, H - 5);
+  }
+
+  // ── Main fetch + render ──
+  async function fetchKpis() {
+    try {
+      const r = await fetch('/api/kpis');
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || r.statusText);
+
+      const amf = d.amf || {};
+      $('kv_amf_registered').textContent = amf.registered_ue || 0;
+      $('kv_amf_connected').textContent = amf.connected_ue || 0;
+      $('kv_amf_idle').textContent = amf.idle_ue || 0;
+      $('kv_amf_auth').textContent = amf.auth_completed || 0;
+      $('kv_amf_sec').textContent = amf.security_established || 0;
+      $('kv_amf_gnb').textContent = amf.gnb_count || 0;
+
+      // TS 28.552 procedure counters
+      $('kv_reg_att').textContent = amf.reg_attempts || 0;
+      $('kv_reg_succ').textContent = amf.reg_successes || 0;
+      $('kv_reg_fail').textContent = amf.reg_failures || 0;
+      $('kv_reg_rate').textContent = amf.reg_success_rate != null ? amf.reg_success_rate + '%' : '-';
+      $('kv_auth_att').textContent = amf.auth_attempts || 0;
+      $('kv_auth_succ').textContent = amf.auth_successes || 0;
+      $('kv_auth_fail').textContent = amf.auth_failures || 0;
+      $('kv_auth_rate').textContent = amf.auth_success_rate != null ? amf.auth_success_rate + '%' : '-';
+      $('kv_ngap_att').textContent = amf.ngap_setup_attempts || 0;
+      $('kv_ngap_succ').textContent = amf.ngap_setup_successes || 0;
+      $('kv_ngap_fail').textContent = amf.ngap_setup_failures || 0;
+
+      // gNB bar chart
+      const gnbData = {};
+      (amf.gnb_distribution || []).forEach(g => gnbData[g.name] = g.ue_count);
+      renderBarChart('kpiGnbChart', gnbData, '#0d6efd');
+
+      // UE state donut
+      const totalUe = amf.total_ue_contexts || 0;
+      const unreg = totalUe - (amf.registered_ue || 0);
+      renderUeStateDonut(amf.registered_ue||0, amf.connected_ue||0, amf.idle_ue||0, unreg);
+
+      // SMF
+      const smf = d.smf || {};
+      $('kv_smf_pdu').textContent = smf.total_pdu_sessions || 0;
+      $('kv_smf_active').textContent = smf.active_pdu_sessions || 0;
+      $('kv_smf_bearers').textContent = smf.total_bearers || 0;
+      $('kv_smf_gbr').textContent = smf.gbr_bearers || 0;
+      $('kv_smf_nongbr').textContent = smf.nongbr_bearers || 0;
+
+      // TS 28.552 §5.3 procedure counters
+      $('kv_sm_att').textContent = smf.sess_attempts || 0;
+      $('kv_sm_succ').textContent = smf.sess_successes || 0;
+      $('kv_sm_fail').textContent = smf.sess_failures || 0;
+      $('kv_sm_rate').textContent = smf.sess_success_rate != null ? smf.sess_success_rate + '%' : '-';
+      $('kv_flow_att').textContent = smf.flow_attempts || 0;
+      $('kv_flow_succ').textContent = smf.flow_successes || 0;
+
+      renderBarChart('kpiDnnChart', smf.pdu_per_dnn || {}, '#198754');
+      renderBarChart('kpiSliceChart', smf.pdu_per_slice || {}, '#0dcaf0');
+
+      // UPF
+      const upf = d.upf || {};
+      $('kv_upf_sess').textContent = upf.sessions || 0;
+      $('kv_upf_ul_bytes').textContent = fmtBytes(upf.ul_bytes || 0);
+      $('kv_upf_dl_bytes').textContent = fmtBytes(upf.dl_bytes || 0);
+      $('kv_upf_dropped').textContent = (upf.ul_dropped||0) + (upf.dl_dropped||0);
+      $('kv_upf_metered').textContent = (upf.ul_metered||0) + (upf.dl_metered||0);
+      $('kv_upf_loss').textContent = (upf.packet_loss_rate || 0) + '%';
+      $('kv_upf_gtpu_err').textContent = upf.gtpu_errors || 0;
+
+      // Throughput calc
+      const ts = d.timestamp;
+      if (prevTs !== null && ts > prevTs) {
+        const dt = ts - prevTs;
+        const ulBps = ((upf.ul_bytes||0) - (prevUl||0)) * 8 / dt;
+        const dlBps = ((upf.dl_bytes||0) - (prevDl||0)) * 8 / dt;
+        tputUl.push(Math.max(0, ulBps)); tputUl.shift();
+        tputDl.push(Math.max(0, dlBps)); tputDl.shift();
+      }
+      prevUl = upf.ul_bytes||0; prevDl = upf.dl_bytes||0; prevTs = ts;
+      renderTputChart();
+
+      // IP Pools
+      const ipEl = $('kpiIpPoolList');
+      const pools = d.ip_pools || [];
+      if (pools.length === 0) {
+        ipEl.innerHTML = '<span class="text-muted">No pools</span>';
+      } else {
+        ipEl.innerHTML = pools.map(p => {
+          const pct = p.utilization_pct || 0;
+          const barColor = pct > 80 ? '#dc3545' : pct > 50 ? '#ffc107' : '#198754';
+          return `<div class="mb-2">
+            <div class="d-flex justify-content-between"><span class="fw-bold">${p.dnn}</span>
+              <span>${p.allocated}/${p.total} (${pct}%)</span></div>
+            <div class="progress" style="height:6px">
+              <div class="progress-bar" style="width:${pct}%;background:${barColor}"></div>
+            </div></div>`;
+        }).join('');
+      }
+
+      // IMS
+      const ims = d.ims || {};
+      $('kv_ims_subs').textContent = ims.total_subscribers || 0;
+      $('kv_ims_reg').textContent = ims.active_registrations || 0;
+      $('kv_ims_calls').textContent = ims.active_calls || 0;
+      const states = ims.calls_by_state || {};
+      const stateHtml = Object.keys(states).length === 0 ? '--'
+        : Object.entries(states).map(([k,v]) =>
+          `<span class="badge kpi-badge ${k==='confirmed'?'bg-success':k==='early'?'bg-warning text-dark':'bg-secondary'} me-1">${k}: ${v}</span>`
+        ).join('');
+      $('kv_ims_states').innerHTML = stateHtml;
+
+      // MCX
+      const mcx = d.mcx || {};
+      $('kv_mcx_users').textContent = mcx.total_users || 0;
+      $('kv_mcx_groups').textContent = mcx.total_groups || 0;
+      $('kv_mcx_calls').textContent = mcx.active_calls || 0;
+      $('kv_mcx_msgs').textContent = mcx.total_messages || 0;
+      $('kv_mcx_floor').textContent = mcx.floor_grants || 0;
+      const types = mcx.calls_by_type || {};
+      $('kv_mcx_types').innerHTML = Object.keys(types).length === 0 ? '--'
+        : Object.entries(types).map(([k,v]) =>
+          `<span class="badge kpi-badge bg-warning text-dark me-1">${k}: ${v}</span>`
+        ).join('');
+
+      // Fault Management
+      const fm = d.fm || {};
+      $('kv_fm_critical').textContent = fm.Critical || 0;
+      $('kv_fm_major').textContent = fm.Major || 0;
+      $('kv_fm_minor').textContent = fm.Minor || 0;
+      $('kv_fm_warning').textContent = (fm.Warning || 0) + (fm.Indeterminate || 0);
+      $('kv_fm_total').textContent = fm.total || 0;
+
+      // Charging
+      const chg = d.charging || {};
+      $('kv_chg_total').textContent = chg.total_profiles || 0;
+      $('kv_chg_online').textContent = chg.online || 0;
+      $('kv_chg_offline').textContent = chg.offline || 0;
+      $('kv_chg_linked').textContent = chg.linked_services || 0;
+
+      // Services
+      const svc = d.services || {};
+      $('kv_svc_total').textContent = svc.total || 0;
+      const qi = svc.by_5qi || {};
+      $('kv_svc_5qi').innerHTML = Object.keys(qi).length === 0 ? '--'
+        : Object.entries(qi).map(([k,v]) =>
+          `<span class="badge kpi-badge bg-info text-dark me-1">5QI ${k}: ${v}</span>`
+        ).join('');
+
+      $('kpiLastUpdate').textContent = 'Updated: ' + new Date(ts * 1000).toLocaleTimeString();
+
+    } catch(e) {
+      $('kpiLastUpdate').textContent = 'Error: ' + e.message;
+    }
+  }
+
+  // ── Live polling ──
+  let timer = null;
+  function startLive() {
+    stopLive();
+    const sec = parseFloat($('kpiLiveInterval').value) || 5;
+    timer = setInterval(fetchKpis, sec * 1000);
+  }
+  function stopLive() { if (timer) { clearInterval(timer); timer = null; } }
+
+  $('kpiLiveToggle').addEventListener('change', () => {
+    if ($('kpiLiveToggle').checked) startLive(); else stopLive();
+  });
+  $('kpiLiveInterval').addEventListener('change', () => {
+    if ($('kpiLiveToggle').checked) startLive();
+  });
+  $('kpiRefreshBtn').addEventListener('click', fetchKpis);
+
+  collapseEl.addEventListener('shown.bs.collapse', () => {
+    collapseEl.scrollIntoView({behavior:'smooth', block:'start'});
+    fetchKpis();
+  });
+
+  fetchKpis();
+  syncUI();
+})();
+</script>

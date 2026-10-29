@@ -1,0 +1,334 @@
+<!-- templates/nidd.html — NIDD (Non-IP Data Delivery) Management -->
+
+<style>
+.nidd-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.nidd-card .n-val { font-size: 1.5rem; font-weight: 700; }
+.nidd-card .n-lbl { font-size: 0.78rem; opacity: 0.9; }
+.nc-blue { background: #0d6efd; }
+.nc-green { background: #28a745; }
+.nc-orange { background: #fd7e14; }
+.nc-purple { background: #6f42c1; }
+.nc-red { background: #dc3545; }
+.nc-gray { background: #6c757d; }
+.nidd-section { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #f8f9fa; }
+.nidd-section h6 { margin-bottom: 8px; font-size: 0.9rem; }
+.st-delivered { color: #28a745; font-weight: 600; }
+.st-buffered { color: #fd7e14; font-weight: 600; }
+.st-failed { color: #dc3545; font-weight: 600; }
+.st-pending { color: #6c757d; font-weight: 600; }
+.st-expired { color: #adb5bd; font-weight: 600; }
+</style>
+
+<!-- Stats summary -->
+<div class="row g-2 mb-3" id="niddStats">
+  <div class="col"><div class="nidd-card nc-blue"><div class="n-val" id="niddActive">--</div><div class="n-lbl">Active Sessions</div></div></div>
+  <div class="col"><div class="nidd-card nc-green"><div class="n-val" id="niddDelivered">--</div><div class="n-lbl">Delivered</div></div></div>
+  <div class="col"><div class="nidd-card nc-orange"><div class="n-val" id="niddBuffered">--</div><div class="n-lbl">Buffered</div></div></div>
+  <div class="col"><div class="nidd-card nc-red"><div class="n-val" id="niddFailed">--</div><div class="n-lbl">Failed</div></div></div>
+  <div class="col"><div class="nidd-card nc-purple"><div class="n-val" id="niddRate">--</div><div class="n-lbl">Delivery Rate</div></div></div>
+  <div class="col"><div class="nidd-card nc-gray"><div class="n-val" id="niddServers">--</div><div class="n-lbl">App Servers</div></div></div>
+</div>
+
+<div class="row g-3">
+  <!-- Left column: Sessions + Send Data -->
+  <div class="col-md-7">
+    <div class="nidd-section">
+      <h6 class="fw-bold">NIDD Sessions</h6>
+      <div class="mb-2">
+        <input type="text" id="niddFilterImsi" class="form-control form-control-sm d-inline-block" style="width:180px" placeholder="Filter by IMSI">
+        <button class="btn btn-sm btn-outline-primary ms-1" onclick="niddLoadSessions()">Filter</button>
+        <button class="btn btn-sm btn-outline-success ms-1" onclick="niddShowCreateModal()">+ New Session</button>
+      </div>
+      <div style="max-height:260px;overflow-y:auto">
+        <table class="table table-sm table-striped mb-0" style="font-size:0.82rem">
+          <thead><tr><th>Session ID</th><th>IMSI</th><th>APN</th><th>App Server</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="niddSessionTbody"><tr><td colspan="6" class="text-muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nidd-section">
+      <h6 class="fw-bold">Send / Receive Data</h6>
+      <div class="row g-2">
+        <div class="col-md-5">
+          <label class="form-label" style="font-size:0.8rem">Session ID</label>
+          <select id="niddDataSessId" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label" style="font-size:0.8rem">Data (hex)</label>
+          <input type="text" id="niddDataHex" class="form-control form-control-sm" placeholder="48656c6c6f">
+        </div>
+        <div class="col-md-2 d-flex align-items-end gap-1">
+          <button class="btn btn-sm btn-primary" onclick="niddSendDL()">DL</button>
+          <button class="btn btn-sm btn-secondary" onclick="niddSendUL()">UL</button>
+        </div>
+      </div>
+      <div id="niddSendResult" class="mt-1" style="font-size:0.8rem"></div>
+    </div>
+
+    <div class="nidd-section">
+      <h6 class="fw-bold">Data Delivery Log</h6>
+      <div class="mb-1">
+        <select id="niddLogSessId" class="form-select form-select-sm d-inline-block" style="width:220px" onchange="niddLoadLog()"></select>
+      </div>
+      <div style="max-height:220px;overflow-y:auto">
+        <table class="table table-sm table-striped mb-0" style="font-size:0.78rem">
+          <thead><tr><th>ID</th><th>Dir</th><th>Length</th><th>Status</th><th>Created</th><th>Delivered</th></tr></thead>
+          <tbody id="niddLogTbody"><tr><td colspan="6" class="text-muted">Select a session</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: App Servers + Buffered Delivery -->
+  <div class="col-md-5">
+    <div class="nidd-section">
+      <h6 class="fw-bold">App Server Registry</h6>
+      <div class="mb-2">
+        <button class="btn btn-sm btn-outline-success" onclick="niddShowAppServerModal()">+ Register Server</button>
+      </div>
+      <div style="max-height:200px;overflow-y:auto">
+        <table class="table table-sm table-striped mb-0" style="font-size:0.82rem">
+          <thead><tr><th>ID</th><th>Name</th><th>Callback URL</th><th></th></tr></thead>
+          <tbody id="niddAppServerTbody"><tr><td colspan="4" class="text-muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="nidd-section">
+      <h6 class="fw-bold">Trigger Buffered Delivery</h6>
+      <p style="font-size:0.78rem;color:#666">Deliver buffered DL data when UE becomes reachable (exits PSM sleep).</p>
+      <div class="input-group input-group-sm">
+        <input type="text" id="niddBuffImsi" class="form-control" placeholder="IMSI">
+        <button class="btn btn-outline-warning" onclick="niddDeliverBuffered()">Deliver</button>
+      </div>
+      <div id="niddBuffResult" class="mt-1" style="font-size:0.8rem"></div>
+    </div>
+
+    <div class="nidd-section">
+      <h6 class="fw-bold">Traffic Summary</h6>
+      <div class="row g-1" style="font-size:0.82rem" id="niddTraffic">
+        <div class="col-6"><strong>UL messages:</strong> <span id="niddUlCount">--</span></div>
+        <div class="col-6"><strong>DL messages:</strong> <span id="niddDlCount">--</span></div>
+        <div class="col-6"><strong>UL bytes:</strong> <span id="niddUlBytes">--</span></div>
+        <div class="col-6"><strong>DL bytes:</strong> <span id="niddDlBytes">--</span></div>
+        <div class="col-6"><strong>Total sessions:</strong> <span id="niddTotalSess">--</span></div>
+        <div class="col-6"><strong>Total messages:</strong> <span id="niddTotalMsg">--</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="text-end mt-2">
+  <small class="text-muted" id="niddTs">Last updated: --</small>
+  <button class="btn btn-sm btn-outline-secondary ms-1" onclick="niddRefreshAll()">Refresh</button>
+</div>
+
+<!-- Create Session Modal -->
+<div class="modal fade" id="niddCreateModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title">Create NIDD Session</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="mb-2"><label class="form-label form-label-sm">IMSI</label><input type="text" id="niddNewImsi" class="form-control form-control-sm"></div>
+      <div class="mb-2"><label class="form-label form-label-sm">App Server ID</label><select id="niddNewAppServer" class="form-select form-select-sm"></select></div>
+      <div class="mb-2"><label class="form-label form-label-sm">APN</label><input type="text" id="niddNewApn" class="form-control form-control-sm" value="nidd"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button class="btn btn-sm btn-primary" onclick="niddCreateSession()">Create</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- Register App Server Modal -->
+<div class="modal fade" id="niddAppServerModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h6 class="modal-title">Register App Server</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="mb-2"><label class="form-label form-label-sm">App Server ID</label><input type="text" id="niddSrvId" class="form-control form-control-sm" placeholder="e.g. iot-app-01"></div>
+      <div class="mb-2"><label class="form-label form-label-sm">Name</label><input type="text" id="niddSrvName" class="form-control form-control-sm"></div>
+      <div class="mb-2"><label class="form-label form-label-sm">Callback URL</label><input type="text" id="niddSrvCallback" class="form-control form-control-sm" placeholder="http://..."></div>
+      <div class="mb-2"><label class="form-label form-label-sm">Auth Token</label><input type="text" id="niddSrvToken" class="form-control form-control-sm"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button class="btn btn-sm btn-primary" onclick="niddRegisterAppServer()">Register</button>
+    </div>
+  </div></div>
+</div>
+
+<script>
+function niddRefreshAll() {
+  niddLoadStats();
+  niddLoadSessions();
+  niddLoadAppServers();
+}
+
+function niddLoadStats() {
+  fetch('/api/nidd/stats').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    document.getElementById('niddActive').textContent = d.active_sessions || 0;
+    document.getElementById('niddDelivered').textContent = d.delivered || 0;
+    document.getElementById('niddBuffered').textContent = d.buffered || 0;
+    document.getElementById('niddFailed').textContent = d.failed || 0;
+    document.getElementById('niddRate').textContent = (d.delivery_rate || 0) + '%';
+    document.getElementById('niddServers').textContent = d.app_servers || 0;
+    document.getElementById('niddUlCount').textContent = d.ul_count || 0;
+    document.getElementById('niddDlCount').textContent = d.dl_count || 0;
+    document.getElementById('niddUlBytes').textContent = d.ul_bytes || 0;
+    document.getElementById('niddDlBytes').textContent = d.dl_bytes || 0;
+    document.getElementById('niddTotalSess').textContent = d.total_sessions || 0;
+    document.getElementById('niddTotalMsg').textContent = d.total_messages || 0;
+    document.getElementById('niddTs').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  }).catch(()=>{});
+}
+
+function niddLoadSessions() {
+  let url = '/api/nidd/sessions';
+  const imsi = document.getElementById('niddFilterImsi').value.trim();
+  if (imsi) url += '?imsi=' + encodeURIComponent(imsi);
+  fetch(url).then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const tb = document.getElementById('niddSessionTbody');
+    const sel1 = document.getElementById('niddDataSessId');
+    const sel2 = document.getElementById('niddLogSessId');
+    sel1.innerHTML = '<option value="">-- select --</option>';
+    sel2.innerHTML = '<option value="">-- select --</option>';
+    if (!d.sessions.length) { tb.innerHTML = '<tr><td colspan="6" class="text-muted">No sessions</td></tr>'; return; }
+    tb.innerHTML = d.sessions.map(s => {
+      const sid = s.session_id;
+      const cls = s.status === 'active' ? 'text-success' : 'text-secondary';
+      return `<tr>
+        <td><code>${sid.substring(0,16)}</code></td>
+        <td>${s.imsi||''}</td><td>${s.apn||''}</td>
+        <td>${s.app_server_url||''}</td>
+        <td class="${cls}">${s.status}</td>
+        <td>${s.status==='active'?'<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="niddCloseSession(\''+sid+'\')">Close</button>':''}</td>
+      </tr>`;
+    }).join('');
+    d.sessions.filter(s=>s.status==='active').forEach(s => {
+      sel1.innerHTML += `<option value="${s.session_id}">${s.session_id.substring(0,16)} (${s.imsi})</option>`;
+      sel2.innerHTML += `<option value="${s.session_id}">${s.session_id.substring(0,16)} (${s.imsi})</option>`;
+    });
+  }).catch(()=>{});
+}
+
+function niddLoadAppServers() {
+  fetch('/api/nidd/app-servers').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const tb = document.getElementById('niddAppServerTbody');
+    const sel = document.getElementById('niddNewAppServer');
+    sel.innerHTML = '';
+    if (!d.servers.length) { tb.innerHTML = '<tr><td colspan="4" class="text-muted">No servers</td></tr>'; return; }
+    tb.innerHTML = d.servers.map(s =>
+      `<tr><td><code>${s.app_server_id}</code></td><td>${s.name||''}</td><td style="font-size:0.75rem">${s.callback_url||'--'}</td>
+       <td><button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="niddDeleteAppServer('${s.app_server_id}')">Del</button></td></tr>`
+    ).join('');
+    d.servers.forEach(s => { sel.innerHTML += `<option value="${s.app_server_id}">${s.app_server_id} (${s.name||''})</option>`; });
+  }).catch(()=>{});
+}
+
+function niddLoadLog() {
+  const sid = document.getElementById('niddLogSessId').value;
+  const tb = document.getElementById('niddLogTbody');
+  if (!sid) { tb.innerHTML = '<tr><td colspan="6" class="text-muted">Select a session</td></tr>'; return; }
+  fetch('/api/nidd/sessions/' + sid + '/log').then(r=>r.json()).then(d => {
+    if (!d.ok || !d.log.length) { tb.innerHTML = '<tr><td colspan="6" class="text-muted">No log entries</td></tr>'; return; }
+    tb.innerHTML = d.log.map(e =>
+      `<tr><td>${e.id}</td><td>${e.direction}</td><td>${e.data_length} B</td>
+       <td class="st-${e.status}">${e.status}</td>
+       <td>${e.created_at||''}</td><td>${e.delivered_at||'--'}</td></tr>`
+    ).join('');
+  }).catch(()=>{});
+}
+
+function niddSendDL() {
+  const sid = document.getElementById('niddDataSessId').value;
+  const hex = document.getElementById('niddDataHex').value.trim();
+  if (!sid || !hex) { document.getElementById('niddSendResult').innerHTML = '<span class="text-danger">Select session and enter hex data</span>'; return; }
+  fetch('/api/nidd/sessions/' + sid + '/send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({data_hex: hex})})
+    .then(r=>r.json()).then(d => {
+      const cls = d.status === 'delivered' ? 'text-success' : d.status === 'buffered' ? 'text-warning' : 'text-danger';
+      document.getElementById('niddSendResult').innerHTML = `<span class="${cls}">DL: ${d.status} (${d.data_length||0} bytes, log #${d.log_id||''})</span>`;
+      niddLoadStats();
+    }).catch(e => { document.getElementById('niddSendResult').innerHTML = '<span class="text-danger">Error: '+e+'</span>'; });
+}
+
+function niddSendUL() {
+  const sid = document.getElementById('niddDataSessId').value;
+  const hex = document.getElementById('niddDataHex').value.trim();
+  if (!sid || !hex) { document.getElementById('niddSendResult').innerHTML = '<span class="text-danger">Select session and enter hex data</span>'; return; }
+  fetch('/api/nidd/sessions/' + sid + '/receive', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({data_hex: hex})})
+    .then(r=>r.json()).then(d => {
+      const cls = d.status === 'delivered' ? 'text-success' : 'text-danger';
+      document.getElementById('niddSendResult').innerHTML = `<span class="${cls}">UL: ${d.status} (${d.data_length||0} bytes, log #${d.log_id||''})</span>`;
+      niddLoadStats();
+    }).catch(e => { document.getElementById('niddSendResult').innerHTML = '<span class="text-danger">Error: '+e+'</span>'; });
+}
+
+function niddCloseSession(sid) {
+  if (!confirm('Close session ' + sid + '?')) return;
+  fetch('/api/nidd/sessions/' + sid, {method:'DELETE'}).then(r=>r.json()).then(d => {
+    if (d.ok) niddRefreshAll(); else alert(d.error||'Failed');
+  });
+}
+
+function niddDeliverBuffered() {
+  const imsi = document.getElementById('niddBuffImsi').value.trim();
+  if (!imsi) return;
+  fetch('/api/nidd/deliver-buffered', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({imsi})})
+    .then(r=>r.json()).then(d => {
+      document.getElementById('niddBuffResult').innerHTML = d.ok
+        ? `<span class="text-success">Delivered: ${d.delivered_count}, Failed: ${d.failed_count}</span>`
+        : `<span class="text-danger">${d.error||'Failed'}</span>`;
+      niddLoadStats();
+    });
+}
+
+function niddShowCreateModal() {
+  niddLoadAppServers();
+  new bootstrap.Modal(document.getElementById('niddCreateModal')).show();
+}
+
+function niddCreateSession() {
+  const imsi = document.getElementById('niddNewImsi').value.trim();
+  const app = document.getElementById('niddNewAppServer').value;
+  const apn = document.getElementById('niddNewApn').value.trim() || 'nidd';
+  if (!imsi || !app) { alert('IMSI and App Server required'); return; }
+  fetch('/api/nidd/sessions', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({imsi, app_server_id: app, config: {apn}})})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) { bootstrap.Modal.getInstance(document.getElementById('niddCreateModal')).hide(); niddRefreshAll(); }
+      else alert(d.error||'Failed');
+    });
+}
+
+function niddShowAppServerModal() {
+  new bootstrap.Modal(document.getElementById('niddAppServerModal')).show();
+}
+
+function niddRegisterAppServer() {
+  const id = document.getElementById('niddSrvId').value.trim();
+  if (!id) { alert('App Server ID required'); return; }
+  fetch('/api/nidd/app-servers', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      app_server_id: id,
+      name: document.getElementById('niddSrvName').value.trim(),
+      callback_url: document.getElementById('niddSrvCallback').value.trim(),
+      auth_token: document.getElementById('niddSrvToken').value.trim()
+    })}).then(r=>r.json()).then(d => {
+      if (d.ok) { bootstrap.Modal.getInstance(document.getElementById('niddAppServerModal')).hide(); niddLoadAppServers(); niddLoadStats(); }
+      else alert(d.error||'Failed');
+    });
+}
+
+function niddDeleteAppServer(id) {
+  if (!confirm('Delete app server ' + id + '?')) return;
+  fetch('/api/nidd/app-servers/' + id, {method:'DELETE'}).then(r=>r.json()).then(d => {
+    if (d.ok) niddLoadAppServers(); else alert(d.error||'Failed');
+  });
+}
+
+// Auto-load
+niddRefreshAll();
+</script>

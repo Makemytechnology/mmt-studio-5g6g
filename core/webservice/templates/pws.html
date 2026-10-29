@@ -1,0 +1,251 @@
+<!-- templates/pws.html — Public Warning System (TS 23.041 — Cell Broadcast) -->
+
+<!-- PWS Status Overview -->
+<div class="row g-2 mb-3" id="pwsStatus">
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #dc3545"><div class="fw-bold fs-4" id="pwsTotalAlerts">0</div><div class="small text-muted">Total Alerts</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #fd7e14"><div class="fw-bold fs-4" id="pwsBroadcasting">0</div><div class="small text-muted">Broadcasting</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #198754"><div class="fw-bold fs-4" id="pwsCompleted">0</div><div class="small text-muted">Completed</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #6c757d"><div class="fw-bold fs-4" id="pwsCancelled">0</div><div class="small text-muted">Cancelled</div></div></div>
+  <div class="col"><div class="card p-2 text-center" style="border-left:3px solid #0d6efd"><div class="fw-bold fs-4" id="pwsTotalDeliveries">0</div><div class="small text-muted">Deliveries</div></div></div>
+</div>
+
+<!-- Alert Composer -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-danger text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#pwsComposerCollapse"><div class="w-100 text-center">Alert Composer (TS 23.041 Section 9.4)</div></button></h2>
+  <div id="pwsComposerCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Alert Type</label>
+        <select id="pwsAlertType" class="form-select form-select-sm" style="width:130px">
+          <option value="cmas">CMAS/WEA</option><option value="etws">ETWS</option>
+          <option value="eu_alert">EU-Alert</option><option value="test">Test</option>
+        </select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Severity</label>
+        <select id="pwsSeverity" class="form-select form-select-sm" style="width:120px">
+          <option value="extreme">Extreme</option><option value="severe">Severe</option>
+          <option value="moderate">Moderate</option><option value="minor">Minor</option>
+          <option value="unknown">Unknown</option>
+        </select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Urgency</label>
+        <select id="pwsUrgency" class="form-select form-select-sm" style="width:120px">
+          <option value="immediate">Immediate</option><option value="expected">Expected</option>
+          <option value="future">Future</option><option value="past">Past</option>
+          <option value="unknown">Unknown</option>
+        </select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Category</label>
+        <select id="pwsCategory" class="form-select form-select-sm" style="width:120px">
+          <option value="geo">Geo</option><option value="met">Met</option>
+          <option value="safety">Safety</option><option value="security">Security</option>
+          <option value="rescue">Rescue</option><option value="fire">Fire</option>
+          <option value="health">Health</option><option value="env">Env</option>
+          <option value="transport">Transport</option><option value="infra">Infra</option>
+          <option value="cbrne">CBRNE</option>
+        </select></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Language</label>
+        <input id="pwsLanguage" class="form-control form-control-sm" style="width:60px" value="en"></div>
+    </div>
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col"><label class="form-label mb-0 small">Message Text</label>
+        <textarea id="pwsMessageText" class="form-control form-control-sm" rows="2" placeholder="Emergency alert message..."></textarea></div>
+    </div>
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-auto"><label class="form-label mb-0 small">Target Areas (TACs, comma-sep)</label>
+        <input id="pwsTargetAreas" class="form-control form-control-sm" style="width:220px" placeholder="1, 2, 3"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Repetition (s)</label>
+        <input id="pwsRepetition" class="form-control form-control-sm" style="width:80px" type="number" value="60"></div>
+      <div class="col-auto"><label class="form-label mb-0 small">Broadcasts</label>
+        <input id="pwsBroadcasts" class="form-control form-control-sm" style="width:80px" type="number" value="10"></div>
+      <div class="col-auto"><button id="btnPwsCreate" class="btn btn-danger btn-sm">+ Create Alert</button></div>
+      <div class="col-auto"><button id="btnPwsTestAlert" class="btn btn-warning btn-sm">Send Test Alert</button></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- Active Alerts -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-primary text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#pwsAlertsCollapse"><div class="w-100 text-center">Active Alerts Dashboard</div></button></h2>
+  <div id="pwsAlertsCollapse" class="accordion-collapse collapse show"><div class="accordion-body py-2">
+    <div class="mb-2">
+      <select id="pwsFilterStatus" class="form-select form-select-sm d-inline-block" style="width:140px">
+        <option value="">All Status</option><option value="draft">Draft</option>
+        <option value="broadcasting">Broadcasting</option><option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <select id="pwsFilterType" class="form-select form-select-sm d-inline-block ms-1" style="width:130px">
+        <option value="">All Types</option><option value="etws">ETWS</option>
+        <option value="cmas">CMAS/WEA</option><option value="eu_alert">EU-Alert</option>
+        <option value="test">Test</option>
+      </select>
+      <button id="btnPwsRefresh" class="btn btn-outline-primary btn-sm ms-1">Refresh</button>
+    </div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Type</th><th>Severity</th><th>Urgency</th><th>Category</th><th>Message</th><th>Status</th><th>Created</th><th></th></tr>
+    </thead><tbody id="pwsAlertsBody"><tr><td colspan="9" class="text-muted text-center">No alerts</td></tr></tbody></table></div>
+  </div></div>
+</div></div>
+
+<!-- Delivery Log -->
+<div class="accordion mb-3"><div class="accordion-item">
+  <h2 class="accordion-header"><button class="accordion-button bg-info text-white fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pwsDeliveryCollapse"><div class="w-100 text-center">Delivery Log (TS 38.413 Section 9.1.9)</div></button></h2>
+  <div id="pwsDeliveryCollapse" class="accordion-collapse collapse"><div class="accordion-body py-2">
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light">
+      <tr><th>ID</th><th>Alert</th><th>Type</th><th>gNB</th><th>Status</th><th>Delivered</th><th>Ack</th></tr>
+    </thead><tbody id="pwsDeliveryBody"><tr><td colspan="7" class="text-muted text-center">No deliveries</td></tr></tbody></table></div>
+    <button id="btnPwsRefreshDelivery" class="btn btn-outline-info btn-sm mt-2">Refresh Log</button>
+  </div></div>
+</div></div>
+
+<script>
+(function(){
+  const API = '/api/pws';
+
+  // ── Helpers ──
+  function severityBadge(s) {
+    const m = {extreme:'danger',severe:'warning',moderate:'info',minor:'secondary',unknown:'light'};
+    return `<span class="badge bg-${m[s]||'light'}">${s}</span>`;
+  }
+  function statusBadge(s) {
+    const m = {draft:'secondary',broadcasting:'warning',completed:'success',cancelled:'dark'};
+    return `<span class="badge bg-${m[s]||'light'}">${s}</span>`;
+  }
+  function deliveryBadge(s) {
+    const m = {pending:'warning',delivered:'success',failed:'danger',acknowledged:'info'};
+    return `<span class="badge bg-${m[s]||'light'}">${s}</span>`;
+  }
+  function truncate(t, n) { return t && t.length > n ? t.substring(0, n) + '...' : (t || ''); }
+
+  // ── Stats ──
+  function loadStats() {
+    fetch(API + '/stats').then(r => r.json()).then(d => {
+      if (!d.ok) return;
+      const s = d.stats;
+      document.getElementById('pwsTotalAlerts').textContent = s.total_alerts || 0;
+      document.getElementById('pwsBroadcasting').textContent = (s.alerts_by_status || {}).broadcasting || 0;
+      document.getElementById('pwsCompleted').textContent = (s.alerts_by_status || {}).completed || 0;
+      document.getElementById('pwsCancelled').textContent = (s.alerts_by_status || {}).cancelled || 0;
+      document.getElementById('pwsTotalDeliveries').textContent = s.total_deliveries || 0;
+    }).catch(() => {});
+  }
+
+  // ── Alerts list ──
+  function loadAlerts() {
+    const status = document.getElementById('pwsFilterStatus').value;
+    const type = document.getElementById('pwsFilterType').value;
+    let url = API + '/alerts?';
+    if (status) url += 'status=' + status + '&';
+    if (type) url += 'alert_type=' + type;
+    fetch(url).then(r => r.json()).then(d => {
+      if (!d.ok) return;
+      const tb = document.getElementById('pwsAlertsBody');
+      if (!d.alerts.length) { tb.innerHTML = '<tr><td colspan="9" class="text-muted text-center">No alerts</td></tr>'; return; }
+      tb.innerHTML = d.alerts.map(a => {
+        let actions = '';
+        if (a.status === 'draft') {
+          actions = `<button class="btn btn-success btn-sm me-1" onclick="pwsBroadcast(${a.id})">Broadcast</button>`
+                  + `<button class="btn btn-outline-danger btn-sm" onclick="pwsDelete(${a.id})">Del</button>`;
+        } else if (a.status === 'broadcasting') {
+          actions = `<button class="btn btn-dark btn-sm me-1" onclick="pwsCancel(${a.id})">Cancel</button>`
+                  + `<button class="btn btn-outline-info btn-sm" onclick="pwsDeliveryStatus(${a.id})">Status</button>`;
+        } else if (a.status === 'completed' || a.status === 'cancelled') {
+          actions = `<button class="btn btn-outline-info btn-sm" onclick="pwsDeliveryStatus(${a.id})">Status</button>`;
+        }
+        return `<tr>
+          <td>${a.id}</td><td>${a.alert_type}</td>
+          <td>${severityBadge(a.severity)}</td><td>${a.urgency}</td>
+          <td>${a.category}</td><td title="${(a.message_text||'').replace(/"/g,'&quot;')}">${truncate(a.message_text, 40)}</td>
+          <td>${statusBadge(a.status)}</td><td>${a.created_at || ''}</td>
+          <td class="text-nowrap">${actions}</td></tr>`;
+      }).join('');
+    }).catch(() => {});
+  }
+
+  // ── Delivery log ──
+  function loadDeliveryLog() {
+    fetch(API + '/delivery-log').then(r => r.json()).then(d => {
+      if (!d.ok) return;
+      const tb = document.getElementById('pwsDeliveryBody');
+      if (!d.delivery_log.length) { tb.innerHTML = '<tr><td colspan="7" class="text-muted text-center">No deliveries</td></tr>'; return; }
+      tb.innerHTML = d.delivery_log.map(l =>
+        `<tr><td>${l.id}</td><td>#${l.alert_id} (${l.message_id||''})</td>
+         <td>${l.alert_type||''}</td><td>${l.gnb_id}</td>
+         <td>${deliveryBadge(l.status)}</td><td>${l.delivered_at||'-'}</td>
+         <td>${l.ack_at||'-'}</td></tr>`
+      ).join('');
+    }).catch(() => {});
+  }
+
+  // ── Create alert ──
+  document.getElementById('btnPwsCreate').addEventListener('click', () => {
+    const taRaw = document.getElementById('pwsTargetAreas').value.trim();
+    const targetAreas = taRaw ? taRaw.split(',').map(s => s.trim()).filter(Boolean) : null;
+    const body = {
+      alert_type: document.getElementById('pwsAlertType').value,
+      severity: document.getElementById('pwsSeverity').value,
+      urgency: document.getElementById('pwsUrgency').value,
+      category: document.getElementById('pwsCategory').value,
+      language: document.getElementById('pwsLanguage').value,
+      message_text: document.getElementById('pwsMessageText').value,
+      repetition_period_s: parseInt(document.getElementById('pwsRepetition').value) || 60,
+      number_of_broadcasts: parseInt(document.getElementById('pwsBroadcasts').value) || 10,
+      target_areas: targetAreas,
+    };
+    fetch(API + '/alerts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+      .then(r => r.json()).then(d => {
+        if (d.ok) { loadAlerts(); loadStats(); } else alert('Error: ' + (d.error||'unknown'));
+      });
+  });
+
+  // ── Test alert ──
+  document.getElementById('btnPwsTestAlert').addEventListener('click', () => {
+    const msg = document.getElementById('pwsMessageText').value || 'This is a test alert. No action required.';
+    fetch(API + '/test-alert', {method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message_text: msg})})
+      .then(r => r.json()).then(d => {
+        if (d.ok) { loadAlerts(); loadStats(); loadDeliveryLog(); }
+        else alert('Error: ' + (d.error||'unknown'));
+      });
+  });
+
+  // ── Actions (global scope) ──
+  window.pwsBroadcast = function(id) {
+    fetch(API + '/alerts/' + id + '/broadcast', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
+      .then(r => r.json()).then(d => {
+        if (d.ok) { loadAlerts(); loadStats(); loadDeliveryLog(); }
+        else alert('Error: ' + (d.error||'unknown'));
+      });
+  };
+  window.pwsCancel = function(id) {
+    if (!confirm('Cancel this alert?')) return;
+    fetch(API + '/alerts/' + id + '/cancel', {method:'POST'})
+      .then(r => r.json()).then(d => {
+        if (d.ok) { loadAlerts(); loadStats(); } else alert('Error: ' + (d.error||'unknown'));
+      });
+  };
+  window.pwsDelete = function(id) {
+    if (!confirm('Delete this alert?')) return;
+    fetch(API + '/alerts/' + id, {method:'DELETE'})
+      .then(r => r.json()).then(d => {
+        if (d.ok) { loadAlerts(); loadStats(); } else alert('Error: ' + (d.error||'unknown'));
+      });
+  };
+  window.pwsDeliveryStatus = function(id) {
+    fetch(API + '/alerts/' + id + '/delivery-status').then(r => r.json()).then(d => {
+      if (!d.ok) { alert('Error: ' + (d.error||'unknown')); return; }
+      const s = d.status;
+      let msg = `Alert #${id} — ${s.alert_status}\n`;
+      msg += `Total gNBs: ${s.total_gnbs}\n`;
+      const ds = s.delivery_summary || {};
+      msg += `Delivered: ${ds.delivered||0}  Failed: ${ds.failed||0}  Pending: ${ds.pending||0}  Ack: ${ds.acknowledged||0}`;
+      alert(msg);
+    });
+  };
+
+  // ── Refresh buttons ──
+  document.getElementById('btnPwsRefresh').addEventListener('click', () => { loadAlerts(); loadStats(); });
+  document.getElementById('btnPwsRefreshDelivery').addEventListener('click', loadDeliveryLog);
+  document.getElementById('pwsFilterStatus').addEventListener('change', loadAlerts);
+  document.getElementById('pwsFilterType').addEventListener('change', loadAlerts);
+
+  // ── Initial load ──
+  loadStats(); loadAlerts(); loadDeliveryLog();
+})();
+</script>

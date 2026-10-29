@@ -1,0 +1,566 @@
+<!-- templates/mcx.html -->
+
+<h5 class="mb-3">Mission Critical Services (MCX)</h5>
+
+<!-- MCX Status -->
+<div class="accordion mb-3" id="mcxStatusAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="mcxStatusToggle" class="accordion-button bg-dark text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="mcxStatusBody">
+        <div class="w-100">MCX Status</div>
+      </button>
+    </h2>
+    <div id="mcxStatusBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="mcxStatsBody" class="small">
+          <div class="text-muted">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MCX Users -->
+<div class="accordion mb-3" id="mcxUsersAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="mcxUsersToggle" class="accordion-button bg-primary text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="mcxUsersBody">
+        <div class="w-100">MCX Users <span id="mcxUserCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="mcxUsersBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div class="text-muted small mb-2">MCX users are auto-created from UE Config. Add UEs there.</div>
+        <!-- Users Table -->
+        <div id="mcxUsersTableBody">
+          <div class="text-muted small">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MCX Groups -->
+<div class="accordion mb-3" id="mcxGroupsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="mcxGroupsToggle" class="accordion-button bg-success text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="mcxGroupsBody">
+        <div class="w-100">MCX Groups <span id="mcxGroupCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="mcxGroupsBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <!-- Create Group Form -->
+        <div class="card p-3 mb-3 shadow-sm">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">Group Name</label>
+              <input id="mcxGroupName" type="text" class="form-control form-control-sm" placeholder="Alpha Team">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Type</label>
+              <select id="mcxGroupType" class="form-select form-select-sm">
+                <option value="mcptt">MCPTT</option>
+                <option value="mcvideo">MCVideo</option>
+                <option value="mcdata">MCData</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Max Members</label>
+              <input id="mcxGroupMaxMembers" type="number" class="form-control form-control-sm" min="2" max="1000" value="50">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Priority</label>
+              <input id="mcxGroupPriority" type="number" class="form-control form-control-sm" min="0" max="255" value="5">
+            </div>
+            <div class="col-auto">
+              <button id="btnCreateMcxGroup" type="button" class="btn btn-success btn-sm">Create Group</button>
+            </div>
+          </div>
+        </div>
+        <!-- Add Member Form -->
+        <div class="card p-2 mb-3 shadow-sm">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label small">Add Member to Group</label>
+              <select id="mcxMemberGroupSelect" class="form-select form-select-sm">
+                <option value="">Select group...</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select id="mcxMemberUserSelect" class="form-select form-select-sm">
+                <option value="">Select user...</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <button id="btnAddMcxMember" type="button" class="btn btn-outline-success btn-sm">Add Member</button>
+            </div>
+          </div>
+        </div>
+        <!-- Groups Table -->
+        <div id="mcxGroupsTableBody">
+          <div class="text-muted small">Loading...</div>
+        </div>
+        <div id="mcxGroupResult" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MCX Active Calls -->
+<div class="accordion mb-3" id="mcxCallsAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="mcxCallsToggle" class="accordion-button bg-warning text-dark fw-bold" type="button"
+              aria-expanded="true" aria-controls="mcxCallsBody">
+        <div class="w-100">MCX Active Calls <span id="mcxCallCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="mcxCallsBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="mcxCallsTableBody">
+          <div class="text-muted small">Loading...</div>
+        </div>
+        <div id="mcxCallResult" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MCX Messages -->
+<div class="accordion mb-3" id="mcxMessagesAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="mcxMessagesToggle" class="accordion-button bg-info text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="mcxMessagesBody">
+        <div class="w-100">MCX Messages <span id="mcxMessageCount" class="badge bg-light text-dark ms-2">0</span></div>
+      </button>
+    </h2>
+    <div id="mcxMessagesBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <!-- Send Message Form -->
+        <div class="card p-3 mb-3 shadow-sm">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">Sender (MCPTT ID)</label>
+              <input id="mcxMsgSender" type="text" class="form-control form-control-sm" placeholder="user1@mcx.local">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Recipient / Group ID</label>
+              <input id="mcxMsgRecipient" type="text" class="form-control form-control-sm" placeholder="user2@mcx.local or group_id">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Content</label>
+              <input id="mcxMsgContent" type="text" class="form-control form-control-sm" placeholder="Message text...">
+            </div>
+            <div class="col-auto">
+              <button id="btnSendMcxMsg" type="button" class="btn btn-info btn-sm text-white">Send Message</button>
+            </div>
+          </div>
+        </div>
+        <!-- Messages Table -->
+        <div id="mcxMessagesTableBody">
+          <div class="text-muted small">Loading...</div>
+        </div>
+        <div id="mcxMsgResult" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Refresh Controls -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <button id="btnMcxRefresh" type="button" class="btn btn-primary">Refresh All</button>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" id="mcxAutoRefresh">
+    <label class="form-check-label" for="mcxAutoRefresh">Auto-refresh (5s)</label>
+  </div>
+  <small id="mcxLastRefresh" class="text-muted"></small>
+</div>
+
+<style>
+  .mcx-stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px 16px; font-size: 13px;
+  }
+  .mcx-stat-item {
+    display: flex; justify-content: space-between; padding: 6px 12px;
+    background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;
+  }
+  .mcx-stat-label { font-weight: 600; color: #555; }
+  .mcx-stat-value { font-family: 'Consolas','Courier New',monospace; color: #222; font-weight: 700; font-size: 16px; }
+  .mcx-table { font-size: 12px; }
+  .mcx-table th { font-weight: 600; background: #e9ecef; font-size: 11px; text-transform: uppercase; }
+  .mcx-table td { vertical-align: middle; }
+  .mcx-state-active { color: #198754; font-weight: 700; }
+  .mcx-state-idle { color: #6c757d; }
+  .mcx-floor-holder { color: #0d6efd; font-weight: 600; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+
+    /* -- Accordion toggles -- */
+    const accordions = [
+      ['mcxStatusToggle','mcxStatusBody'],
+      ['mcxUsersToggle','mcxUsersBody'],
+      ['mcxGroupsToggle','mcxGroupsBody'],
+      ['mcxCallsToggle','mcxCallsBody'],
+      ['mcxMessagesToggle','mcxMessagesBody'],
+    ];
+    for (const [btnId, colId] of accordions) {
+      const btn = document.getElementById(btnId);
+      const col = document.getElementById(colId);
+      if (btn && !btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(col, {toggle:false});
+        btn.addEventListener('click', () => inst.toggle());
+      }
+    }
+
+    const esc = (s) => {
+      if (s == null) return '<span class="text-muted">-</span>';
+      const d = document.createElement('span');
+      d.textContent = String(s);
+      return d.outerHTML;
+    };
+
+    const showResult = (elemId, msg, ok) => {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      el.innerHTML = `<div class="alert alert-${ok ? 'success' : 'danger'} py-1 px-2 mb-0">${esc(msg)}</div>`;
+      setTimeout(() => el.innerHTML = '', 5000);
+    };
+
+    const apiPost = async (url, body) => {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body || {}),
+      });
+      return {ok: r.ok, data: await r.json()};
+    };
+
+    /* -- Cached data for dropdowns -- */
+    let cachedUsers = [];
+    let cachedGroups = [];
+
+    const updateDropdowns = () => {
+      const groupSel = document.getElementById('mcxMemberGroupSelect');
+      const userSel = document.getElementById('mcxMemberUserSelect');
+      if (groupSel) {
+        const prev = groupSel.value;
+        groupSel.innerHTML = '<option value="">Select group...</option>';
+        for (const g of cachedGroups) {
+          const id = g.id || g.group_id || '';
+          const name = g.name || g.group_name || id;
+          groupSel.innerHTML += `<option value="${id}">${esc(name)}</option>`;
+        }
+        if (prev) groupSel.value = prev;
+      }
+      if (userSel) {
+        const prev = userSel.value;
+        userSel.innerHTML = '<option value="">Select user...</option>';
+        for (const u of cachedUsers) {
+          const id = u.mcptt_id || u.id || '';
+          const name = u.display_name || id;
+          userSel.innerHTML += `<option value="${id}">${esc(name)}</option>`;
+        }
+        if (prev) userSel.value = prev;
+      }
+    };
+
+    /* -- MCX Status / Stats -- */
+    const loadStats = async () => {
+      try {
+        const [usersRes, groupsRes, callsRes, msgsRes] = await Promise.all([
+          fetch('/api/mcx/users'), fetch('/api/mcx/groups'),
+          fetch('/api/mcx/calls'), fetch('/api/mcx/messages'),
+        ]);
+        const users = await usersRes.json();
+        const groups = await groupsRes.json();
+        const calls = await callsRes.json();
+        const msgs = await msgsRes.json();
+
+        const userList = Array.isArray(users) ? users : (users.items || users.users || []);
+        const groupList = Array.isArray(groups) ? groups : (groups.items || groups.groups || []);
+        const callList = Array.isArray(calls) ? calls : (calls.items || calls.calls || []);
+        const msgList = Array.isArray(msgs) ? msgs : (msgs.items || msgs.messages || []);
+
+        const activeCalls = callList.filter(c => c.state === 'active' || c.state === 'established').length;
+
+        let html = '<div class="mcx-stat-grid">';
+        html += `<div class="mcx-stat-item"><span class="mcx-stat-label">Total Users</span><span class="mcx-stat-value">${userList.length}</span></div>`;
+        html += `<div class="mcx-stat-item"><span class="mcx-stat-label">Total Groups</span><span class="mcx-stat-value">${groupList.length}</span></div>`;
+        html += `<div class="mcx-stat-item"><span class="mcx-stat-label">Active Calls</span><span class="mcx-stat-value">${activeCalls}</span></div>`;
+        html += `<div class="mcx-stat-item"><span class="mcx-stat-label">Total Calls</span><span class="mcx-stat-value">${callList.length}</span></div>`;
+        html += `<div class="mcx-stat-item"><span class="mcx-stat-label">Messages</span><span class="mcx-stat-value">${msgList.length}</span></div>`;
+        html += '</div>';
+        document.getElementById('mcxStatsBody').innerHTML = html;
+      } catch(e) {
+        document.getElementById('mcxStatsBody').innerHTML = '<div class="text-danger small">Failed to load MCX status</div>';
+      }
+    };
+
+    /* -- MCX Users -- */
+    const loadUsers = async () => {
+      try {
+        const r = await fetch('/api/mcx/users');
+        const d = await r.json();
+        const users = Array.isArray(d) ? d : (d.items || d.users || []);
+        cachedUsers = users;
+        document.getElementById('mcxUserCount').textContent = users.length;
+
+        if (users.length === 0) {
+          document.getElementById('mcxUsersTableBody').innerHTML = '<div class="text-muted small">No MCX users configured</div>';
+          updateDropdowns();
+          return;
+        }
+        let html = '<table class="table table-sm table-bordered table-hover mcx-table">';
+        html += '<thead><tr><th>MCPTT ID</th><th>Display Name</th><th>Priority</th><th>Role</th><th>Enabled</th></tr></thead><tbody>';
+        for (const u of users) {
+          const id = u.mcptt_id || u.id || '';
+          const enabled = u.enabled !== false && u.enabled !== 0;
+          const enabledBadge = enabled ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>';
+          html += '<tr>';
+          html += `<td><code>${esc(id)}</code></td>`;
+          html += `<td>${esc(u.display_name)}</td>`;
+          html += `<td>${esc(u.priority)}</td>`;
+          html += `<td>${esc(u.role || 'user')}</td>`;
+          html += `<td>${enabledBadge}</td>`;
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('mcxUsersTableBody').innerHTML = html;
+        updateDropdowns();
+
+        // No delete — users are managed via UE Config page
+      } catch(e) {
+        document.getElementById('mcxUsersTableBody').innerHTML = '<div class="text-danger small">Failed to load users</div>';
+      }
+    };
+
+    /* -- MCX Groups -- */
+    const loadGroups = async () => {
+      try {
+        const r = await fetch('/api/mcx/groups');
+        const d = await r.json();
+        const groups = Array.isArray(d) ? d : (d.items || d.groups || []);
+        cachedGroups = groups;
+        document.getElementById('mcxGroupCount').textContent = groups.length;
+
+        if (groups.length === 0) {
+          document.getElementById('mcxGroupsTableBody').innerHTML = '<div class="text-muted small">No MCX groups configured</div>';
+          updateDropdowns();
+          return;
+        }
+        let html = '<table class="table table-sm table-bordered table-hover mcx-table">';
+        html += '<thead><tr><th>Name</th><th>Type</th><th>Max Members</th><th>Priority</th><th>Members</th><th>Actions</th></tr></thead><tbody>';
+        for (const g of groups) {
+          const id = g.id || g.group_id || '';
+          const members = g.members || g.member_count || 0;
+          const memberCount = Array.isArray(members) ? members.length : members;
+          html += '<tr>';
+          html += `<td><strong>${esc(g.name || g.group_name)}</strong></td>`;
+          html += `<td><span class="badge bg-primary">${esc(g.type || g.group_type)}</span></td>`;
+          html += `<td>${esc(g.max_members)}</td>`;
+          html += `<td>${esc(g.priority)}</td>`;
+          html += `<td>${esc(memberCount)}</td>`;
+          html += `<td><button class="btn btn-outline-danger btn-sm btn-del-group" data-id="${esc(id)}">Delete</button></td>`;
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('mcxGroupsTableBody').innerHTML = html;
+        updateDropdowns();
+
+        // Attach delete handlers
+        document.querySelectorAll('.btn-del-group').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const gid = btn.dataset.id;
+            if (!confirm(`Delete MCX group ${gid}?`)) return;
+            btn.disabled = true;
+            try {
+              const r = await fetch(`/api/mcx/groups/${encodeURIComponent(gid)}`, {method: 'DELETE'});
+              const d = await r.json();
+              showResult('mcxGroupResult', d.message || d.error || 'Done', r.ok);
+              loadGroups(); loadStats();
+            } catch(e) { showResult('mcxGroupResult', e.message, false); btn.disabled = false; }
+          });
+        });
+      } catch(e) {
+        document.getElementById('mcxGroupsTableBody').innerHTML = '<div class="text-danger small">Failed to load groups</div>';
+      }
+    };
+
+    /* -- MCX Active Calls -- */
+    const loadCalls = async () => {
+      try {
+        const r = await fetch('/api/mcx/calls');
+        const d = await r.json();
+        const calls = Array.isArray(d) ? d : (d.items || d.calls || []);
+        document.getElementById('mcxCallCount').textContent = calls.length;
+
+        if (calls.length === 0) {
+          document.getElementById('mcxCallsTableBody').innerHTML = '<div class="text-muted small">No active calls</div>';
+          return;
+        }
+        let html = '<table class="table table-sm table-bordered table-hover mcx-table">';
+        html += '<thead><tr><th>Call ID</th><th>Type</th><th>Originator</th><th>Group</th><th>Participants</th><th>State</th><th>Floor Holder</th><th>Actions</th></tr></thead><tbody>';
+        for (const c of calls) {
+          const stateClass = (c.state === 'active' || c.state === 'established') ? 'mcx-state-active' : 'mcx-state-idle';
+          const participants = Array.isArray(c.participants) ? c.participants.join(', ') : (c.participants || '-');
+          html += '<tr>';
+          html += `<td><code>${esc(c.call_id || c.id)}</code></td>`;
+          html += `<td><span class="badge bg-warning text-dark">${esc(c.type || c.call_type)}</span></td>`;
+          html += `<td>${esc(c.originator)}</td>`;
+          html += `<td>${esc(c.group || c.group_name || c.group_id)}</td>`;
+          html += `<td class="small">${esc(participants)}</td>`;
+          html += `<td class="${stateClass}">${esc(c.state)}</td>`;
+          html += `<td class="mcx-floor-holder">${esc(c.floor_holder)}</td>`;
+          html += `<td><button class="btn btn-outline-danger btn-sm btn-end-call" data-id="${esc(c.call_id || c.id)}">End</button></td>`;
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('mcxCallsTableBody').innerHTML = html;
+
+        // Attach end call handlers
+        document.querySelectorAll('.btn-end-call').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const cid = btn.dataset.id;
+            if (!confirm(`End call ${cid}?`)) return;
+            btn.disabled = true;
+            try {
+              const r = await fetch(`/api/mcx/calls/${encodeURIComponent(cid)}/end`, {method: 'POST'});
+              const d = await r.json();
+              showResult('mcxCallResult', d.message || d.error || 'Done', r.ok);
+              loadCalls(); loadStats();
+            } catch(e) { showResult('mcxCallResult', e.message, false); btn.disabled = false; }
+          });
+        });
+      } catch(e) {
+        document.getElementById('mcxCallsTableBody').innerHTML = '<div class="text-danger small">Failed to load calls</div>';
+      }
+    };
+
+    /* -- MCX Messages -- */
+    const loadMessages = async () => {
+      try {
+        const r = await fetch('/api/mcx/messages');
+        const d = await r.json();
+        const msgs = Array.isArray(d) ? d : (d.items || d.messages || []);
+        document.getElementById('mcxMessageCount').textContent = msgs.length;
+
+        if (msgs.length === 0) {
+          document.getElementById('mcxMessagesTableBody').innerHTML = '<div class="text-muted small">No messages</div>';
+          return;
+        }
+        let html = '<table class="table table-sm table-bordered table-hover mcx-table">';
+        html += '<thead><tr><th>Sender</th><th>Recipient / Group</th><th>Type</th><th>Content</th><th>Timestamp</th></tr></thead><tbody>';
+        for (const m of msgs) {
+          const recipient = m.recipient || m.group_id || m.group || '-';
+          const ts = m.timestamp ? new Date(m.timestamp).toLocaleString() : '-';
+          html += '<tr>';
+          html += `<td>${esc(m.sender)}</td>`;
+          html += `<td>${esc(recipient)}</td>`;
+          html += `<td><span class="badge bg-info">${esc(m.type || 'text')}</span></td>`;
+          html += `<td class="small">${esc(m.content)}</td>`;
+          html += `<td class="text-muted small">${esc(ts)}</td>`;
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('mcxMessagesTableBody').innerHTML = html;
+      } catch(e) {
+        document.getElementById('mcxMessagesTableBody').innerHTML = '<div class="text-danger small">Failed to load messages</div>';
+      }
+    };
+
+    /* -- Create Group -- */
+    document.getElementById('btnCreateMcxGroup').addEventListener('click', async () => {
+      const name = document.getElementById('mcxGroupName').value.trim();
+      const type = document.getElementById('mcxGroupType').value;
+      const maxMembers = parseInt(document.getElementById('mcxGroupMaxMembers').value) || 50;
+      const priority = parseInt(document.getElementById('mcxGroupPriority').value) || 5;
+      if (!name) { showResult('mcxGroupResult', 'Group name is required', false); return; }
+      try {
+        const {ok, data} = await apiPost('/api/mcx/groups', {name, type, max_members: maxMembers, priority});
+        showResult('mcxGroupResult', data.message || data.error || (ok ? 'Group created' : 'Failed'), ok);
+        if (ok) {
+          document.getElementById('mcxGroupName').value = '';
+          loadGroups(); loadStats();
+        }
+      } catch(e) { showResult('mcxGroupResult', e.message, false); }
+    });
+
+    /* -- Add Member to Group -- */
+    document.getElementById('btnAddMcxMember').addEventListener('click', async () => {
+      const groupId = document.getElementById('mcxMemberGroupSelect').value;
+      const userId = document.getElementById('mcxMemberUserSelect').value;
+      if (!groupId || !userId) { showResult('mcxGroupResult', 'Select both group and user', false); return; }
+      try {
+        const {ok, data} = await apiPost(`/api/mcx/groups/${encodeURIComponent(groupId)}/members`, {mcptt_id: userId});
+        showResult('mcxGroupResult', data.message || data.error || (ok ? 'Member added' : 'Failed'), ok);
+        if (ok) loadGroups();
+      } catch(e) { showResult('mcxGroupResult', e.message, false); }
+    });
+
+    /* -- Send Message -- */
+    document.getElementById('btnSendMcxMsg').addEventListener('click', async () => {
+      const sender = document.getElementById('mcxMsgSender').value.trim();
+      const recipient = document.getElementById('mcxMsgRecipient').value.trim();
+      const content = document.getElementById('mcxMsgContent').value.trim();
+      if (!sender || !recipient || !content) { showResult('mcxMsgResult', 'All fields are required', false); return; }
+      try {
+        const {ok, data} = await apiPost('/api/mcx/messages', {sender, recipient, content});
+        showResult('mcxMsgResult', data.message || data.error || (ok ? 'Message sent' : 'Failed'), ok);
+        if (ok) {
+          document.getElementById('mcxMsgContent').value = '';
+          loadMessages(); loadStats();
+        }
+      } catch(e) { showResult('mcxMsgResult', e.message, false); }
+    });
+
+    /* -- Refresh All -- */
+    const refreshAll = async () => {
+      await Promise.all([loadStats(), loadUsers(), loadGroups(), loadCalls(), loadMessages()]);
+      document.getElementById('mcxLastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    };
+
+    document.getElementById('btnMcxRefresh').addEventListener('click', refreshAll);
+
+    /* -- Auto-refresh -- */
+    let autoTimer = null;
+    const autoCheck = document.getElementById('mcxAutoRefresh');
+    autoCheck.addEventListener('change', () => {
+      if (autoCheck.checked) {
+        autoTimer = setInterval(refreshAll, 5000);
+      } else {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+      }
+    });
+
+    /* -- Tab visibility - load when activated -- */
+    const tabPane = document.getElementById('mcx');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        if (tabPane.classList.contains('active')) {
+          refreshAll();
+        }
+      });
+      observer.observe(tabPane, {attributes: true, attributeFilter: ['class']});
+    }
+
+    /* -- Initial load -- */
+    refreshAll();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

@@ -1,0 +1,344 @@
+<!-- templates/tsn.html — TSN Dashboard (TS 23.501 section 5.27 / TS 23.734) -->
+
+<style>
+.tsn-card { border-radius: 8px; padding: 12px 16px; text-align: center; color: #fff; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.tsn-card .t-val { font-size: 1.5rem; font-weight: 700; }
+.tsn-card .t-lbl { font-size: 0.78rem; opacity: 0.9; }
+.tc-blue { background: #0d6efd; }
+.tc-green { background: #28a745; }
+.tc-orange { background: #fd7e14; }
+.tc-teal { background: #20c997; }
+.tc-purple { background: #6f42c1; }
+.tc-gray { background: #6c757d; }
+.tsn-row { border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; background: #f8f9fa; }
+.tsn-row .tsn-name { font-weight: 600; font-size: 0.95rem; }
+.tsn-row .tsn-detail { font-size: 0.82rem; color: #555; margin-top: 4px; }
+.tsn-row .tsn-detail span { margin-right: 14px; }
+.tsn-status { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+.st-active { background: #28a745; }
+.st-inactive { background: #6c757d; }
+.st-error { background: #dc3545; }
+.st-synced { background: #28a745; }
+.st-freerun { background: #fd7e14; }
+.st-holdover { background: #ffc107; color: #333; }
+.gate-bar { height: 20px; border-radius: 3px; margin-bottom: 2px; font-size: 0.7rem; color: #fff; display: flex; align-items: center; padding: 0 6px; }
+.gate-open { background: #28a745; }
+.gate-closed { background: #dc3545; }
+</style>
+
+<!-- Summary Cards -->
+<div class="row g-2 mb-3" id="tsnSummary">
+  <div class="col"><div class="tsn-card tc-blue"><div class="t-val" id="tsnBridgeCount">--</div><div class="t-lbl">Bridges</div></div></div>
+  <div class="col"><div class="tsn-card tc-green"><div class="t-val" id="tsnBridgeActive">--</div><div class="t-lbl">Active Bridges</div></div></div>
+  <div class="col"><div class="tsn-card tc-orange"><div class="t-val" id="tsnStreamCount">--</div><div class="t-lbl">Streams</div></div></div>
+  <div class="col"><div class="tsn-card tc-teal"><div class="t-val" id="tsnClockCount">--</div><div class="t-lbl">Clock Domains</div></div></div>
+  <div class="col"><div class="tsn-card tc-purple"><div class="t-val" id="tsnClockSynced">--</div><div class="t-lbl">Synced Clocks</div></div></div>
+  <div class="col"><div class="tsn-card tc-gray"><div class="t-val" id="tsnGateCount">--</div><div class="t-lbl">Gate Schedules</div></div></div>
+</div>
+
+<div class="mb-3">
+  <button class="btn btn-sm btn-outline-secondary" onclick="tsnLoad()">Refresh</button>
+</div>
+
+<!-- Bridges -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>TSN Bridges (5GS as TSN Bridge)</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#tsnBridgeForm">+ Add Bridge</button>
+  </div>
+  <div class="collapse" id="tsnBridgeForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label form-label-sm">Bridge ID</label><input class="form-control form-control-sm" id="tsnBridgeId"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Name</label><input class="form-control form-control-sm" id="tsnBridgeName"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">DS-TT Port</label><input class="form-control form-control-sm" id="tsnDsTt" placeholder="eth0"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">NW-TT Port</label><input class="form-control form-control-sm" id="tsnNwTt" placeholder="eth1"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">VLAN</label><input type="number" class="form-control form-control-sm" id="tsnVlan"></div>
+        <div class="col-md-1"><button class="btn btn-sm btn-success w-100" onclick="tsnCreateBridge()">Create</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body" id="tsnBridgeList"><small class="text-muted">No bridges configured</small></div>
+</div>
+
+<!-- Streams with 5QI Mapping -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>TSN Streams &amp; 5QI Mapping</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#tsnStreamForm">+ Add Stream</button>
+  </div>
+  <div class="collapse" id="tsnStreamForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label form-label-sm">Stream ID</label><input class="form-control form-control-sm" id="tsnStreamId"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Bridge (DB id)</label><input type="number" class="form-control form-control-sm" id="tsnStreamBridge"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Traffic Class</label><input type="number" class="form-control form-control-sm" id="tsnStreamTc" value="0"></div>
+        <div class="col-md-1"><label class="form-label form-label-sm">Priority</label><input type="number" class="form-control form-control-sm" id="tsnStreamPri" value="0"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Max Frame (B)</label><input type="number" class="form-control form-control-sm" id="tsnStreamFrame" value="1522"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Interval (us)</label><input type="number" class="form-control form-control-sm" id="tsnStreamInterval" value="1000"></div>
+        <div class="col-md-1"><button class="btn btn-sm btn-success w-100" onclick="tsnCreateStream()">Create</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body" id="tsnStreamList"><small class="text-muted">No streams configured</small></div>
+</div>
+
+<!-- 5QI Mapping Table -->
+<div class="card mb-3">
+  <div class="card-header"><strong>TSN Traffic Class to 5QI Mapping Reference</strong></div>
+  <div class="card-body p-0">
+    <table class="table table-sm table-striped mb-0" id="tsnMappingTable">
+      <thead><tr><th>Traffic Class</th><th>5QI</th><th>PDB (ms)</th><th>PER</th><th>Description</th></tr></thead>
+      <tbody id="tsnMappingBody"><tr><td colspan="5" class="text-muted text-center">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Clock Domains -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>gPTP Clock Domains (IEEE 802.1AS)</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#tsnClockForm">+ Add Domain</button>
+  </div>
+  <div class="collapse" id="tsnClockForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label form-label-sm">Domain ID</label><input class="form-control form-control-sm" id="tsnClockDomId"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">GM Identity</label><input class="form-control form-control-sm" id="tsnClockGm"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Accuracy (ns)</label><input type="number" class="form-control form-control-sm" id="tsnClockAccuracy" value="100"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Holdover (s)</label><input type="number" class="form-control form-control-sm" id="tsnClockHoldover" value="3600"></div>
+        <div class="col-md-2"><button class="btn btn-sm btn-success w-100" onclick="tsnCreateClockDomain()">Create</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body" id="tsnClockList"><small class="text-muted">No clock domains configured</small></div>
+</div>
+
+<!-- Gate Schedules -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Gate Schedules (IEEE 802.1Qbv)</strong>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#tsnGateForm">+ Add Schedule</button>
+  </div>
+  <div class="collapse" id="tsnGateForm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2"><label class="form-label form-label-sm">Stream (DB id)</label><input type="number" class="form-control form-control-sm" id="tsnGateStream"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Gate State</label>
+          <select class="form-select form-select-sm" id="tsnGateState"><option value="open">Open</option><option value="closed">Closed</option></select>
+        </div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Start (ns)</label><input type="number" class="form-control form-control-sm" id="tsnGateStart" value="0"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Duration (ns)</label><input type="number" class="form-control form-control-sm" id="tsnGateDuration" value="500000"></div>
+        <div class="col-md-2"><label class="form-label form-label-sm">Cycle (ns)</label><input type="number" class="form-control form-control-sm" id="tsnGateCycle" value="1000000"></div>
+        <div class="col-md-1"><button class="btn btn-sm btn-success w-100" onclick="tsnCreateGate()">Create</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body" id="tsnGateList"><small class="text-muted">No gate schedules configured</small></div>
+</div>
+
+<script>
+function tsnLoad() {
+  // Stats
+  fetch('/api/tsn/stats').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    document.getElementById('tsnBridgeCount').textContent = d.bridges_total;
+    document.getElementById('tsnBridgeActive').textContent = d.bridges_active;
+    document.getElementById('tsnStreamCount').textContent = d.streams_total;
+    document.getElementById('tsnClockCount').textContent = d.clock_domains_total;
+    document.getElementById('tsnClockSynced').textContent = d.clock_domains_synced;
+    document.getElementById('tsnGateCount').textContent = d.gate_schedules_total;
+  });
+
+  // Bridges
+  fetch('/api/tsn/bridges').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const el = document.getElementById('tsnBridgeList');
+    if (!d.bridges.length) { el.innerHTML = '<small class="text-muted">No bridges configured</small>'; return; }
+    el.innerHTML = d.bridges.map(b => `
+      <div class="tsn-row d-flex justify-content-between align-items-center">
+        <div>
+          <div class="tsn-name">${b.name || b.bridge_id} <span class="tsn-status st-${b.status}">${b.status}</span></div>
+          <div class="tsn-detail">
+            <span>ID: ${b.bridge_id}</span>
+            <span>DS-TT: ${b.ds_tt_port || '-'}</span>
+            <span>NW-TT: ${b.nw_tt_port || '-'}</span>
+            <span>VLAN: ${b.vlan_id ?? '-'}</span>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="tsnDeleteBridge(${b.id})">Delete</button>
+      </div>
+    `).join('');
+  });
+
+  // Streams
+  fetch('/api/tsn/streams').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const el = document.getElementById('tsnStreamList');
+    if (!d.streams.length) { el.innerHTML = '<small class="text-muted">No streams configured</small>'; return; }
+    el.innerHTML = d.streams.map(s => `
+      <div class="tsn-row d-flex justify-content-between align-items-center">
+        <div>
+          <div class="tsn-name">${s.stream_id}</div>
+          <div class="tsn-detail">
+            <span>Bridge: ${s.bridge_id}</span>
+            <span>TC: ${s.traffic_class}</span>
+            <span>Priority: ${s.priority}</span>
+            <span>5QI: <strong>${s.mapped_5qi ?? '-'}</strong></span>
+            <span>PDB: ${s.pdb_ms ?? '-'} ms</span>
+            <span>Frame: ${s.max_frame_size} B</span>
+            <span>Interval: ${s.interval_us} us</span>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="tsnDeleteStream(${s.id})">Delete</button>
+      </div>
+    `).join('');
+  });
+
+  // 5QI mapping table
+  fetch('/api/tsn/streams/5qi-table').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const tbody = document.getElementById('tsnMappingBody');
+    tbody.innerHTML = d.mappings.map(m => `
+      <tr><td>${m.traffic_class}</td><td><strong>${m['5qi']}</strong></td><td>${m.pdb_ms}</td><td>${m.per}</td><td>${m.description}</td></tr>
+    `).join('');
+  });
+
+  // Clock domains
+  fetch('/api/tsn/clock-domains').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const el = document.getElementById('tsnClockList');
+    if (!d.clock_domains.length) { el.innerHTML = '<small class="text-muted">No clock domains configured</small>'; return; }
+    el.innerHTML = d.clock_domains.map(c => `
+      <div class="tsn-row d-flex justify-content-between align-items-center">
+        <div>
+          <div class="tsn-name">${c.domain_id} <span class="tsn-status st-${c.status}">${c.status}</span></div>
+          <div class="tsn-detail">
+            <span>GM: ${c.gm_identity || '-'}</span>
+            <span>Accuracy: ${c.sync_accuracy_ns} ns</span>
+            <span>Holdover: ${c.holdover_capability_s} s</span>
+            <span>Last sync: ${c.last_sync_at || 'never'}</span>
+          </div>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-outline-info me-1" onclick="tsnSyncStatus(${c.id})">Sync Status</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="tsnDeleteClock(${c.id})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  });
+
+  // Gate schedules
+  fetch('/api/tsn/gate-schedules').then(r=>r.json()).then(d => {
+    if (!d.ok) return;
+    const el = document.getElementById('tsnGateList');
+    if (!d.gate_schedules.length) { el.innerHTML = '<small class="text-muted">No gate schedules configured</small>'; return; }
+    el.innerHTML = d.gate_schedules.map(g => {
+      const pct = g.cycle_time_ns > 0 ? Math.round(g.duration_ns / g.cycle_time_ns * 100) : 0;
+      return `
+      <div class="tsn-row d-flex justify-content-between align-items-center">
+        <div style="flex:1">
+          <div class="tsn-detail mb-1">
+            <span>Stream: ${g.stream_id}</span>
+            <span>State: <span class="tsn-status gate-${g.gate_state}">${g.gate_state}</span></span>
+            <span>Start: ${g.start_time_ns} ns</span>
+            <span>Duration: ${g.duration_ns} ns</span>
+            <span>Cycle: ${g.cycle_time_ns} ns</span>
+          </div>
+          <div class="gate-bar gate-${g.gate_state}" style="width:${Math.max(pct, 5)}%">${pct}%</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger ms-2" onclick="tsnDeleteGate(${g.id})">Delete</button>
+      </div>`;
+    }).join('');
+  });
+}
+
+function tsnCreateBridge() {
+  const body = {
+    bridge_id: document.getElementById('tsnBridgeId').value.trim(),
+    name: document.getElementById('tsnBridgeName').value.trim(),
+    ds_tt_port: document.getElementById('tsnDsTt').value.trim(),
+    nw_tt_port: document.getElementById('tsnNwTt').value.trim(),
+    vlan_id: parseInt(document.getElementById('tsnVlan').value) || null,
+  };
+  if (!body.bridge_id) return alert('Bridge ID required');
+  fetch('/api/tsn/bridges', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d => { if (d.ok) tsnLoad(); else alert(d.error); });
+}
+
+function tsnDeleteBridge(id) {
+  if (!confirm('Delete this bridge?')) return;
+  fetch('/api/tsn/bridges/'+id, {method:'DELETE'}).then(()=>tsnLoad());
+}
+
+function tsnCreateStream() {
+  const body = {
+    stream_id: document.getElementById('tsnStreamId').value.trim(),
+    bridge_id: parseInt(document.getElementById('tsnStreamBridge').value),
+    traffic_class: parseInt(document.getElementById('tsnStreamTc').value) || 0,
+    priority: parseInt(document.getElementById('tsnStreamPri').value) || 0,
+    max_frame_size: parseInt(document.getElementById('tsnStreamFrame').value) || 1522,
+    interval_us: parseInt(document.getElementById('tsnStreamInterval').value) || 1000,
+  };
+  if (!body.stream_id || !body.bridge_id) return alert('Stream ID and Bridge required');
+  fetch('/api/tsn/streams', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d => { if (d.ok) tsnLoad(); else alert(d.error); });
+}
+
+function tsnDeleteStream(id) {
+  if (!confirm('Delete this stream?')) return;
+  fetch('/api/tsn/streams/'+id, {method:'DELETE'}).then(()=>tsnLoad());
+}
+
+function tsnCreateClockDomain() {
+  const body = {
+    domain_id: document.getElementById('tsnClockDomId').value.trim(),
+    gm_identity: document.getElementById('tsnClockGm').value.trim(),
+    sync_accuracy_ns: parseInt(document.getElementById('tsnClockAccuracy').value) || 100,
+    holdover_capability_s: parseInt(document.getElementById('tsnClockHoldover').value) || 3600,
+  };
+  if (!body.domain_id) return alert('Domain ID required');
+  fetch('/api/tsn/clock-domains', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d => { if (d.ok) tsnLoad(); else alert(d.error); });
+}
+
+function tsnDeleteClock(id) {
+  if (!confirm('Delete this clock domain?')) return;
+  fetch('/api/tsn/clock-domains/'+id, {method:'DELETE'}).then(()=>tsnLoad());
+}
+
+function tsnSyncStatus(id) {
+  fetch('/api/tsn/clock-domains/'+id+'/sync-status').then(r=>r.json()).then(d => {
+    if (!d.ok) return alert('Error fetching sync status');
+    let msg = 'Status: ' + (d.sync_status?.status || 'unknown');
+    if (d.time_error) {
+      msg += '\nTime error: ' + d.time_error.time_error_ns + ' ns';
+      msg += '\nBounded: ' + d.time_error.bounded;
+    }
+    alert(msg);
+  });
+}
+
+function tsnCreateGate() {
+  const body = {
+    stream_id: parseInt(document.getElementById('tsnGateStream').value),
+    gate_state: document.getElementById('tsnGateState').value,
+    start_time_ns: parseInt(document.getElementById('tsnGateStart').value) || 0,
+    duration_ns: parseInt(document.getElementById('tsnGateDuration').value) || 500000,
+    cycle_time_ns: parseInt(document.getElementById('tsnGateCycle').value) || 1000000,
+  };
+  if (!body.stream_id) return alert('Stream ID required');
+  fetch('/api/tsn/gate-schedules', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d => { if (d.ok) tsnLoad(); else alert(d.error); });
+}
+
+function tsnDeleteGate(id) {
+  if (!confirm('Delete this gate schedule?')) return;
+  fetch('/api/tsn/gate-schedules/'+id, {method:'DELETE'}).then(()=>tsnLoad());
+}
+
+// Auto-load when tab shown
+document.addEventListener('shown.bs.tab', e => {
+  if (e.target.getAttribute('href') === '#tsn-tab') tsnLoad();
+});
+</script>

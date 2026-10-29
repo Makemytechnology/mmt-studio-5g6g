@@ -1,0 +1,382 @@
+<!-- templates/utils.html -->
+
+<h5 class="mb-3">System Utilities</h5>
+
+<!-- Database Section -->
+<div class="accordion mb-3" id="utilsDbAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="utilsDbToggle" class="accordion-button bg-danger text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="utilsDbBody">
+        <div class="w-100">Database</div>
+      </button>
+    </h2>
+    <div id="utilsDbBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <!-- Reset levels: explain the three destructive actions before
+             showing the buttons so the operator picks the right blast
+             radius. Ordered narrowest → widest. -->
+        <div class="alert alert-light border small mb-2 py-2">
+          <strong>Reset levels (narrowest → widest):</strong>
+          <ul class="mb-0 ps-3">
+            <li><strong>Wipe Data</strong> — truncate user-data tables (UEs,
+                PDU sessions, IMS regs, …). Schema + bootstrap rows (PLMN,
+                GUAMI) kept. sacore stays up. ≈ 1&nbsp;s.</li>
+            <li><strong>Remove DB File &amp; Reset to Baseline</strong> —
+                delete <code>sacore.db</code> (+ WAL siblings), exit, let
+                docker restart sacore. Cold boot re-runs
+                <code>EnsureSchema</code> + <code>SeedAll</code> from
+                <code>db/seed/baseline.yaml</code> (128 UEs, 3 slices, 5
+                DNNs, IMS subs). ≈ 5–10&nbsp;s.</li>
+            <li><strong>Restart sacore</strong> — process restart only.
+                DB preserved; recycles every in-memory cache + NF socket.
+                For boot-only config changes. ≈ 5&nbsp;s.</li>
+          </ul>
+        </div>
+        <!-- DB Actions -->
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <button id="btnDropDb" type="button" class="btn btn-warning btn-sm"
+                    title="Truncate user-data tables; sacore stays up; ~1 s">
+              Wipe Data
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnResetBaseline" type="button" class="btn btn-danger btn-sm"
+                    title="Delete sacore.db (+WAL) and restart; cold boot re-seeds from db/seed/baseline.yaml (128 UEs, 3 slices, 5 DNNs)">
+              Remove DB File &amp; Reset to Baseline
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnRestartSacore" type="button" class="btn btn-outline-danger btn-sm"
+                    title="Restart sacore process; DB preserved; recycles caches + NF sockets">
+              Restart sacore
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnClearSessions" type="button" class="btn btn-warning btn-sm">
+              Clear PDU Sessions
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnClearImsReg" type="button" class="btn btn-warning btn-sm">
+              Clear IMS Registrations
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnExportDb" type="button" class="btn btn-outline-primary btn-sm">
+              Export DB (SQL)
+            </button>
+          </div>
+        </div>
+        <div id="dbActionResult" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Network / NF Section -->
+<div class="accordion mb-3" id="utilsNfAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="utilsNfToggle" class="accordion-button bg-primary text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="utilsNfBody">
+        <div class="w-100">Network Functions</div>
+      </button>
+    </h2>
+    <div id="utilsNfBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="nfStatusBody" class="mb-3 small">
+          <div class="text-muted">Loading...</div>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <button id="btnFlushUeCtx" type="button" class="btn btn-warning btn-sm">
+              Clear All UE Contexts
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnResetIpPools" type="button" class="btn btn-warning btn-sm">
+              Reset IP Pools
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnFlushXfrm" type="button" class="btn btn-outline-danger btn-sm">
+              Flush IPsec (xfrm)
+            </button>
+          </div>
+          <div class="col-auto">
+            <button id="btnRefreshNf" type="button" class="btn btn-outline-secondary btn-sm">
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div id="nfActionResult" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- System Info Section -->
+<div class="accordion mb-3" id="utilsSysAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button id="utilsSysToggle" class="accordion-button bg-success text-white fw-bold" type="button"
+              aria-expanded="true" aria-controls="utilsSysBody">
+        <div class="w-100">System Info</div>
+      </button>
+    </h2>
+    <div id="utilsSysBody" class="accordion-collapse collapse show">
+      <div class="accordion-body py-2">
+        <div id="sysInfoBody" class="small">
+          <div class="text-muted">Loading...</div>
+        </div>
+        <div class="mt-2">
+          <button id="btnRefreshSys" type="button" class="btn btn-outline-secondary btn-sm">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .util-stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px 16px; font-size: 13px;
+  }
+  .util-stat-item { display: flex; justify-content: space-between; padding: 3px 8px; background: #f8f9fa; border-radius: 4px; }
+  .util-stat-label { font-weight: 600; color: #555; }
+  .util-stat-value { font-family: 'Consolas','Courier New',monospace; color: #222; }
+  .util-nf-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .util-nf-badge { font-size: 11px; padding: 2px 8px; border-radius: 3px; font-weight: 600; }
+  .nf-up { background: #d1e7dd; color: #0f5132; }
+  .nf-down { background: #f8d7da; color: #842029; }
+</style>
+
+<script>
+(function(){
+  const init = () => {
+
+    /* ── Accordion toggles ── */
+    for (const [btnId, colId] of [
+      ['utilsDbToggle','utilsDbBody'],
+      ['utilsNfToggle','utilsNfBody'],
+      ['utilsSysToggle','utilsSysBody'],
+    ]) {
+      const btn = document.getElementById(btnId);
+      const col = document.getElementById(colId);
+      if (btn && !btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        const inst = window.bootstrap.Collapse.getOrCreateInstance(col, {toggle:false});
+        btn.addEventListener('click', () => inst.toggle());
+      }
+    }
+
+    const esc = (s) => {
+      if (s == null) return '-';
+      const d = document.createElement('span');
+      d.textContent = String(s);
+      return d.outerHTML;
+    };
+
+    const showResult = (elemId, msg, ok) => {
+      const el = document.getElementById(elemId);
+      el.innerHTML = `<div class="alert alert-${ok ? 'success' : 'danger'} py-1 px-2 mb-0">${esc(msg)}</div>`;
+      setTimeout(() => el.innerHTML = '', 5000);
+    };
+
+    const postAction = async (url, body, resultElemId, confirmMsg) => {
+      if (confirmMsg && !confirm(confirmMsg)) return;
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body || {}),
+        });
+        const d = await r.json();
+        showResult(resultElemId, d.message || d.error || JSON.stringify(d), r.ok);
+        return d;
+      } catch(e) {
+        showResult(resultElemId, e.message, false);
+      }
+    };
+
+    /* ── NF Status ── */
+    const loadNfStatus = async () => {
+      try {
+        const r = await fetch('/api/admin/nf-status');
+        const d = await r.json();
+        let html = '<div>';
+        for (const nf of (d.nfs || [])) {
+          const cls = nf.running ? 'nf-up' : 'nf-down';
+          const label = nf.running ? 'RUNNING' : 'STOPPED';
+          html += `<div class="util-nf-row">`;
+          html += `<span class="util-nf-badge ${cls}">${label}</span>`;
+          html += `<strong>${esc(nf.name)}</strong>`;
+          if (nf.detail) html += ` <span class="text-muted">${esc(nf.detail)}</span>`;
+          html += `</div>`;
+        }
+        html += '</div>';
+        document.getElementById('nfStatusBody').innerHTML = html;
+      } catch(e) {
+        document.getElementById('nfStatusBody').innerHTML = '<div class="text-danger">Failed to load</div>';
+      }
+    };
+
+    /* ── System Info ── */
+    const loadSysInfo = async () => {
+      try {
+        const r = await fetch('/api/admin/sys-info');
+        const d = await r.json();
+        let html = '<div class="util-stat-grid">';
+        for (const [k, v] of Object.entries(d)) {
+          if (k === 'error') continue;
+          html += `<div class="util-stat-item"><span class="util-stat-label">${esc(k)}</span><span class="util-stat-value">${esc(v)}</span></div>`;
+        }
+        html += '</div>';
+        document.getElementById('sysInfoBody').innerHTML = html;
+      } catch(e) {
+        document.getElementById('sysInfoBody').innerHTML = '<div class="text-danger">Failed to load</div>';
+      }
+    };
+
+    /* ── Button handlers ── */
+    document.getElementById('btnDropDb').addEventListener('click', async () => {
+      await postAction('/api/admin/drop-db-data', {}, 'dbActionResult',
+        'This will DELETE all data and recreate tables. Are you sure?');
+    });
+
+    /* Reset-to-baseline drops the on-disk DB and exits the process so
+       docker restart-policy brings sacore back up, at which point
+       SeedAll re-applies db/seed/baseline.yaml from scratch. The HTTP
+       response races the os.Exit, so we (a) fire-and-tolerate the
+       request and (b) poll the boot_id from /api/admin/sys-info — when
+       it changes, the fresh process is up and we refresh stats. */
+    document.getElementById('btnResetBaseline').addEventListener('click', async () => {
+      if (!confirm('Drop the DB and re-seed from baseline.yaml? sacore will restart (~5-10 s). All sessions and registrations will be wiped.')) return;
+      const resultEl = document.getElementById('dbActionResult');
+      resultEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">Capturing pre-reset boot_id…</div>';
+      let preBootId = null;
+      try {
+        const r = await fetch('/api/admin/sys-info');
+        const d = await r.json();
+        preBootId = d.boot_id || null;
+      } catch(e) { /* sys-info may not be reachable mid-restart; non-fatal */ }
+
+      resultEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">Requesting reset…</div>';
+      // Fire-and-tolerate — server exits before responding.
+      try {
+        await fetch('/api/admin/remove-db-file', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: '{}',
+        });
+      } catch(e) { /* expected: connection drops as the process exits */ }
+
+      resultEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">Restarting sacore — waiting for fresh boot_id…</div>';
+      const deadline = Date.now() + 60_000;
+      while (Date.now() < deadline) {
+        await new Promise(res => setTimeout(res, 1000));
+        try {
+          const r = await fetch('/api/admin/sys-info', {cache: 'no-store'});
+          if (!r.ok) continue;
+          const d = await r.json();
+          if (d.boot_id && d.boot_id !== preBootId) {
+            resultEl.innerHTML = '<div class="alert alert-success py-1 px-2 mb-0">Reset complete — baseline re-seeded. New boot_id: ' + esc(d.boot_id) + '</div>';
+            setTimeout(() => { resultEl.innerHTML = ''; }, 7000);
+            loadNfStatus(); loadSysInfo();
+            return;
+          }
+        } catch(e) { /* still down; keep polling */ }
+      }
+      resultEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0">Timed out waiting for sacore to come back. Check container logs.</div>';
+    });
+
+    /* Restart-without-wipe — preserves DB. Same boot_id-poll pattern as
+       Reset to Baseline since the process also exits. */
+    document.getElementById('btnRestartSacore').addEventListener('click', async () => {
+      if (!confirm('Restart sacore? DB will be preserved. All in-memory caches and NF sockets recycle. ~5 s downtime.')) return;
+      const resultEl = document.getElementById('dbActionResult');
+      let preBootId = null;
+      try {
+        const r = await fetch('/api/admin/sys-info');
+        preBootId = (await r.json()).boot_id || null;
+      } catch(e) { /* non-fatal */ }
+      resultEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">Restarting sacore — waiting for fresh boot_id…</div>';
+      try {
+        await fetch('/api/admin/restart', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+      } catch(e) { /* expected: connection drops as the process exits */ }
+      const deadline = Date.now() + 60_000;
+      while (Date.now() < deadline) {
+        await new Promise(res => setTimeout(res, 1000));
+        try {
+          const r = await fetch('/api/admin/sys-info', {cache: 'no-store'});
+          if (!r.ok) continue;
+          const d = await r.json();
+          if (d.boot_id && d.boot_id !== preBootId) {
+            resultEl.innerHTML = '<div class="alert alert-success py-1 px-2 mb-0">Restart complete — DB preserved. New boot_id: ' + esc(d.boot_id) + '</div>';
+            setTimeout(() => { resultEl.innerHTML = ''; }, 7000);
+            loadNfStatus(); loadSysInfo();
+            return;
+          }
+        } catch(e) { /* still down; keep polling */ }
+      }
+      resultEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0">Timed out waiting for sacore to come back. Check container logs.</div>';
+    });
+
+    document.getElementById('btnClearSessions').addEventListener('click', async () => {
+      await postAction('/api/admin/clear-pdu-sessions', {}, 'dbActionResult',
+        'Clear all PDU sessions from DB and reset IP pools?');
+    });
+
+    document.getElementById('btnClearImsReg').addEventListener('click', async () => {
+      await postAction('/api/admin/clear-ims-registrations', {}, 'dbActionResult',
+        'Clear all IMS registrations?');
+    });
+
+    document.getElementById('btnExportDb').addEventListener('click', () => {
+      window.location.href = '/api/admin/export-db';
+    });
+
+    document.getElementById('btnFlushUeCtx').addEventListener('click', async () => {
+      await postAction('/api/admin/flush-ue-contexts', {}, 'nfActionResult',
+        'Remove all in-memory UE contexts? Connected UEs will need to re-register.');
+      loadNfStatus();
+    });
+
+    document.getElementById('btnResetIpPools').addEventListener('click', async () => {
+      await postAction('/api/admin/reset-ip-pools', {}, 'nfActionResult',
+        'Reset IP allocator pools? Active sessions will lose connectivity.');
+      loadNfStatus();
+    });
+
+    document.getElementById('btnFlushXfrm').addEventListener('click', async () => {
+      await postAction('/api/admin/flush-xfrm', {}, 'nfActionResult',
+        'Flush all IPsec xfrm state/policies?');
+    });
+
+    document.getElementById('btnRefreshNf').addEventListener('click', loadNfStatus);
+    document.getElementById('btnRefreshSys').addEventListener('click', loadSysInfo);
+
+    /* ── Tab visibility — load when active ── */
+    const tabPane = document.getElementById('admin-utils');
+    if (tabPane) {
+      const observer = new MutationObserver(() => {
+        if (tabPane.classList.contains('active')) {
+          loadNfStatus(); loadSysInfo();
+        }
+      });
+      observer.observe(tabPane, {attributes: true, attributeFilter: ['class']});
+    }
+
+    /* ── Initial load ── */
+    loadNfStatus(); loadSysInfo();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

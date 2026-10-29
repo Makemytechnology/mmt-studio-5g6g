@@ -1,0 +1,9 @@
+*.log
+*.pid
+.DS_Store
+.vscode
+.idea
+*.swp
+
+# Output of tools/release/publish-mono.sh dry-runs
+release-tmp/
